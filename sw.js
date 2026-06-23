@@ -5,12 +5,12 @@ const CACHE = 'magic-helper-v1';
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/data/logo.png',
-  '/data/coin-plat.png',
-  '/data/coin-krone.png',
-  '/data/image_a8185c.png',
-  '/data/image_a81806.png',
-  '/data/image.png'
+  '/logo.png',
+  '/coin-plat.png',
+  '/coin-krone.png',
+  '/image_a8185c.png',
+  '/image_a81806.png',
+  '/image.png'
 ];
 
 // Install: pre-cache the app shell
