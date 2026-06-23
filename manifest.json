@@ -2,7 +2,7 @@
   "name": "Magic Helper",
   "short_name": "Magic Helper",
   "description": "MTG life counter, kortscanner, prisliste og bytte-kalkulator",
-  "start_url": "/",
+  "start_url": "/Magic-Helper/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#0c0e18",

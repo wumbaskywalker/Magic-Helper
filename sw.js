@@ -3,14 +3,14 @@
 const CACHE = 'magic-helper-v1';
 
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/logo.png',
-  '/coin-plat.png',
-  '/coin-krone.png',
-  '/image_a8185c.png',
-  '/image_a81806.png',
-  '/image.png'
+  '/Magic-Helper/',
+  '/Magic-Helper/index.html',
+  '/Magic-Helper/logo.png',
+  '/Magic-Helper/coin-plat.png',
+  '/Magic-Helper/coin-krone.png',
+  '/Magic-Helper/image_a8185c.png',
+  '/Magic-Helper/image_a81806.png',
+  '/Magic-Helper/image.png'
 ];
 
 // Install: pre-cache the app shell
