@@ -186,6 +186,59 @@
             border-radius: var(--r-md); border: 1px solid var(--border-lit);
         }
 
+        /* ── COLLECTION ── */
+        .collection-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px;
+        }
+        .collection-stats { font-size: 13px; color: var(--muted); }
+        .collection-stats strong { color: var(--text); }
+        .collection-search {
+            width: 100%; padding: 10px 14px; background: var(--bg-input);
+            border: 1px solid var(--border); border-radius: var(--r-sm);
+            color: var(--text); font-size: 15px; margin-bottom: 14px;
+        }
+        .collection-grid {
+            display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+            margin-bottom: 16px;
+        }
+        .col-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--r-md); overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+        .col-card img {
+            width: 100%; aspect-ratio: 5/7; object-fit: cover;
+            display: block; background: var(--bg-input);
+        }
+        .col-card-body { padding: 7px 8px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .col-card-name { font-size: 11px; font-weight: 700; line-height: 1.3; word-break: break-word; }
+        .col-card-set  { font-size: 9px; color: var(--accent); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+        .col-card-price { font-size: 11px; color: var(--gold); font-weight: 700; }
+        .col-qty-row {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 4px;
+        }
+        .col-qty-btn {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: var(--bg-input); border: 1px solid var(--border-lit);
+            color: var(--text); font-size: 16px; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            line-height: 1; padding: 0;
+        }
+        .col-qty-btn:active { transform: scale(.9); }
+        .col-qty-num { font-size: 14px; font-weight: 700; }
+        .col-del-btn {
+            width: 100%; margin-top: 6px; padding: 5px; border-radius: var(--r-sm);
+            background: rgba(231,76,60,.15); border: 1px solid rgba(231,76,60,.3);
+            color: var(--red); font-size: 11px; font-weight: 700; cursor: pointer;
+        }
+        .col-del-btn:active { background: rgba(231,76,60,.35); }
+        .col-empty {
+            text-align: center; color: var(--muted); padding: 48px 20px;
+            font-size: 15px; line-height: 1.7;
+        }
+
         /* ── TRADE ── */
         .trade-cols { display: flex; gap: 10px; }
         .trade-col {
@@ -751,11 +804,11 @@
             z-index: 200; backdrop-filter: blur(12px);
         }
         nav div {
-            flex: 1; text-align: center; font-size: 11px; color: var(--muted);
+            flex: 1; text-align: center; font-size: 10px; color: var(--muted);
             cursor: pointer; padding: 6px 0; transition: color var(--tr);
         }
         nav div.active { color: var(--gold-lt); }
-        nav div i { display: block; font-size: 23px; margin-bottom: 4px; }
+        nav div i { display: block; font-size: 20px; margin-bottom: 3px; }
         nav div.active i { filter: drop-shadow(0 0 5px var(--gold)); }
 
         /* ── TOAST ── */
@@ -814,6 +867,9 @@
                 <i class="fa-solid fa-plus"></i> Tilføj til Liste
             </button>
         </div>
+        <button class="app-btn" style="background:#1a2a1a;border:1px solid #2e5c2e;color:#5dcc7a;margin-top:8px;" onclick="addToCollection()">
+            <i class="fa-solid fa-box-archive"></i> Gem i Samling
+        </button>
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
             <span class="muted-text" style="font-weight:700;">Udgave / Artwork:</span>
@@ -933,6 +989,45 @@
         <button class="app-btn btn-purple" style="width:auto;padding:10px 26px;" onclick="clearTrade()">
             <i class="fa-solid fa-rotate-left"></i> Ryd Handel
         </button>
+    </div>
+</main>
+
+<!-- ══ COLLECTION ══ -->
+<main id="view-collection" class="view-section">
+    <h2 class="section-title">Min Samling</h2>
+
+    <div class="collection-header">
+        <div class="collection-stats">
+            <strong id="col-count">0</strong> kort &nbsp;·&nbsp; Total: <strong id="col-total" class="price-text">0.00</strong>
+        </div>
+        <div style="display:flex;gap:6px;">
+            <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="exportCollectionCSV()">
+                <i class="fa-solid fa-file-export"></i> Eksport
+            </button>
+            <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="document.getElementById('col-import-input').click()">
+                <i class="fa-solid fa-file-import"></i> Importer
+            </button>
+            <input type="file" id="col-import-input" accept=".csv" style="display:none" onchange="importCollectionCSV(this)">
+        </div>
+    </div>
+
+    <input type="text" class="collection-search" id="col-search"
+           placeholder="🔍 Søg i samling…" oninput="filterCollection(this.value)">
+
+    <div id="col-grid" class="collection-grid"></div>
+
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">SIKKERHEDSKOPI</div>
+        <div style="display:flex;gap:8px;">
+            <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="downloadBackup()">
+                <i class="fa-solid fa-cloud-arrow-down"></i> Download backup
+            </button>
+            <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="document.getElementById('col-restore-input').click()">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Gendan backup
+            </button>
+            <input type="file" id="col-restore-input" accept=".json" style="display:none" onchange="restoreBackup(this)">
+        </div>
+        <div id="storage-persist-status" style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center;display:none;"></div>
     </div>
 </main>
 
@@ -1162,6 +1257,9 @@
     <div onclick="switchView('trade',this)">
         <i class="fa-solid fa-scale-balanced"></i>Bytte
     </div>
+    <div onclick="switchView('collection',this)">
+        <i class="fa-solid fa-box-archive"></i>Samling
+    </div>
     <div onclick="switchView('play',this)">
         <i class="fa-solid fa-heart-pulse"></i>Life
     </div>
@@ -1244,7 +1342,7 @@ function changeCurrency(v) {
         renderVariants();
         selectVariant(Math.max(0, currentVariants.findIndex(x => x.id === currentCard?.id)));
     }
-    updateListView(); updateTradeUI();
+    updateListView(); updateTradeUI(); updateCollectionView();
 }
 
 // ═══════════════════════════════════════════════
@@ -1306,6 +1404,7 @@ function switchView(name, el) {
     } else {
         releaseWakeLock();
     }
+    if (name === 'collection') requestPersistentStorage();
 }
 
 // ═══════════════════════════════════════════════
@@ -2075,6 +2174,245 @@ function triggerLightning() {
     mf.classList.remove('flashing'); void mf.offsetWidth; mf.classList.add('flashing');
     setTimeout(()=>{ lo.style.display='none'; lo.classList.remove('active'); mf.classList.remove('flashing'); }, 900);
 }
+
+// ═══════════════════════════════════════════════
+//  COLLECTION
+// ═══════════════════════════════════════════════
+let collection = JSON.parse(localStorage.getItem('mtg_collection') || '[]');
+const saveCollection = () => localStorage.setItem('mtg_collection', JSON.stringify(collection));
+
+function addToCollection() {
+    if (!currentCard) return;
+    const amt = parseInt(document.getElementById('add-amount').value) || 1;
+    const ex = collection.find(x => x.id === currentCard.id);
+    if (ex) {
+        ex.qty += amt;
+    } else {
+        collection.push({
+            id: currentCard.id,
+            name: currentCard.name,
+            set: currentCard.set,
+            setName: currentCard.setName || currentCard.set,
+            qty: amt,
+            price: currentCard.price,
+            img: currentCard.img,
+            addedAt: Date.now()
+        });
+    }
+    saveCollection();
+    updateCollectionView();
+    vib(40);
+    toast(`${amt}× ${currentCard.name} gemt i samling!`);
+}
+
+function changeColQty(id, delta) {
+    const item = collection.find(x => x.id === id);
+    if (!item) return;
+    item.qty = Math.max(1, item.qty + delta);
+    saveCollection();
+    updateCollectionView(document.getElementById('col-search').value);
+}
+
+function removeFromCollection(id) {
+    collection = collection.filter(x => x.id !== id);
+    saveCollection();
+    updateCollectionView(document.getElementById('col-search').value);
+}
+
+function filterCollection(query) {
+    updateCollectionView(query);
+}
+
+function updateCollectionView(query = '') {
+    const grid = document.getElementById('col-grid');
+    const q = query.toLowerCase().trim();
+    const filtered = q ? collection.filter(x =>
+        x.name.toLowerCase().includes(q) || (x.setName||x.set).toLowerCase().includes(q)
+    ) : collection;
+
+    // Update stats (always from full collection)
+    const totalQty = collection.reduce((s, x) => s + x.qty, 0);
+    const totalVal = collection.reduce((s, x) => s + (x.price > 0 ? x.price * x.qty : 0), 0);
+    document.getElementById('col-count').innerText = totalQty;
+    document.getElementById('col-total').innerText = fmt(totalVal);
+
+    if (!collection.length) {
+        grid.innerHTML = `<div class="col-empty" style="grid-column:1/-1;">
+            📦 Samlingen er tom.<br>Søg et kort og tryk<br><strong>"Gem i Samling"</strong>.
+        </div>`;
+        return;
+    }
+    if (!filtered.length) {
+        grid.innerHTML = `<div class="col-empty" style="grid-column:1/-1;">Ingen kort matcher søgningen.</div>`;
+        return;
+    }
+
+    grid.innerHTML = '';
+    filtered.forEach(item => {
+        const lineTotal = item.price > 0 ? fmt(item.price * item.qty) : '–';
+        const el = document.createElement('div');
+        el.className = 'col-card';
+        el.innerHTML = `
+            <img src="${item.img||''}" alt="${item.name}" loading="lazy"
+                 onerror="this.style.background='var(--bg-input)';this.style.minHeight='80px'">
+            <div class="col-card-body">
+                <div class="col-card-name">${item.name}</div>
+                <div class="col-card-set">${item.setName||item.set}</div>
+                <div class="col-card-price">${lineTotal}</div>
+                <div class="col-qty-row">
+                    <button class="col-qty-btn" onclick="changeColQty('${item.id}',-1)">−</button>
+                    <span class="col-qty-num">${item.qty}</span>
+                    <button class="col-qty-btn" onclick="changeColQty('${item.id}',1)">+</button>
+                </div>
+                <button class="col-del-btn" onclick="removeFromCollection('${item.id}')">🗑 Fjern</button>
+            </div>`;
+        grid.appendChild(el);
+    });
+}
+updateCollectionView();
+
+function importCollectionCSV(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const lines = e.target.result.split('\n').map(l => l.trim()).filter(l => l);
+        // Skip header row
+        const dataLines = lines.slice(1);
+        let imported = 0, skipped = 0;
+        dataLines.forEach(line => {
+            // Parse CSV (handles quoted fields)
+            const cols = line.match(/(".*?"|[^,]+)(?=,|$)/g);
+            if (!cols || cols.length < 3) return;
+            const name  = cols[0].replace(/^"|"$/g,'').replace(/""/g,'"').trim();
+            const set   = cols[1].replace(/^"|"$/g,'').replace(/""/g,'"').trim();
+            const qty   = parseInt(cols[2]) || 1;
+            const price = parseFloat(cols[3]) || 0;
+            if (!name) { skipped++; return; }
+            // Use name as unique key for imported cards (no Scryfall id)
+            const key = name.toLowerCase() + '|' + set.toLowerCase();
+            const ex = collection.find(x => (x.name.toLowerCase()+'|'+(x.setName||x.set).toLowerCase()) === key);
+            if (ex) {
+                ex.qty += qty;
+            } else {
+                collection.push({
+                    id: 'import_' + Date.now() + '_' + imported,
+                    name, set: set.substring(0,4).toUpperCase(),
+                    setName: set, qty, price,
+                    img: '', addedAt: Date.now()
+                });
+            }
+            imported++;
+        });
+        saveCollection();
+        updateCollectionView();
+        input.value = '';
+        toast(`${imported} kort importeret!${skipped ? ' ' + skipped + ' sprunget over.' : ''}`);
+    };
+    reader.readAsText(file, 'UTF-8');
+}
+
+function exportCollectionCSV() {
+    if (!collection.length) return toast('Samlingen er tom!', '#e74c3c');
+    const cur = currency === 'DKK' ? 'kr.' : currency === 'USD' ? '$' : '€';
+    const toLocal = eur => {
+        if (eur <= 0) return 0;
+        if (currency === 'DKK') return +(eur * rates.DKK).toFixed(2);
+        if (currency === 'USD') return +(eur * rates.USD).toFixed(2);
+        return +eur.toFixed(2);
+    };
+    const rows = [['Navn','Sæt','Antal',`Stykpris (${cur})`,`Total (${cur})`]];
+    const grandTotal = collection.reduce((s,x) => s + toLocal(x.price) * x.qty, 0);
+    collection.forEach(x => {
+        const unit  = toLocal(x.price);
+        const total = +(unit * x.qty).toFixed(2);
+        rows.push([x.name, x.setName||x.set, x.qty, unit.toFixed(2), total.toFixed(2)]);
+    });
+    rows.push(['','','TOTAL','', grandTotal.toFixed(2)]);
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'mtg-samling.csv'; a.click();
+    URL.revokeObjectURL(url);
+    toast('CSV downloadet!');
+}
+
+// ═══════════════════════════════════════════════
+//  BACKUP & RESTORE
+// ═══════════════════════════════════════════════
+function downloadBackup() {
+    const backup = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        collection,
+        priceList
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = `mtg-backup-${date}.json`; a.click();
+    URL.revokeObjectURL(url);
+    localStorage.setItem('mtg_last_backup', Date.now());
+    toast('Backup downloadet — gem filen i Filer-appen!');
+}
+
+function restoreBackup(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!data.version || !Array.isArray(data.collection)) {
+                throw new Error('Ugyldigt backup-format');
+            }
+            const colCount = data.collection.length;
+            const listCount = (data.priceList || []).length;
+            if (!confirm(`Gendan backup?\n\n${colCount} kort i samlingen\n${listCount} kort i prislisten\n\nDette overskriver din nuværende data.`)) return;
+            collection = data.collection;
+            if (data.priceList) { priceList = data.priceList; saveList(); updateListView(); }
+            saveCollection();
+            updateCollectionView();
+            input.value = '';
+            toast(`✅ Backup gendannet! ${colCount} kort indlæst.`);
+        } catch(err) {
+            toast('❌ Kunne ikke læse backup-filen.', '#e74c3c');
+        }
+    };
+    reader.readAsText(file, 'UTF-8');
+}
+
+// Request persistent storage so data survives cache clears
+async function requestPersistentStorage() {
+    if (!navigator.storage?.persist) return;
+    const already = await navigator.storage.persisted();
+    const el = document.getElementById('storage-persist-status');
+    if (already) {
+        el.innerHTML = '🔒 Data er beskyttet mod cache-rydning';
+        el.style.color = 'var(--green)'; el.style.display = 'block';
+        return;
+    }
+    const granted = await navigator.storage.persist();
+    if (granted) {
+        el.innerHTML = '🔒 Data er nu beskyttet mod cache-rydning';
+        el.style.color = 'var(--green)'; el.style.display = 'block';
+        toast('🔒 Data beskyttet! Ryd cache sletter ikke din samling.');
+    } else {
+        el.innerHTML = '⚠️ Beskyttelse ikke aktiveret — brug backup-knappen for at sikre data';
+        el.style.color = 'var(--gold)'; el.style.display = 'block';
+    }
+}
+
+// Remind user to back up if it's been more than 14 days
+(function checkBackupReminder() {
+    const last = parseInt(localStorage.getItem('mtg_last_backup') || '0');
+    const daysSince = (Date.now() - last) / (1000 * 60 * 60 * 24);
+    if (collection.length > 0 && daysSince > 14) {
+        setTimeout(() => toast('💾 Husk at tage en backup af din samling!', '#c9a84c'), 3000);
+    }
+})();
 
 // ═══════════════════════════════════════════════
 //  INIT
