@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Installer Magic Helper</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0c0e18;
+            color: #e8eaf2;
+            padding: 24px 20px 48px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        .logo {
+            display: block;
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            margin: 0 auto 16px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: #c9a84c;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7a80a0;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .tab-row {
+            display: flex;
+            border-radius: 12px;
+            background: #12141f;
+            padding: 4px;
+            gap: 4px;
+            margin-bottom: 24px;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s;
+            color: #7a80a0;
+        }
+        .tab.active {
+            background: #c9a84c;
+            color: #0c0e18;
+        }
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        .step {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .step-num {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            border-radius: 50%;
+            background: #c9a84c;
+            color: #0c0e18;
+            font-weight: 700;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .step-content { flex: 1; padding-top: 4px; }
+        .step-content strong { display: block; font-size: 15px; margin-bottom: 3px; }
+        .step-content span { font-size: 14px; color: #a0a6c0; line-height: 1.5; }
+        .step-content .pill {
+            display: inline-block;
+            background: #1e2133;
+            border: 1px solid #252840;
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 13px;
+            color: #e8eaf2;
+            margin-top: 2px;
+        }
+        .icon { font-size: 18px; vertical-align: middle; }
+
+        .url-box {
+            background: #1e2133;
+            border: 1px solid #252840;
+            border-radius: 10px;
+            padding: 12px 16px;
+            text-align: center;
+            font-size: 15px;
+            color: #4f7cff;
+            margin-bottom: 28px;
+            word-break: break-all;
+        }
+        .tip {
+            background: #12141f;
+            border-left: 3px solid #c9a84c;
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #a0a6c0;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid #252840;
+            margin: 24px 0;
+        }
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #7a80a0;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <img src="logo.png" alt="Magic Helper" class="logo">
+    <h1>Magic Helper</h1>
+    <p class="subtitle">Installer appen på din telefon — helt gratis</p>
+
+    <div class="url-box">wumbaskywalker.github.io/Magic-Helper</div>
+
+    <div class="tab-row">
+        <div class="tab active" onclick="show('iphone')">🍎 iPhone</div>
+        <div class="tab" onclick="show('android')">🤖 Android</div>
+    </div>
+
+    <!-- iPhone -->
+    <div class="panel active" id="panel-iphone">
+        <p class="section-label">Sådan installerer du på iPhone</p>
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+                <strong>Åbn Safari</strong>
+                <span>Det skal være Safari — ikke Chrome eller en anden browser.</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+                <strong>Gå til siden</strong>
+                <span>Skriv eller tryk på adressen øverst på siden.</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+                <strong>Tryk på Del-knappen</strong>
+                <span>Det er knappen med en <span class="pill">⬆ pil</span> i en firkant — den sidder nederst i midten af skærmen.</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+                <strong>Vælg "Føj til hjemmeskærm"</strong>
+                <span>Scroll lidt ned i menuen og tryk på <span class="pill">＋ Føj til hjemmeskærm</span>.</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-content">
+                <strong>Tryk "Tilføj"</strong>
+                <span>Appen dukker nu op på din hjemmeskærm ligesom en rigtig app.</span>
+            </div>
+        </div>
+
+        <div class="tip">
+            💡 Første gang du åbner appen fra hjemmeskærmen, skal du muligvis godkende adgang til kameraet for at kortscanneren virker.
+        </div>
+    </div>
+
+    <!-- Android -->
+    <div class="panel" id="panel-android">
+        <p class="section-label">Sådan installerer du på Android</p>
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+                <strong>Åbn Chrome</strong>
+                <span>Det skal være Google Chrome.</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+                <strong>Gå til siden</strong>
+                <span>Skriv eller tryk på adressen øverst på siden.</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+                <strong>Tryk på de tre prikker</strong>
+                <span>Find <span class="pill">⋮</span> øverst til højre i Chrome.</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+                <strong>Vælg "Tilføj til startskærm"</strong>
+                <span>Eller der kan stå <span class="pill">Installer app</span> — tryk på det.</span>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-content">
+                <strong>Bekræft</strong>
+                <span>Tryk "Tilføj" eller "Installer" i boksen der dukker op.</span>
+            </div>
+        </div>
+
+        <div class="tip">
+            💡 På mange Android-telefoner vises der automatisk et banner i bunden af Chrome med "Installer Magic Helper" — tryk bare på det!
+        </div>
+    </div>
+
+    <script>
+        function show(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
