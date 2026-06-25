@@ -371,82 +371,87 @@
         .players-3 .player-box:first-child       { transform: rotate(180deg); }
         .players-4 .player-box:nth-child(-n+2)   { transform: rotate(180deg); }
 
+
         .player-box {
-            position: relative; border-radius: var(--r-lg);
+            position: relative; border-radius: 16px;
             display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-            border: 2px solid var(--border); padding: 38px 7px 7px; overflow: hidden;
-            transition: border-color .3s;
+            border: 2.5px solid var(--border); padding: 7px 8px; overflow: hidden;
+            transition: border-color .3s, box-shadow .3s;
+            box-shadow: inset 0 0 40px rgba(0,0,0,.5);
         }
         .player-box.dead { filter: grayscale(1); opacity: .22; }
 
         .player-header {
-            position: absolute; top: 7px; left: 0; width: 100%;
-            padding: 0 9px; display: flex; justify-content: space-between;
-            align-items: center; gap: 6px;
+            width: 100%; padding: 4px 6px 5px;
+            display: flex; justify-content: space-between;
+            align-items: center; gap: 6px; flex-shrink: 0;
+            background: rgba(0,0,0,.35); backdrop-filter: blur(4px);
+            border-radius: 8px;
         }
         .player-name-input {
             background: transparent !important; border: none !important; color: #fff !important;
-            font-weight: 700 !important; font-size: clamp(11px, 2.5vw, 15px) !important;
+            font-weight: 800 !important; font-size: clamp(11px, 2.4vw, 14px) !important;
             padding: 0 !important; margin: 0 !important; outline: none !important;
-            flex: 1; text-shadow: 0 1px 4px rgba(0,0,0,.8); -webkit-user-select: auto;
+            flex: 1; text-shadow: 0 1px 6px rgba(0,0,0,.9); -webkit-user-select: auto;
+            letter-spacing: .03em; text-transform: uppercase;
         }
         .player-color-input {
-            width: 22px !important; height: 22px !important;
-            border: 2px solid rgba(255,255,255,.25) !important; padding: 0 !important;
+            width: 18px !important; height: 18px !important;
+            border: 2px solid rgba(255,255,255,.3) !important; padding: 0 !important;
             background: transparent !important; border-radius: 50% !important;
             cursor: pointer !important; overflow: hidden; flex-shrink: 0;
         }
 
         .life-controls {
             display: flex; align-items: center; justify-content: center;
-            width: 100%; flex: 1; gap: 4px;
+            width: 100%; flex: 1; gap: 6px; min-height: 0;
         }
         .life-val {
-            font-size: clamp(38px, 7.5vw, 76px);
+            font-size: clamp(48px, 10vw, 96px);
             font-weight: 900; line-height: 1; min-width: 2ch; text-align: center;
-            color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.8);
+            color: #fff; text-shadow: 0 0 20px rgba(255,255,255,.25), 0 2px 8px rgba(0,0,0,.9);
         }
         .life-btn {
-            width: clamp(30px, 6.5vw, 46px) !important; height: clamp(30px, 6.5vw, 46px) !important;
-            border-radius: 50% !important; border: none !important;
-            background: rgba(255,255,255,.12) !important; color: #fff !important;
-            font-size: clamp(16px, 3.5vw, 26px) !important;
+            width: clamp(28px, 6vw, 42px) !important; height: clamp(28px, 6vw, 42px) !important;
+            border-radius: 50% !important; border: 1.5px solid rgba(255,255,255,.18) !important;
+            background: rgba(255,255,255,.10) !important; color: #fff !important;
+            font-size: clamp(15px, 3.2vw, 24px) !important;
             cursor: pointer !important; display: flex !important;
             align-items: center !important; justify-content: center !important;
             padding: 0 !important; margin: 0 !important; flex-shrink: 0;
-            backdrop-filter: blur(4px) !important;
             -webkit-user-select: none; user-select: none;
             transition: background .12s, transform .1s !important;
         }
-        .life-btn:active { background: rgba(255,255,255,.28) !important; transform: scale(.91) !important; }
+        .life-btn:active { background: rgba(255,255,255,.30) !important; transform: scale(.88) !important; }
 
         .mini-btn {
-            width: 28px !important; height: 28px !important;
-            background: rgba(255,255,255,.1) !important; border: none !important;
-            color: #fff !important; font-size: 18px !important;
+            width: 24px !important; height: 24px !important;
+            background: rgba(255,255,255,.1) !important;
+            border: 1px solid rgba(255,255,255,.15) !important;
+            color: #fff !important; font-size: 15px !important;
             padding: 0 !important; margin: 0 !important; cursor: pointer !important;
             display: flex !important; align-items: center !important; justify-content: center !important;
             border-radius: 50% !important;
             -webkit-user-select: none; user-select: none;
             transition: background .1s !important;
         }
-        .mini-btn:active { background: rgba(255,255,255,.25) !important; }
+        .mini-btn:active { background: rgba(255,255,255,.28) !important; }
 
         .stats-row {
-            display: flex; flex-wrap: wrap; justify-content: center;
-            gap: 5px; margin-bottom: 5px; width: 100%; flex-shrink: 0;
+            display: flex; flex-wrap: nowrap; justify-content: center;
+            gap: 4px; margin-bottom: 4px; width: 100%; flex-shrink: 0;
         }
         .stat-badge {
-            display: flex; align-items: center; gap: 3px;
-            background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.08);
-            border-radius: 20px; padding: 3px 8px; height: 30px;
+            display: flex; align-items: center; gap: 2px;
+            background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.1);
+            border-radius: 20px; padding: 2px 7px; height: 26px;
         }
-        .stat-badge span { color: #fff; font-size: clamp(10px, 2vw, 13px); font-weight: 700; }
-        .stat-val { min-width: 16px; text-align: center; }
+        .stat-badge span { color: #fff; font-size: clamp(9px, 1.8vw, 12px); font-weight: 700; }
+        .stat-val { min-width: 14px; text-align: center; font-size: clamp(10px, 2vw, 13px); font-weight: 800; }
 
         .cmd-badges-container {
-            display: flex; flex-direction: column; width: 100%; gap: 3px;
-            overflow-y: auto; flex-shrink: 1; max-height: 42%;
+            display: flex; flex-direction: column; width: 100%; gap: 2px;
+            overflow-y: auto; flex-shrink: 1; max-height: 40%;
         }
         .cmd-badges-container::-webkit-scrollbar { display: none; }
 
@@ -2028,49 +2033,74 @@ function setColor(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.color=v;re
 function renderBoard(){
     const board=document.getElementById('game-board');
     board.className='play-area players-'+currentPC; board.innerHTML='';
-    gamePlayers.forEach(p=>{
+    gamePlayers.forEach((p, idx)=>{
+        // Spillere der er roteret 180° — for dem skal DOM-rækkefølgen vendes
+        // så poison/tax altid er visuelt OVER commander damage
+        const isRotated = (currentPC===2 && idx===0) ||
+                          (currentPC===3 && idx===0) ||
+                          (currentPC>=4 && idx<=1);
+
         const box=document.createElement('div');
         box.className='player-box'+(p.dead?' dead':''); box.dataset.pid=p.id;
         box.style.backgroundColor=p.color;
-        box.style.backgroundImage='linear-gradient(rgba(12,14,24,.82),rgba(6,8,16,.94))';
+        box.style.backgroundImage='linear-gradient(160deg,rgba(12,14,24,.78) 0%,rgba(4,6,14,.95) 100%)';
         box.style.borderColor=p.dead?'var(--red)':p.color;
+        box.style.boxShadow=p.dead?'none':`inset 0 0 30px rgba(0,0,0,.6), 0 0 10px ${p.color}44`;
+
         let cmd='';
         if(gameFormat==='commander'&&currentPC>1){
             gamePlayers.forEach(o=>{
                 if(o.id===p.id)return;
-                cmd+=`<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.45);border-left:3px solid ${o.color};border-radius:4px;padding:3px 6px;width:100%;box-sizing:border-box;">
-                    <span style="color:rgba(255,255,255,.6);font-size:clamp(9px,1.9vw,11px);font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">⚔️ ${o.name}</span>
-                    <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
-                        <button class="mini-btn" onpointerdown="adjCmd(${p.id},${o.id},-1)">-</button>
-                        <span style="font-weight:900;min-width:18px;text-align:center;color:#fff;font-size:clamp(11px,2.3vw,14px);">${p.cmdDmg[o.id]}</span>
+                const dmg = p.cmdDmg[o.id];
+                cmd+=`<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.4);border-left:3px solid ${o.color};border-radius:6px;padding:2px 6px;width:100%;box-sizing:border-box;gap:4px;">
+                    <span style="color:rgba(255,255,255,.65);font-size:clamp(9px,1.8vw,10px);font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em;">⚔ ${o.name}</span>
+                    <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
+                        <button class="mini-btn" onpointerdown="adjCmd(${p.id},${o.id},-1)">−</button>
+                        <span style="font-weight:900;min-width:20px;text-align:center;font-size:clamp(11px,2.3vw,14px);color:${dmg>0?'#ff7c7c':'rgba(255,255,255,.5)'};">${dmg}</span>
                         <button class="mini-btn" onpointerdown="adjCmd(${p.id},${o.id},1)">+</button>
                     </div>
                 </div>`;
             });
         }
-        box.innerHTML=`
-            <div class="player-header">
-                <input class="player-name-input" value="${p.name}" onchange="setName(${p.id},this.value)">
-                <input type="color" class="player-color-input" value="${p.color}" onchange="setColor(${p.id},this.value)">
-            </div>
-            <div class="life-controls">
+
+        const statsHTML = `<div class="stats-row">
+                <div class="stat-badge" style="flex-direction:column;height:auto;padding:4px 10px;gap:2px;">
+                    <span style="font-size:9px;color:rgba(255,255,255,.45);font-weight:700;letter-spacing:.05em;text-transform:uppercase;">☠️ Poison</span>
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <button class="mini-btn" onpointerdown="adjPoison(${p.id},-1)">−</button>
+                        <span class="stat-val" style="color:#1abc9c;font-size:14px;">${p.poison}</span>
+                        <button class="mini-btn" onpointerdown="adjPoison(${p.id},1)">+</button>
+                    </div>
+                </div>
+                ${gameFormat==='commander'?`<div class="stat-badge" style="flex-direction:column;height:auto;padding:4px 10px;gap:2px;">
+                    <span style="font-size:9px;color:rgba(255,255,255,.45);font-weight:700;letter-spacing:.05em;text-transform:uppercase;">👑 Tax</span>
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <button class="mini-btn" onpointerdown="adjTax(${p.id},-1)">−</button>
+                        <span class="stat-val" style="color:#f39c12;font-size:14px;">${p.tax}</span>
+                        <button class="mini-btn" onpointerdown="adjTax(${p.id},1)">+</button>
+                    </div>
+                </div>`:''}
+            </div>`;
+        const cmdHTML = `<div class="cmd-badges-container">${cmd}</div>`;
+
+        // Roterede spillere: cmd-damage i DOM FØR stats → visuelt set er stats øverst
+        // Ikke-roterede: stats i DOM FØRST → visuelt øverst
+        const lifeHTML = `<div class="life-controls">
                 <button class="life-btn" onpointerdown="startLP(${p.id},-1);adjLife(${p.id},-1)" onpointerup="endLP()" onpointerleave="endLP()">−</button>
                 <div class="life-val">${p.life}</div>
                 <button class="life-btn" onpointerdown="startLP(${p.id},1);adjLife(${p.id},1)" onpointerup="endLP()" onpointerleave="endLP()">+</button>
-            </div>
-            <div class="stats-row">
-                <div class="stat-badge"><span>☠️</span>
-                    <button class="mini-btn" onpointerdown="adjPoison(${p.id},-1)">-</button>
-                    <span class="stat-val" style="color:#1abc9c;">${p.poison}</span>
-                    <button class="mini-btn" onpointerdown="adjPoison(${p.id},1)">+</button>
-                </div>
-                ${gameFormat==='commander'?`<div class="stat-badge"><span>👑</span>
-                    <button class="mini-btn" onpointerdown="adjTax(${p.id},-1)">-</button>
-                    <span class="stat-val" style="color:#f39c12;">${p.tax}</span>
-                    <button class="mini-btn" onpointerdown="adjTax(${p.id},1)">+</button>
-                </div>`:''}
-            </div>
-            <div class="cmd-badges-container">${cmd}</div>`;
+            </div>`;
+
+        const headerHTML = `<div class="player-header">
+                <input class="player-name-input" value="${p.name}" onchange="setName(${p.id},this.value)">
+                <input type="color" class="player-color-input" value="${p.color}" onchange="setColor(${p.id},this.value)">
+            </div>`;
+
+        // Samme DOM-rækkefølge for ALLE spillere: header → life → stats → cmd
+        // Roterede spillere læser indholdet automatisk omvendt pga. 180° rotation,
+        // så fra HVER spillers eget perspektiv ser det ens ud.
+        // Screen-visuel for roterede: [cmd][stats][life][navn] — spejlbillede, men konsistent.
+        box.innerHTML = headerHTML + lifeHTML + statsHTML + cmdHTML;
         board.appendChild(box);
     });
 }
