@@ -843,7 +843,7 @@
     <span class="header-title">⚔️ Magic Helper</span>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
         <div style="display:flex;align-items:center;gap:6px;">
-            <button onclick="location.reload(true)" title="Hent seneste version"
+            <button onclick="window.location.href=location.pathname+'?v='+Date.now()" title="Hent seneste version"
                 style="background:var(--bg-input);border:1px solid var(--border-lit);border-radius:8px;
                        color:var(--muted);font-size:11px;font-weight:600;padding:6px 10px;
                        cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;
@@ -1052,6 +1052,7 @@
 
     <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">SIKKERHEDSKOPI</div>
+
         <div style="display:flex;gap:8px;">
             <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="showBackupInfo()">
                 <i class="fa-solid fa-cloud-arrow-down"></i> Download backup
@@ -1063,7 +1064,25 @@
         </div>
         <div id="storage-persist-status" style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center;display:none;"></div>
     </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+        <button class="app-btn" style="background:#2a0f0f;border:1px solid #6e2e2e;color:#dd6666;font-size:13px;" onclick="confirmClearCollection()">
+            <i class="fa-solid fa-trash-can"></i> Ryd hele samlingen
+        </button>
+    </div>
 </main>
+
+<!-- ══ COLLECTION CARD DETAIL MODAL ══ -->
+<div id="col-card-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.96);z-index:1000;overflow-y:auto;padding:20px;">
+    <div style="max-width:400px;margin:0 auto;">
+        <button onclick="document.getElementById('col-card-detail-modal').style.display='none'"
+            style="background:none;border:1px solid var(--border-lit);border-radius:8px;padding:8px 14px;color:var(--muted);cursor:pointer;margin-bottom:16px;">
+            ← Tilbage
+        </button>
+        <img id="ccd-img" src="" style="width:100%;border-radius:12px;margin-bottom:16px;">
+        <div id="ccd-body"></div>
+    </div>
+</div>
 
 <!-- ══ SCAN TO COLLECTION MODAL ══ -->
 <div id="scan-col-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.93);z-index:1000;align-items:flex-end;justify-content:center;padding:20px;">
@@ -2375,6 +2394,61 @@ function filterCollection(query) {
     updateCollectionView(query);
 }
 
+function confirmClearCollection() {
+    if (!collection.length) return toast('Samlingen er allerede tom!', '#e74c3c');
+    const n = collection.reduce((s, x) => s + x.qty, 0);
+    if (confirm(`⚠️ Er du sikker?\n\nDette sletter alle ${n} kort fra din samling permanent.\n\nTryk OK for at slette, eller Annuller for at beholde den.`)) {
+        collection = [];
+        saveCollection();
+        updateCollectionView();
+        toast('Samlingen er ryddet.', '#e74c3c');
+    }
+}
+
+function openColCardDetail(id) {
+    const item = collection.find(x => x.id === id);
+    if (!item) return;
+    const modal = document.getElementById('col-card-detail-modal');
+    const img   = document.getElementById('ccd-img');
+    const body  = document.getElementById('ccd-body');
+    img.src = item.img || '';
+    img.style.display = item.img ? 'block' : 'none';
+    const lineTotal = item.price > 0 ? fmt(item.price * item.qty) : '–';
+    body.innerHTML = `
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${item.name}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;">${item.setName||item.set}</div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Stykpris</div>
+                <div style="font-size:18px;font-weight:700;color:var(--gold);">${fmt(item.price)}</div>
+            </div>
+            <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Antal</div>
+                <div style="font-size:18px;font-weight:700;">${item.qty}</div>
+            </div>
+            <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Total</div>
+                <div style="font-size:18px;font-weight:700;color:var(--gold);">${lineTotal}</div>
+            </div>
+        </div>
+        <button class="app-btn" onclick="
+            document.getElementById('col-card-detail-modal').style.display='none';
+            switchView('search', document.querySelector('nav div:nth-child(1)'));
+            document.getElementById('manual-search').value='${item.name.replace(/'/g,"\\'")}';
+            searchCard('${item.name.replace(/'/g,"\\'")}');
+        ">
+            <i class="fa-solid fa-magnifying-glass"></i> Søg kortet op
+        </button>
+        <button class="app-btn btn-dark" style="margin-top:8px;" onclick="
+            if(confirm('Fjern ${item.name.replace(/'/g,"\\'")} fra samlingen?')){
+                removeFromCollection('${item.id}');
+                document.getElementById('col-card-detail-modal').style.display='none';
+            }">
+            <i class="fa-solid fa-trash-can"></i> Fjern fra samling
+        </button>`;
+    modal.style.display = 'block';
+}
+
 function updateCollectionView(query = '') {
     const grid = document.getElementById('col-grid');
     const q = query.toLowerCase().trim();
@@ -2406,9 +2480,10 @@ function updateCollectionView(query = '') {
         el.className = 'col-card';
         el.innerHTML = `
             <img src="${item.img||''}" alt="${item.name}" loading="lazy"
+                 style="cursor:pointer;" onclick="openColCardDetail('${item.id}')"
                  onerror="this.style.background='var(--bg-input)';this.style.minHeight='80px'">
             <div class="col-card-body">
-                <div class="col-card-name">${item.name}</div>
+                <div class="col-card-name" style="cursor:pointer;" onclick="openColCardDetail('${item.id}')">${item.name}</div>
                 <div class="col-card-set">${item.setName||item.set}</div>
                 <div class="col-card-price">${lineTotal}</div>
                 <div class="col-qty-row">
