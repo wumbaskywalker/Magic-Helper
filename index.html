@@ -407,10 +407,10 @@
             color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.8);
         }
         .life-btn {
-            width: clamp(36px, 8vw, 56px) !important; height: clamp(36px, 8vw, 56px) !important;
+            width: clamp(30px, 6.5vw, 46px) !important; height: clamp(30px, 6.5vw, 46px) !important;
             border-radius: 50% !important; border: none !important;
             background: rgba(255,255,255,.12) !important; color: #fff !important;
-            font-size: clamp(20px, 4vw, 32px) !important;
+            font-size: clamp(16px, 3.5vw, 26px) !important;
             cursor: pointer !important; display: flex !important;
             align-items: center !important; justify-content: center !important;
             padding: 0 !important; margin: 0 !important; flex-shrink: 0;
@@ -1394,22 +1394,22 @@
 <!-- ══ NAV ══ -->
 <nav>
     <div class="active" onclick="switchView('search',this)">
-        <i class="fa-solid fa-magnifying-glass"></i>Søg
+        <i class="fa-solid fa-magnifying-glass"></i><span>Søg</span>
     </div>
     <div onclick="switchView('scan',this)">
-        <i class="fa-solid fa-camera"></i>Scan
+        <i class="fa-solid fa-camera"></i><span>Scan</span>
     </div>
     <div onclick="switchView('list',this)">
-        <i class="fa-solid fa-list"></i>Ønskeliste
+        <i class="fa-solid fa-list"></i><span>Ønskeliste</span>
     </div>
     <div onclick="switchView('trade',this)">
-        <i class="fa-solid fa-scale-balanced"></i>Bytte
+        <i class="fa-solid fa-scale-balanced"></i><span>Bytte</span>
     </div>
     <div onclick="switchView('collection',this)">
-        <i class="fa-solid fa-box-archive"></i>Samling
+        <i class="fa-solid fa-box-archive"></i><span>Samling</span>
     </div>
     <div onclick="switchView('play',this)">
-        <i class="fa-solid fa-heart-pulse"></i>Life
+        <i class="fa-solid fa-heart-pulse"></i><span>Life</span>
     </div>
 </nav>
 
