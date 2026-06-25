@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Magic Helper">
     <title>Magic Helper App</title>
-    <link rel="apple-touch-icon" href="logo.png?v=14">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" href="logo.png?v=14">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
@@ -828,12 +828,21 @@
 
 <header id="app-header">
     <span class="header-title">⚔️ Magic Helper</span>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;">
-        <select id="currency-select" onchange="changeCurrency(this.value)">
-            <option value="EUR">€ EUR</option>
-            <option value="DKK" selected>kr. DKK</option>
-            <option value="USD">$ USD</option>
-        </select>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+            <button onclick="location.reload(true)" title="Hent seneste version"
+                style="background:var(--bg-input);border:1px solid var(--border-lit);border-radius:8px;
+                       color:var(--muted);font-size:11px;font-weight:600;padding:6px 10px;
+                       cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;
+                       letter-spacing:.02em;">
+                <i class="fa-solid fa-rotate-right" style="font-size:12px;"></i> Opdater app
+            </button>
+            <select id="currency-select" onchange="changeCurrency(this.value)" style="margin:0;">
+                <option value="EUR">€ EUR</option>
+                <option value="DKK" selected>kr. DKK</option>
+                <option value="USD">$ USD</option>
+            </select>
+        </div>
         <div id="rate-warning">⚠ standardkurs</div>
     </div>
 </header>
