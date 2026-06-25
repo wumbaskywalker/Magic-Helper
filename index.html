@@ -2541,27 +2541,34 @@ function confirmScanToCollection() {
 // ═══════════════════════════════════════════════
 function shareCollection() {
     if (!collection.length) return toast('Samlingen er tom!', '#e74c3c');
-    // Pak kun det nødvendige (ingen billeder — for at holde URL kort)
-    const slim = collection.map(x => ({
-        id: x.id, n: x.name, s: x.setName || x.set, q: x.qty, p: x.price
-    }));
-    const json = JSON.stringify(slim);
-    const b64 = btoa(unescape(encodeURIComponent(json)));
-    const url = `${location.origin}${location.pathname}#share=${b64}`;
-    document.getElementById('share-url-display').innerText = url;
-    document.getElementById('share-col-modal').style.display = 'flex';
-}
+    const cur = currency === 'DKK' ? 'kr.' : currency === 'USD' ? '$' : '€';
+    const toLocal = eur => {
+        if (eur <= 0) return 0;
+        if (currency === 'DKK') return +(eur * rates.DKK).toFixed(2);
+        if (currency === 'USD') return +(eur * rates.USD).toFixed(2);
+        return +eur.toFixed(2);
+    };
+    const rows = [['Navn','Sæt','Antal',`Stykpris (${cur})`,`Total (${cur})`]];
+    const grandTotal = collection.reduce((s,x) => s + toLocal(x.price) * x.qty, 0);
+    collection.forEach(x => {
+        const unit  = toLocal(x.price);
+        const total = +(unit * x.qty).toFixed(2);
+        rows.push([x.name, x.setName||x.set, x.qty, unit.toFixed(2), total.toFixed(2)]);
+    });
+    rows.push(['','','TOTAL','', grandTotal.toFixed(2)]);
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8;'});
+    const file = new File([blob], 'mtg-samling.csv', {type:'text/csv'});
 
-function copyShareUrl() {
-    const url = document.getElementById('share-url-display').innerText;
-    if (navigator.share) {
-        navigator.share({ title: 'Min MTG Samling', url }).catch(() => {});
-        document.getElementById('share-col-modal').style.display = 'none';
+    if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
+        navigator.share({ title: 'Min MTG Samling', files: [file] }).catch(() => {});
     } else {
-        navigator.clipboard.writeText(url).then(() => {
-            toast('Link kopieret!');
-            document.getElementById('share-col-modal').style.display = 'none';
-        });
+        // Fallback: download filen
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'mtg-samling.csv'; a.click();
+        URL.revokeObjectURL(url);
+        toast('CSV downloadet — send den manuelt!');
     }
 }
 
