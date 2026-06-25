@@ -1,6 +1,6 @@
 // Magic Helper — Service Worker
 // Version bump here forces cache refresh on redeploy
-const CACHE = 'magic-helper-v1';
+const CACHE = 'magic-helper-v2';
 
 const APP_SHELL = [
   '/Magic-Helper/',
