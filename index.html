@@ -816,15 +816,17 @@
             z-index: 200; backdrop-filter: blur(12px);
         }
         nav div {
-            flex: 1; text-align: center; font-size: 10px; color: var(--muted);
+            flex: 1; font-size: 10px; color: var(--muted);
             cursor: pointer; padding: 8px 4px 6px; transition: color var(--tr);
             min-width: 0;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
         }
         /* Yderste faner får ekstra tryk-areal indad så iPhone-hjørnerne ikke spiser dem */
         nav div:first-child { padding-left: 10px; }
         nav div:last-child  { padding-right: 10px; }
         nav div.active { color: var(--gold-lt); }
-        nav div i { display: block; font-size: 22px; margin-bottom: 4px; }
+        nav div i { font-size: 22px; }
+        nav div span { line-height: 1; }
         nav div.active i { filter: drop-shadow(0 0 5px var(--gold)); }
 
         /* ── TOAST ── */
