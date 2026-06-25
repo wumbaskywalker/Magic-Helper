@@ -238,6 +238,19 @@
             font-size: 15px; line-height: 1.7;
         }
 
+        /* ── SCAN TO COLLECTION ── */
+        .scan-target-row {
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; margin-bottom: 12px;
+        }
+        .scan-target-btn {
+            flex: 1; padding: 8px; border-radius: var(--r-sm); font-size: 13px;
+            font-weight: 700; cursor: pointer; border: 1px solid var(--border-lit);
+            background: var(--bg-input); color: var(--muted); transition: all var(--tr);
+        }
+        .scan-target-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .scan-target-btn.active.green { background: #2a6b2a; border-color: #3a9b3a; color: #7ddd7d; }
+
         /* ── TRADE ── */
         .trade-cols { display: flex; gap: 10px; }
         .trade-col {
@@ -917,6 +930,15 @@
 <main id="view-scan" class="view-section">
     <p class="scan-header">Hold kortets <strong>navn</strong> inden for den gyldne boks</p>
 
+    <div class="scan-target-row">
+        <button class="scan-target-btn active" id="scan-target-search" onclick="setScanTarget('search')">
+            <i class="fa-solid fa-magnifying-glass"></i> Scan til Søgning
+        </button>
+        <button class="scan-target-btn" id="scan-target-collection" onclick="setScanTarget('collection')">
+            <i class="fa-solid fa-box-archive"></i> Scan til Samling
+        </button>
+    </div>
+
     <div class="auto-scan-row">
         <span>Auto-scan</span>
         <label class="toggle-switch">
@@ -1024,6 +1046,10 @@
 
     <div id="col-grid" class="collection-grid"></div>
 
+    <button class="app-btn" style="background:#1a1a2e;border:1px solid #3a3a6e;color:#8888ff;margin-bottom:14px;" onclick="shareCollection()">
+        <i class="fa-solid fa-share-nodes"></i> Del min samling
+    </button>
+
     <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">SIKKERHEDSKOPI</div>
         <div style="display:flex;gap:8px;">
@@ -1038,6 +1064,59 @@
         <div id="storage-persist-status" style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center;display:none;"></div>
     </div>
 </main>
+
+<!-- ══ SCAN TO COLLECTION MODAL ══ -->
+<div id="scan-col-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.93);z-index:1000;align-items:flex-end;justify-content:center;padding:20px;">
+    <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-lg);padding:20px;width:100%;max-width:400px;">
+        <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;">
+            <img id="scm-img" src="" style="width:70px;border-radius:8px;object-fit:cover;">
+            <div style="flex:1;">
+                <div id="scm-name" style="font-weight:700;font-size:16px;margin-bottom:4px;"></div>
+                <div id="scm-set" style="font-size:11px;color:var(--accent);font-weight:800;margin-bottom:4px;"></div>
+                <div id="scm-price" style="font-size:18px;color:var(--gold);font-weight:700;"></div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <span style="font-size:13px;color:var(--muted);">Antal:</span>
+            <button class="col-qty-btn" onclick="scmQty(-1)">−</button>
+            <span id="scm-qty" style="font-size:18px;font-weight:700;">1</span>
+            <button class="col-qty-btn" onclick="scmQty(1)">+</button>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="app-btn btn-dark" style="flex:1;margin:0;" onclick="closeScanColModal()">Annuller</button>
+            <button class="app-btn" style="flex:2;margin:0;background:#1a3a1a;border:1px solid #2e6e2e;color:#7ddd7d;" onclick="confirmScanToCollection()">
+                <i class="fa-solid fa-box-archive"></i> Gem i samling
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ SHARE COLLECTION MODAL ══ -->
+<div id="share-col-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.93);z-index:1000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-lg);padding:24px;width:100%;max-width:400px;">
+        <h3 style="margin:0 0 8px;text-align:center;">Del din samling</h3>
+        <p style="font-size:13px;color:var(--muted);text-align:center;margin:0 0 16px;">Modtageren kan se dine kort og priser — men ikke redigere din samling.</p>
+        <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--accent);word-break:break-all;margin-bottom:14px;max-height:80px;overflow:auto;" id="share-url-display"></div>
+        <div style="display:flex;gap:10px;">
+            <button class="app-btn btn-dark" style="flex:1;margin:0;" onclick="document.getElementById('share-col-modal').style.display='none'">Luk</button>
+            <button class="app-btn" style="flex:2;margin:0;" onclick="copyShareUrl()">
+                <i class="fa-solid fa-copy"></i> Kopiér link
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ VIEW SHARED COLLECTION ══ -->
+<div id="shared-view-modal" style="display:none;position:fixed;inset:0;background:var(--bg-body);z-index:2000;overflow-y:auto;padding:20px;">
+    <div style="max-width:480px;margin:0 auto;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+            <button onclick="document.getElementById('shared-view-modal').style.display='none'" style="background:none;border:1px solid var(--border-lit);border-radius:8px;padding:8px 12px;color:var(--muted);cursor:pointer;">← Tilbage</button>
+            <h2 style="margin:0;font-size:18px;">Delt samling</h2>
+        </div>
+        <div id="shared-stats" style="font-size:13px;color:var(--muted);margin-bottom:16px;"></div>
+        <div id="shared-grid" class="collection-grid"></div>
+    </div>
+</div>
 
 <!-- ══ BACKUP INFO MODAL ══ -->
 <div id="backup-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.93);z-index:1000;padding:24px;display:none;align-items:center;justify-content:center;">
@@ -1574,8 +1653,11 @@ async function startCamera() {
         try {
             videoStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
             video.srcObject = videoStream;
-        } catch(e2) { document.getElementById('scan-status').innerText='⚠️ Kamera ikke tilgængeligt.'; }
+        } catch(e2) { document.getElementById('scan-status').innerText='⚠️ Kamera ikke tilgængeligt.'; return; }
     }
+    // Auto-scan er slået til som standard
+    const chk = document.getElementById('auto-scan-chk');
+    if (chk && !chk.checked) { chk.checked = true; toggleAutoScan(true); }
 }
 
 function stopCamera() {
@@ -1696,9 +1778,33 @@ async function captureAndScan(isAuto=false) {
             }
             if (isAuto) { toggleAutoScan(false); document.getElementById('auto-scan-chk').checked=false; }
             status.innerText=`✅ Fandt: "${text}" — slår op…`; status.style.color='var(--green)';
-            switchView('search',document.querySelector('nav div:nth-child(1)'));
-            document.getElementById('manual-search').value=text;
-            searchCard(text);
+
+            if (scanTarget === 'collection') {
+                // Søg kortet op via Scryfall, vis derefter scan-til-samling modal
+                try {
+                    const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(text)}`);
+                    if (!res.ok) throw new Error();
+                    const data = await res.json();
+                    const price = parseFloat(data.prices?.eur) || 0;
+                    const card = {
+                        id: data.id,
+                        name: data.name,
+                        set: data.set,
+                        setName: data.set_name,
+                        price,
+                        img: data.image_uris?.normal || (data.card_faces?.[0]?.image_uris?.normal) || ''
+                    };
+                    currentCard = card;
+                    openScanColModal(card);
+                    status.innerText = `✅ ${data.name}`; status.style.color = 'var(--green)';
+                } catch(e) {
+                    status.innerText = `⚠️ Fandt ikke "${text}" — prøv igen.`; status.style.color = 'var(--red)';
+                }
+            } else {
+                switchView('search',document.querySelector('nav div:nth-child(1)'));
+                document.getElementById('manual-search').value=text;
+                searchCard(text);
+            }
         } else if (isAuto) {
             status.innerText='🔍 Auto-scan aktiv — hold kortets navn i boksen…';
             status.style.color='var(--muted)'; status.style.display='block';
@@ -2383,6 +2489,122 @@ function exportCollectionCSV() {
     URL.revokeObjectURL(url);
     toast('CSV downloadet!');
 }
+
+// ═══════════════════════════════════════════════
+//  SCAN TARGET
+// ═══════════════════════════════════════════════
+let scanTarget = 'search'; // 'search' | 'collection'
+let scanColCard = null;
+let scanColQty = 1;
+
+function setScanTarget(t) {
+    scanTarget = t;
+    document.getElementById('scan-target-search').classList.toggle('active', t === 'search');
+    document.getElementById('scan-target-collection').classList.toggle('active', t === 'collection');
+    document.getElementById('scan-target-collection').classList.toggle('green', t === 'collection');
+}
+
+function openScanColModal(card) {
+    scanColCard = card;
+    scanColQty = 1;
+    document.getElementById('scm-img').src = card.img || '';
+    document.getElementById('scm-name').innerText = card.name;
+    document.getElementById('scm-set').innerText = card.setName || card.set;
+    document.getElementById('scm-price').innerText = fmt(card.price);
+    document.getElementById('scm-qty').innerText = 1;
+    document.getElementById('scan-col-modal').style.display = 'flex';
+}
+
+function scmQty(d) {
+    scanColQty = Math.max(1, scanColQty + d);
+    document.getElementById('scm-qty').innerText = scanColQty;
+}
+
+function closeScanColModal() {
+    document.getElementById('scan-col-modal').style.display = 'none';
+    scanColCard = null;
+}
+
+function confirmScanToCollection() {
+    if (!scanColCard) return;
+    const ex = collection.find(x => x.id === scanColCard.id);
+    if (ex) { ex.qty += scanColQty; }
+    else { collection.push({...scanColCard, qty: scanColQty, addedAt: Date.now()}); }
+    saveCollection(); updateCollectionView();
+    closeScanColModal();
+    vib(40);
+    toast(`${scanColQty}× ${scanColCard.name} gemt i samling!`);
+}
+
+// ═══════════════════════════════════════════════
+//  SHARE COLLECTION
+// ═══════════════════════════════════════════════
+function shareCollection() {
+    if (!collection.length) return toast('Samlingen er tom!', '#e74c3c');
+    // Pak kun det nødvendige (ingen billeder — for at holde URL kort)
+    const slim = collection.map(x => ({
+        id: x.id, n: x.name, s: x.setName || x.set, q: x.qty, p: x.price
+    }));
+    const json = JSON.stringify(slim);
+    const b64 = btoa(unescape(encodeURIComponent(json)));
+    const url = `${location.origin}${location.pathname}#share=${b64}`;
+    document.getElementById('share-url-display').innerText = url;
+    document.getElementById('share-col-modal').style.display = 'flex';
+}
+
+function copyShareUrl() {
+    const url = document.getElementById('share-url-display').innerText;
+    if (navigator.share) {
+        navigator.share({ title: 'Min MTG Samling', url }).catch(() => {});
+        document.getElementById('share-col-modal').style.display = 'none';
+    } else {
+        navigator.clipboard.writeText(url).then(() => {
+            toast('Link kopieret!');
+            document.getElementById('share-col-modal').style.display = 'none';
+        });
+    }
+}
+
+function renderSharedCollection(items) {
+    const modal = document.getElementById('shared-view-modal');
+    const grid  = document.getElementById('shared-grid');
+    const stats = document.getElementById('shared-stats');
+    const totalQty = items.reduce((s, x) => s + x.q, 0);
+    const totalVal = items.reduce((s, x) => s + (x.p > 0 ? x.p * x.q : 0), 0);
+    stats.innerHTML = `<strong>${totalQty}</strong> kort &nbsp;·&nbsp; Samlet værdi: <strong class="price-text">${fmt(totalVal)}</strong>`;
+    grid.innerHTML = '';
+    items.forEach(item => {
+        const lineTotal = item.p > 0 ? fmt(item.p * item.q) : '–';
+        const el = document.createElement('div');
+        el.className = 'col-card';
+        el.innerHTML = `
+            <div style="background:var(--bg-input);aspect-ratio:5/7;display:flex;align-items:center;justify-content:center;">
+                <i class="fa-solid fa-image" style="color:var(--border-lit);font-size:24px;"></i>
+            </div>
+            <div class="col-card-body">
+                <div class="col-card-name">${item.n}</div>
+                <div class="col-card-set">${item.s}</div>
+                <div class="col-card-price">${lineTotal}</div>
+                <div class="col-qty-row"><span style="font-size:12px;color:var(--muted);">Antal:</span><span class="col-qty-num">${item.q}</span></div>
+            </div>`;
+        grid.appendChild(el);
+    });
+    modal.style.display = 'block';
+}
+
+// Tjek for delt samling i URL ved load
+(function checkShareUrl() {
+    const hash = location.hash;
+    if (!hash.startsWith('#share=')) return;
+    try {
+        const b64 = hash.slice(7);
+        const json = decodeURIComponent(escape(atob(b64)));
+        const items = JSON.parse(json);
+        if (Array.isArray(items) && items.length) {
+            setTimeout(() => renderSharedCollection(items), 500);
+        }
+    } catch(e) {}
+})();
 
 // ═══════════════════════════════════════════════
 //  BACKUP & RESTORE
