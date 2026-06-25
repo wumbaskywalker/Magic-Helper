@@ -811,16 +811,20 @@
         nav {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: var(--bg-panel); border-top: 1px solid var(--border);
-            display: flex; padding: 6px 0;
-            padding-bottom: env(safe-area-inset-bottom, 6px);
+            display: flex; padding: 8px 0 0;
+            padding-bottom: max(env(safe-area-inset-bottom, 10px), 10px);
             z-index: 200; backdrop-filter: blur(12px);
         }
         nav div {
             flex: 1; text-align: center; font-size: 10px; color: var(--muted);
-            cursor: pointer; padding: 6px 0; transition: color var(--tr);
+            cursor: pointer; padding: 8px 4px 6px; transition: color var(--tr);
+            min-width: 0;
         }
+        /* Yderste faner får ekstra tryk-areal indad så iPhone-hjørnerne ikke spiser dem */
+        nav div:first-child { padding-left: 10px; }
+        nav div:last-child  { padding-right: 10px; }
         nav div.active { color: var(--gold-lt); }
-        nav div i { display: block; font-size: 20px; margin-bottom: 3px; }
+        nav div i { display: block; font-size: 22px; margin-bottom: 4px; }
         nav div.active i { filter: drop-shadow(0 0 5px var(--gold)); }
 
         /* ── TOAST ── */
@@ -885,7 +889,7 @@
         <div style="display:flex;gap:10px;">
             <input type="number" id="add-amount" value="1" min="1" style="flex:1;margin:0;">
             <button class="app-btn btn-green" style="flex:2;margin:0;" onclick="addToList()">
-                <i class="fa-solid fa-plus"></i> Tilføj til Liste
+                <i class="fa-solid fa-plus"></i> Tilføj til Ønskeliste
             </button>
         </div>
         <button class="app-btn" style="background:#1a2a1a;border:1px solid #2e5c2e;color:#5dcc7a;margin-top:8px;" onclick="addToCollection()">
@@ -963,7 +967,7 @@
 
 <!-- ══ LIST ══ -->
 <main id="view-list" class="view-section">
-    <h2 class="section-title">Din Prisliste</h2>
+    <h2 class="section-title">Din Ønskeliste</h2>
     <div id="list-container"></div>
     <div class="list-total-row">
         <span>Total:</span>
@@ -1396,7 +1400,7 @@
         <i class="fa-solid fa-camera"></i>Scan
     </div>
     <div onclick="switchView('list',this)">
-        <i class="fa-solid fa-list"></i>Liste
+        <i class="fa-solid fa-list"></i>Ønskeliste
     </div>
     <div onclick="switchView('trade',this)">
         <i class="fa-solid fa-scale-balanced"></i>Bytte
