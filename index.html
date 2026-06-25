@@ -1018,7 +1018,7 @@
     <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">SIKKERHEDSKOPI</div>
         <div style="display:flex;gap:8px;">
-            <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="downloadBackup()">
+            <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="showBackupInfo()">
                 <i class="fa-solid fa-cloud-arrow-down"></i> Download backup
             </button>
             <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="document.getElementById('col-restore-input').click()">
@@ -1029,6 +1029,44 @@
         <div id="storage-persist-status" style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center;display:none;"></div>
     </div>
 </main>
+
+<!-- ══ BACKUP INFO MODAL ══ -->
+<div id="backup-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.93);z-index:1000;padding:24px;display:none;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-lg);padding:24px;max-width:380px;width:100%;">
+        <div style="font-size:32px;text-align:center;margin-bottom:12px;">💾</div>
+        <h3 style="text-align:center;margin:0 0 16px;font-size:18px;">Sikkerhedskopi af din samling</h3>
+
+        <div style="font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:20px;">
+            <p style="margin:0 0 12px;">Appen gemmer din samling i telefonens browser-lager. Det er hurtigt og praktisk, men kan slettes hvis du:</p>
+            <ul style="margin:0 0 12px;padding-left:20px;">
+                <li>Manuelt rydder Safari/Chrome's cache</li>
+                <li>Afinstallerer appen</li>
+                <li>Skifter telefon</li>
+            </ul>
+            <p style="margin:0 0 8px;">Appen forsøger at beskytte dine data mod <em>automatisk</em> cache-rydning — men mod et bevidst slet kan ingen ting hjælpe.</p>
+            <p style="margin:0;"><strong style="color:var(--text);">En backup-fil er din forsikring.</strong></p>
+        </div>
+
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;margin-bottom:20px;font-size:13px;line-height:1.6;">
+            <div style="font-weight:700;color:var(--gold);margin-bottom:8px;">📱 Sådan gemmer du filen sikkert:</div>
+            <div style="color:var(--muted);">
+                1. Tryk <strong style="color:var(--text);">"Download nu"</strong> herunder<br>
+                2. Filen dukker op i din <strong style="color:var(--text);">Filer-app</strong> under Downloads<br>
+                3. Flyt den til <strong style="color:var(--text);">iCloud Drive</strong> eller en anden sikker placering<br>
+                4. Gentag når du har <strong style="color:var(--text);">tilføjet mange nye kort</strong>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+            <button class="app-btn btn-dark" style="flex:1;margin:0;" onclick="document.getElementById('backup-modal').style.display='none'">
+                Annuller
+            </button>
+            <button class="app-btn btn-green" style="flex:2;margin:0;" onclick="document.getElementById('backup-modal').style.display='none';downloadBackup()">
+                <i class="fa-solid fa-cloud-arrow-down"></i> Download nu
+            </button>
+        </div>
+    </div>
+</div>
 
 <div id="trade-modal" class="trade-modal-overlay">
     <div class="trade-modal-box">
@@ -2340,6 +2378,11 @@ function exportCollectionCSV() {
 // ═══════════════════════════════════════════════
 //  BACKUP & RESTORE
 // ═══════════════════════════════════════════════
+function showBackupInfo() {
+    const m = document.getElementById('backup-modal');
+    m.style.display = 'flex';
+}
+
 function downloadBackup() {
     const backup = {
         version: 1,
