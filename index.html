@@ -1692,7 +1692,7 @@ function switchView(name, el) {
     document.getElementById('view-' + name).classList.add('active');
     el.classList.add('active','shimmer');
     setTimeout(()=>el.classList.remove('shimmer'), 550);
-    name === 'scan' ? startCamera() : stopCamera();
+    name === 'scan' ? startCamera() : pauseCamera();
     document.getElementById('app-header').style.display = name === 'play' ? 'none' : 'flex';
     const fsBtn = document.getElementById('fs-btn');
     fsBtn.style.display = name === 'play' ? 'flex' : 'none';
@@ -1726,6 +1726,17 @@ function exitFsMode(){
 // Sync if native fullscreen exits via Escape
 document.addEventListener('fullscreenchange', ()=>{
     if (!document.fullscreenElement && document.body.classList.contains('fs-mode')) exitFsMode();
+});
+
+// Stop camera tracks when page is hidden (battery/privacy), resume on return
+document.addEventListener('visibilitychange', ()=>{
+    if (document.hidden) {
+        stopCamera();
+    } else {
+        // If user is on scan tab when they return, restart camera
+        const scanView = document.getElementById('view-scan');
+        if (scanView && scanView.classList.contains('active')) startCamera();
+    }
 });
 
 // ═══════════════════════════════════════════════
@@ -1864,8 +1875,15 @@ function renderLegality(card) {
 //  CAMERA / SCAN
 // ═══════════════════════════════════════════════
 async function startCamera() {
-    if (videoStream) return;
     const video = document.getElementById('camera-stream');
+    if (videoStream) {
+        // Stream already alive — just resume playback and re-enable auto-scan
+        video.srcObject = videoStream;
+        video.play().catch(()=>{});
+        const chk = document.getElementById('auto-scan-chk');
+        if (chk && !chk.checked) { chk.checked = true; toggleAutoScan(true); }
+        return;
+    }
     try {
         videoStream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }
@@ -1882,9 +1900,20 @@ async function startCamera() {
     if (chk && !chk.checked) { chk.checked = true; toggleAutoScan(true); }
 }
 
+// Pause: stop auto-scan but keep stream alive so browser remembers permission
+function pauseCamera() {
+    clearInterval(autoScanIv); autoScanIv = null;
+    const chk = document.getElementById('auto-scan-chk');
+    if (chk) chk.checked = false;
+    document.getElementById('auto-scan-lbl').innerText = 'Fra';
+    const video = document.getElementById('camera-stream');
+    if (video) video.pause();
+}
+// Full stop: called when page is hidden or app is unloaded
 function stopCamera() {
     clearInterval(autoScanIv); autoScanIv = null;
-    document.getElementById('auto-scan-chk').checked = false;
+    const chk = document.getElementById('auto-scan-chk');
+    if (chk) chk.checked = false;
     document.getElementById('auto-scan-lbl').innerText = 'Fra';
     if (videoStream) { videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
 }
