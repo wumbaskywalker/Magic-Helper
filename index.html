@@ -478,75 +478,63 @@
         .dice-label { font-size: 17px; color: var(--muted); margin-bottom: 12px; font-weight: 700; letter-spacing: .3px; }
 
         /* 3D Cube */
-        .dice-scene { perspective: 360px; width: 120px; height: 120px; margin-bottom: 24px; }
+        .dice-scene { perspective: 500px; width: 150px; height: 150px; margin-bottom: 24px; }
         .dice-cube {
             width: 100%; height: 100%; position: relative;
             transform-style: preserve-3d;
             transform: rotateX(-20deg) rotateY(20deg);
-        }
-        .dice-cube.rolling {
-            animation: cube-tumble 1.3s cubic-bezier(.25,.46,.45,.94) forwards;
-        }
-        @keyframes cube-tumble {
-            0%   { transform: rotateX(-20deg) rotateY(20deg); }
-            20%  { transform: rotateX(200deg) rotateY(120deg) rotateZ(60deg); }
-            45%  { transform: rotateX(480deg) rotateY(300deg) rotateZ(180deg); }
-            70%  { transform: rotateX(600deg) rotateY(560deg) rotateZ(280deg); }
-            100% { transform: rotateX(720deg) rotateY(720deg) rotateZ(360deg); }
+            transition: transform .4s ease-out;
         }
         .dice-face {
-            position: absolute; width: 120px; height: 120px;
-            background: linear-gradient(135deg, #1c1f30, #252840);
-            border: 2px solid rgba(201,168,76,.35); border-radius: 14px;
+            position: absolute; width: 150px; height: 150px;
+            background: linear-gradient(145deg, #23263d, #1a1d2e);
+            border: 2px solid rgba(201,168,76,.4); border-radius: 18px;
             display: flex; align-items: center; justify-content: center;
             backface-visibility: hidden;
-            box-shadow: inset 0 0 20px rgba(0,0,0,.5);
+            box-shadow: inset 0 0 30px rgba(0,0,0,.6), inset 0 2px 4px rgba(255,255,255,.06);
         }
-        .face-front  { transform: rotateY(0deg)   translateZ(60px); }
-        .face-back   { transform: rotateY(180deg)  translateZ(60px); }
-        .face-right  { transform: rotateY(90deg)   translateZ(60px); }
-        .face-left   { transform: rotateY(-90deg)  translateZ(60px); }
-        .face-top    { transform: rotateX(90deg)   translateZ(60px); }
-        .face-bottom { transform: rotateX(-90deg)  translateZ(60px); }
+        .face-front  { transform: rotateY(0deg)   translateZ(75px); }
+        .face-back   { transform: rotateY(180deg)  translateZ(75px); }
+        .face-right  { transform: rotateY(90deg)   translateZ(75px); }
+        .face-left   { transform: rotateY(-90deg)  translateZ(75px); }
+        .face-top    { transform: rotateX(90deg)   translateZ(75px); }
+        .face-bottom { transform: rotateX(-90deg)  translateZ(75px); }
 
         .dot-grid {
             display: grid; grid-template-columns: repeat(3,1fr);
-            grid-template-rows: repeat(3,1fr); gap: 5px;
-            width: 72px; height: 72px;
+            grid-template-rows: repeat(3,1fr); gap: 7px;
+            width: 90px; height: 90px;
         }
         .dot-cell { display: flex; align-items: center; justify-content: center; }
         .dot {
-            width: 13px; height: 13px; background: #fff; border-radius: 50%;
-            box-shadow: 0 0 5px rgba(255,255,255,.6);
+            width: 16px; height: 16px; background: #fff; border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255,255,255,.8), 0 0 2px rgba(255,255,255,1);
         }
 
         /* 3D shape display for D4/D8/D12/D20/D100 */
         .die-scene {
-            perspective: 320px; width: 140px; height: 140px;
+            perspective: 420px; width: 160px; height: 160px;
             margin-bottom: 24px; display: none;
         }
         .die-body {
-            width: 140px; height: 140px; position: relative;
+            width: 160px; height: 160px; position: relative;
             transform: rotateX(-15deg) rotateY(15deg);
+            transition: transform .4s ease-out;
         }
-        .die-body.tumble {
-            animation: die-tumble 1.35s cubic-bezier(.25,.46,.45,.94) forwards;
+        @keyframes die-shake {
+            0%   { transform: rotateX(-15deg) rotateY(15deg)   scale(1); }
+            12%  { transform: rotateX(-28deg) rotateY(-18deg)  scale(1.1); }
+            28%  { transform: rotateX(-4deg)  rotateY(32deg)   scale(1.1); }
+            44%  { transform: rotateX(-30deg) rotateY(-8deg)   scale(1.06); }
+            60%  { transform: rotateX(-6deg)  rotateY(28deg)   scale(1.04); }
+            76%  { transform: rotateX(-20deg) rotateY(8deg)    scale(1.02); }
+            100% { transform: rotateX(-15deg) rotateY(15deg)   scale(1); }
         }
-        @keyframes die-tumble {
-            0%   { transform: rotateX(-15deg) rotateY(15deg); }
-            20%  { transform: rotateX(210deg) rotateY(130deg) rotateZ(65deg); }
-            45%  { transform: rotateX(490deg) rotateY(320deg) rotateZ(185deg); }
-            70%  { transform: rotateX(610deg) rotateY(570deg) rotateZ(285deg); }
-            100% { transform: rotateX(735deg) rotateY(735deg) rotateZ(375deg); }
-        }
-        .die-shape-bg {
+        .die-body.rolling { animation: die-shake .75s cubic-bezier(.4,0,.2,1) forwards; }
+        .die-svg {
             position: absolute; inset: 0;
-            background: linear-gradient(135deg, #1c1f30 0%, #252840 60%, #1a1d2e 100%);
-            filter: drop-shadow(0 0 2px rgba(201,168,76,.85)) drop-shadow(0 0 10px rgba(79,124,255,.35));
-        }
-        .die-shape-bg::after {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(135deg, rgba(201,168,76,.18) 0%, transparent 55%);
+            width: 100%; height: 100%;
+            filter: drop-shadow(0 0 8px rgba(201,168,76,.5)) drop-shadow(0 0 20px rgba(79,124,255,.3));
         }
         .die-num-wrap {
             position: absolute; width: 100%;
@@ -794,12 +782,12 @@
 
         /* Dice selector */
         .dice-select-row {
-            display: flex; gap: 6px; margin-bottom: 22px;
+            display: flex; gap: 10px; margin-bottom: 16px;
             width: 100%; max-width: 340px; flex-wrap: wrap; justify-content: center;
         }
         .dice-select-btn {
             background: var(--bg-input); border: 1px solid var(--border-lit);
-            color: var(--muted); padding: 8px 14px; border-radius: var(--r-sm);
+            color: var(--muted); padding: 10px 28px; border-radius: var(--r-sm);
             font-weight: 700; cursor: pointer; flex: 1; min-width: 52px;
             transition: all var(--tr); font-size: 14px;
         }
@@ -807,6 +795,20 @@
             background: var(--accent); color: #fff; border-color: var(--accent);
             box-shadow: 0 0 14px rgba(79,124,255,.4);
         }
+        /* Dice count row */
+        .dice-count-row {
+            display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+        }
+        .count-label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+        .count-val   { font-size: 22px; font-weight: 900; color: #fff; min-width: 28px; text-align: center; }
+        /* Individual result chips */
+        .result-chip {
+            background: var(--bg-input); border: 1px solid var(--border-lit);
+            border-radius: 10px; padding: 6px 14px;
+            font-size: 20px; font-weight: 900; color: #fff; min-width: 46px; text-align: center;
+            transition: opacity .3s;
+        }
+        .chip-op { font-size: 18px; font-weight: 700; color: var(--muted); }
 
         /* ── GAME BUTTONS ── */
         .play-btns { display: flex; gap: 7px; margin-top: 7px; flex-shrink: 0; }
@@ -1264,37 +1266,78 @@
     <div id="modal-lightning-flash"></div>
     <div class="dice-label" id="random-label">Terningkast</div>
 
+    <!-- Die type selector -->
     <div class="dice-select-row" id="dice-selector">
-        <button class="dice-select-btn" onclick="rollDice(4)">D4</button>
         <button class="dice-select-btn" onclick="rollDice(6)">D6</button>
-        <button class="dice-select-btn" onclick="rollDice(8)">D8</button>
-        <button class="dice-select-btn" onclick="rollDice(12)">D12</button>
         <button class="dice-select-btn active" onclick="rollDice(20)">D20</button>
-        <button class="dice-select-btn" onclick="rollDice(100)">D100</button>
     </div>
 
-    <!-- 3D Cube (D6) -->
-    <div class="dice-scene" id="dice-3d-scene" style="display:none;">
-        <div class="dice-cube" id="dice-cube">
-            <div class="dice-face face-front"  id="df-front"></div>
-            <div class="dice-face face-back"   id="df-back"></div>
-            <div class="dice-face face-right"  id="df-right"></div>
-            <div class="dice-face face-left"   id="df-left"></div>
-            <div class="dice-face face-top"    id="df-top"></div>
-            <div class="dice-face face-bottom" id="df-bottom"></div>
-        </div>
+    <!-- Antal terninger -->
+    <div class="dice-count-row" id="dice-count-row" style="display:none;">
+        <span class="count-label">Antal</span>
+        <button class="mini-btn" onpointerdown="adjDiceCount(-1)">−</button>
+        <span id="count-val" class="count-val">1</span>
+        <button class="mini-btn" onpointerdown="adjDiceCount(1)">+</button>
     </div>
 
-    <!-- 3D shape (D4/D8/D12/D20/D100) -->
+    <!-- Wireframe die display -->
     <div class="die-scene" id="die-scene-wrap">
         <div class="die-body" id="die-body">
-            <div class="die-shape-bg" id="die-shape-bg"></div>
+
+            <!-- D6: isometric cube wireframe -->
+            <svg id="die-svg-d6" class="die-svg" style="display:none;" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <filter id="die-glow">
+                        <feGaussianBlur stdDeviation="2.5" result="b"/>
+                        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                </defs>
+                <polygon points="100,16 184,58 184,142 100,184 16,142 16,58" fill="rgba(12,14,24,0.9)"/>
+                <polygon points="100,16 184,58 184,142 100,184 16,142 16,58" stroke="#c9a84c" stroke-width="2.8" filter="url(#die-glow)"/>
+                <polygon points="100,24 176,62 176,138 100,176 24,138 24,62" stroke="#c9a84c" stroke-width="1" opacity="0.45"/>
+                <!-- Top face highlight -->
+                <polygon points="100,16 184,58 100,100 16,58" fill="rgba(79,124,255,0.06)"/>
+                <!-- 3 cube-edge dividers from center -->
+                <line x1="100" y1="100" x2="184" y2="58"  stroke="#4f7cff" stroke-width="1.8" filter="url(#die-glow)"/>
+                <line x1="100" y1="100" x2="100" y2="184" stroke="#4f7cff" stroke-width="1.8" filter="url(#die-glow)"/>
+                <line x1="100" y1="100" x2="16"  y2="58"  stroke="#4f7cff" stroke-width="1.8" filter="url(#die-glow)"/>
+            </svg>
+
+            <!-- D20: icosahedron wireframe -->
+            <svg id="die-svg-d20" class="die-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <filter id="die-glow2">
+                        <feGaussianBlur stdDeviation="2.5" result="b"/>
+                        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                </defs>
+                <polygon points="100,12 176,56 176,144 100,188 24,144 24,56" fill="rgba(12,14,24,0.9)"/>
+                <polygon points="100,12 176,56 176,144 100,188 24,144 24,56" stroke="#c9a84c" stroke-width="2.8" filter="url(#die-glow2)"/>
+                <polygon points="100,21 168,61 168,139 100,179 32,139 32,61" stroke="#c9a84c" stroke-width="1" opacity="0.45"/>
+                <polygon points="100,48 150,128 50,128" stroke="#4f7cff" stroke-width="1.8" fill="rgba(79,124,255,0.06)" filter="url(#die-glow2)"/>
+                <line x1="100" y1="12"  x2="100" y2="48"  stroke="#c9a84c" stroke-width="1.5"/>
+                <line x1="176" y1="56"  x2="150" y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+                <line x1="24"  y1="56"  x2="50"  y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+                <line x1="176" y1="144" x2="150" y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+                <line x1="24"  y1="144" x2="50"  y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+                <line x1="100" y1="188" x2="100" y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+                <line x1="138" y1="34"  x2="100" y2="48"  stroke="#c9a84c" stroke-width="1" opacity="0.7"/>
+                <line x1="62"  y1="34"  x2="100" y2="48"  stroke="#c9a84c" stroke-width="1" opacity="0.7"/>
+                <line x1="176" y1="100" x2="150" y2="128" stroke="#c9a84c" stroke-width="1" opacity="0.7"/>
+                <line x1="24"  y1="100" x2="50"  y2="128" stroke="#c9a84c" stroke-width="1" opacity="0.7"/>
+                <line x1="138" y1="166" x2="150" y2="128" stroke="#c9a84c" stroke-width="1" opacity="0.7"/>
+                <line x1="62"  y1="166" x2="50"  y2="128" stroke="#c9a84c" stroke-width="1" opacity="0.7"/>
+            </svg>
+
             <div class="die-num-wrap" id="die-num-wrap">
                 <div class="die-num" id="die-num" style="font-size:52px">20</div>
                 <div class="die-badge" id="die-badge">D20</div>
             </div>
         </div>
     </div>
+
+    <!-- Multi-dice grid (shown instead of single die when count > 1) -->
+    <div id="multi-results" style="display:none; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center; max-width:320px; margin-bottom:16px;"></div>
 
     <!-- Starter picker — sword arena -->
     <div class="starter-wrap" id="starter-wrap">
@@ -2144,71 +2187,116 @@ function renderBoard(){
 }
 
 // ═══════════════════════════════════════════════
-//  DICE  (3D cube for D6, animated circle for rest)
+//  DICE
 // ═══════════════════════════════════════════════
-const D6_DOTS={1:[[1,1]],2:[[0,0],[2,2]],3:[[0,0],[1,1],[2,2]],4:[[0,0],[0,2],[2,0],[2,2]],5:[[0,0],[0,2],[1,1],[2,0],[2,2]],6:[[0,0],[0,1],[0,2],[2,0],[2,1],[2,2]]};
-function makeDots(n){
-    const g=document.createElement('div'); g.className='dot-grid';
-    for(let r=0;r<3;r++)for(let c=0;c<3;c++){
-        const cell=document.createElement('div'); cell.className='dot-cell';
-        if(D6_DOTS[n]?.some(d=>d[0]===r&&d[1]===c)){const d=document.createElement('div');d.className='dot';cell.appendChild(d);}
-        g.appendChild(cell);
-    }
-    return g;
-}
-function setD6Faces(result){
-    const rest=[1,2,3,4,5,6].filter(n=>n!==result);
-    const order=[result,...rest];
-    ['front','back','right','left','top','bottom'].forEach((f,i)=>{
-        const el=document.getElementById('df-'+f); el.innerHTML=''; el.appendChild(makeDots(order[i]));
-    });
+let diceCount=1;
+
+function adjDiceCount(d){
+    diceCount=Math.max(1,Math.min(8,diceCount+d));
+    document.getElementById('count-val').innerText=diceCount;
 }
 
-const DIE_CFG={
-    4:  {clip:'polygon(50% 6%, 96% 92%, 4% 92%)',                            top:'63%', fs:'46px'},
-    6:  {clip:'inset(4% round 13px)',                                         top:'50%', fs:'52px'},
-    8:  {clip:'polygon(50% 4%, 96% 50%, 50% 96%, 4% 50%)',                   top:'50%', fs:'52px'},
-    12: {clip:'polygon(50% 4%, 95% 33%, 79% 88%, 21% 88%, 5% 33%)',          top:'52%', fs:'52px'},
-    20: {clip:'polygon(25% 4%, 75% 4%, 97% 50%, 75% 96%, 25% 96%, 3% 50%)', top:'50%', fs:'52px'},
-    100:{clip:'circle(46% at 50% 50%)',                                       top:'48%', fs:'38px'}
+// SVG markup for small dice (no filter IDs to avoid conflicts)
+const SMALL_SVG={
+    6:`<svg style="position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 0 5px rgba(201,168,76,.45))" viewBox="0 0 200 200" fill="none">
+        <polygon points="100,16 184,58 184,142 100,184 16,142 16,58" fill="rgba(12,14,24,.92)"/>
+        <polygon points="100,16 184,58 184,142 100,184 16,142 16,58" stroke="#c9a84c" stroke-width="2.8"/>
+        <polygon points="100,24 176,62 176,138 100,176 24,138 24,62" stroke="#c9a84c" stroke-width="1" opacity=".45"/>
+        <polygon points="100,16 184,58 100,100 16,58" fill="rgba(79,124,255,.06)"/>
+        <line x1="100" y1="100" x2="184" y2="58"  stroke="#4f7cff" stroke-width="1.8"/>
+        <line x1="100" y1="100" x2="100" y2="184" stroke="#4f7cff" stroke-width="1.8"/>
+        <line x1="100" y1="100" x2="16"  y2="58"  stroke="#4f7cff" stroke-width="1.8"/>
+    </svg>`,
+    20:`<svg style="position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 0 5px rgba(201,168,76,.45))" viewBox="0 0 200 200" fill="none">
+        <polygon points="100,12 176,56 176,144 100,188 24,144 24,56" fill="rgba(12,14,24,.92)"/>
+        <polygon points="100,12 176,56 176,144 100,188 24,144 24,56" stroke="#c9a84c" stroke-width="2.8"/>
+        <polygon points="100,21 168,61 168,139 100,179 32,139 32,61" stroke="#c9a84c" stroke-width="1" opacity=".45"/>
+        <polygon points="100,48 150,128 50,128" stroke="#4f7cff" stroke-width="1.8" fill="rgba(79,124,255,.06)"/>
+        <line x1="100" y1="12"  x2="100" y2="48"  stroke="#c9a84c" stroke-width="1.5"/>
+        <line x1="176" y1="56"  x2="150" y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+        <line x1="24"  y1="56"  x2="50"  y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+        <line x1="176" y1="144" x2="150" y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+        <line x1="24"  y1="144" x2="50"  y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+        <line x1="100" y1="188" x2="100" y2="128" stroke="#c9a84c" stroke-width="1.5"/>
+        <line x1="138" y1="34"  x2="100" y2="48"  stroke="#c9a84c" stroke-width="1" opacity=".7"/>
+        <line x1="62"  y1="34"  x2="100" y2="48"  stroke="#c9a84c" stroke-width="1" opacity=".7"/>
+        <line x1="176" y1="100" x2="150" y2="128" stroke="#c9a84c" stroke-width="1" opacity=".7"/>
+        <line x1="24"  y1="100" x2="50"  y2="128" stroke="#c9a84c" stroke-width="1" opacity=".7"/>
+        <line x1="138" y1="166" x2="150" y2="128" stroke="#c9a84c" stroke-width="1" opacity=".7"/>
+        <line x1="62"  y1="166" x2="50"  y2="128" stroke="#c9a84c" stroke-width="1" opacity=".7"/>
+    </svg>`
 };
+
+function createSmallDie(sides, sz){
+    const el=document.createElement('div');
+    el.style.cssText=`position:relative;width:${sz}px;height:${sz}px;flex-shrink:0;`;
+    const fs=Math.round(sz*0.28);
+    el.innerHTML=SMALL_SVG[sides===6?6:20]+
+        `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:2;">
+            <span class="mini-num" style="font-size:${fs}px;font-weight:900;color:#fff;text-shadow:0 0 12px var(--accent),0 0 5px rgba(79,124,255,.5)">?</span>
+        </div>`;
+    return el;
+}
 
 function rollDice(sides){
     const modal=document.getElementById('random-modal');
     modal.style.display='flex';
-    document.getElementById('dice-3d-scene').style.display  ='none';
-    document.getElementById('die-scene-wrap').style.display ='block';
     document.getElementById('coin-wrap').style.display      ='none';
     document.getElementById('starter-wrap').style.display   ='none';
     document.getElementById('dice-selector').style.display  ='flex';
+    document.getElementById('dice-count-row').style.display ='flex';
     document.getElementById('random-label').innerText='Terningkast';
     const btn=document.getElementById('random-action-btn');
     btn.innerText='🎲 Slå igen'; btn.onclick=()=>rollDice(sides);
     document.querySelectorAll('.dice-select-btn').forEach(b=>b.classList.toggle('active',b.innerText===`D${sides}`));
 
-    const result=cryptoRand(sides);
+    const rolls=[];
+    for(let i=0;i<diceCount;i++) rolls.push(cryptoRand(sides));
     vib([20,30,60]); sndDice();
 
-    const cfg=DIE_CFG[sides];
-    const shapeBg=document.getElementById('die-shape-bg');
-    shapeBg.style.clipPath=cfg.clip;
-    const numWrap=document.getElementById('die-num-wrap');
-    numWrap.style.top=cfg.top;
-    const numEl=document.getElementById('die-num');
-    numEl.style.fontSize=cfg.fs;
-    document.getElementById('die-badge').innerText=`D${sides}`;
+    if(diceCount===1){
+        // ── Single die: existing large display ──
+        document.getElementById('die-scene-wrap').style.display='block';
+        document.getElementById('multi-results').style.display='none';
+        document.getElementById('die-svg-d6').style.display  = sides===6 ? '' : 'none';
+        document.getElementById('die-svg-d20').style.display = sides===6 ? 'none' : '';
+        const numEl=document.getElementById('die-num');
+        numEl.style.fontSize='52px';
+        document.getElementById('die-badge').innerText=`D${sides}`;
+        numEl.innerText='?';
+        const body=document.getElementById('die-body');
+        body.classList.remove('rolling'); void body.offsetWidth;
+        body.classList.add('rolling');
+        setTimeout(()=>{ body.classList.remove('rolling'); body.style.transform='rotateX(-15deg) rotateY(15deg)'; },800);
+        let tick=0;
+        const iv=setInterval(()=>{
+            numEl.innerText=Math.floor(Math.random()*sides)+1;
+            if(++tick>=11){ clearInterval(iv); numEl.innerText=rolls[0]; }
+        },60);
 
-    numEl.innerText='?';
-    const body=document.getElementById('die-body');
-    body.classList.remove('tumble'); void body.offsetWidth;
-    body.classList.add('tumble');
-
-    let tick=0;
-    const iv=setInterval(()=>{
-        numEl.innerText=Math.floor(Math.random()*sides)+1;
-        if(++tick>=14){clearInterval(iv); numEl.innerText=result;}
-    },65);
-    setTimeout(()=>{body.classList.remove('tumble');body.style.transform='rotateX(-15deg) rotateY(15deg)';},1380);
+    } else {
+        // ── Multiple dice: grid of wireframe dice ──
+        document.getElementById('die-scene-wrap').style.display='none';
+        const grid=document.getElementById('multi-results');
+        grid.innerHTML=''; grid.style.display='flex';
+        const sz = diceCount<=2 ? 130 : diceCount<=4 ? 110 : diceCount<=6 ? 90 : 76;
+        rolls.forEach((result,i)=>{
+            const dieEl=createSmallDie(sides,sz);
+            dieEl.style.opacity='0';
+            dieEl.style.transform='scale(0.75)';
+            dieEl.style.transition=`opacity .2s ${i*60}ms, transform .2s ${i*60}ms`;
+            grid.appendChild(dieEl);
+            const numEl=dieEl.querySelector('.mini-num');
+            // Stagger fade-in
+            setTimeout(()=>{ dieEl.style.opacity='1'; dieEl.style.transform='scale(1)'; },10+i*60);
+            // Number ticker per die
+            let tick=0;
+            const iv=setInterval(()=>{
+                numEl.innerText=Math.floor(Math.random()*sides)+1;
+                if(++tick>=10){ clearInterval(iv); numEl.innerText=result; }
+            },55+i*10);
+        });
+    }
 }
 
 // ═══════════════════════════════════════════════
@@ -2217,9 +2305,10 @@ function rollDice(sides){
 function flipCoin(){
     const modal=document.getElementById('random-modal');
     modal.style.display='flex';
-    document.getElementById('dice-3d-scene').style.display  ='none';
-    document.getElementById('die-scene-wrap').style.display ='none';
+    document.getElementById('die-scene-wrap').style.display  ='none';
     document.getElementById('dice-selector').style.display  ='none';
+    document.getElementById('dice-count-row').style.display ='none';
+    document.getElementById('multi-results').style.display  ='none';
     document.getElementById('coin-wrap').style.display      ='flex';
     document.getElementById('starter-wrap').style.display   ='none';
     const coin3d=document.getElementById('coin-3d');
@@ -2255,11 +2344,12 @@ function flipCoin(){
 function whoStarts(){
     const modal=document.getElementById('random-modal');
     modal.style.display='flex';
-    document.getElementById('dice-3d-scene').style.display  ='none';
-    document.getElementById('die-scene-wrap').style.display ='none';
-    document.getElementById('coin-wrap').style.display      ='none';
-    document.getElementById('dice-selector').style.display  ='none';
-    document.getElementById('starter-wrap').style.display   ='flex';
+    document.getElementById('die-scene-wrap').style.display  ='none';
+    document.getElementById('coin-wrap').style.display       ='none';
+    document.getElementById('dice-selector').style.display   ='none';
+    document.getElementById('dice-count-row').style.display  ='none';
+    document.getElementById('multi-results').style.display   ='none';
+    document.getElementById('starter-wrap').style.display    ='flex';
     document.getElementById('random-label').innerText       ='Hvem starter?';
     const btn=document.getElementById('random-action-btn');
     btn.innerText='⚡ Vælg igen'; btn.onclick=whoStarts;
