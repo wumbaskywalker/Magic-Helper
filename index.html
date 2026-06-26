@@ -913,7 +913,16 @@
             </select>
         </div>
         <div id="variant-container" class="variant-gallery"></div>
-        <img id="res-image" class="main-card-img" src="" alt="Kort" loading="lazy">
+        <div style="position:relative;display:inline-block;width:100%;">
+            <img id="res-image" class="main-card-img" src="" alt="Kort" loading="lazy">
+            <button id="flip-btn" onclick="flipCard()" style="display:none;position:absolute;bottom:10px;right:10px;
+                background:rgba(12,14,24,.85);border:1px solid rgba(255,255,255,.25);border-radius:50%;
+                width:42px;height:42px;color:#fff;font-size:18px;cursor:pointer;
+                display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);"
+                title="Vend kort">
+                <i class="fa-solid fa-rotate"></i>
+            </button>
+        </div>
 
         <div class="store-links">
             <a id="link-cm" href="#" target="_blank" style="background:#142E54;border:1px solid #1e4080;">
@@ -980,8 +989,10 @@
         <span>Total:</span>
         <span id="list-total" class="price-text">0.00</span>
     </div>
-    <button class="app-btn btn-dark" onclick="exportToKelz0r()">
-        <img src="image_a8185c.png" style="height:19px;object-fit:contain;filter:brightness(0) invert(1);">
+    <button class="app-btn btn-dark" onclick="exportToKelz0r()" style="display:flex;align-items:center;gap:8px;">
+        <span style="background:#fff;border-radius:5px;padding:2px 6px;display:flex;align-items:center;">
+            <img src="image_a8185c.png" style="height:18px;object-fit:contain;">
+        </span>
         Eksportér til Kelz0r
     </button>
     <div style="display:flex;gap:10px;">
@@ -1425,6 +1436,7 @@
 //  STATE
 // ═══════════════════════════════════════════════
 let currentCard     = null;
+let cardFlipped     = false;
 let currentVariants = [];
 let priceList       = JSON.parse(localStorage.getItem('mtg_list') || '[]');
 let videoStream     = null;
@@ -1586,8 +1598,9 @@ async function searchCard(query) {
             else if (p?.eur_foil) price = +p.eur_foil;
             else if (p?.usd)  price = +p.usd / rates.USD;
             else if (p?.usd_foil) price = +p.usd_foil / rates.USD;
+            const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
             return { id:c.id, name:c.name, set:c.set.toUpperCase(), setName:c.set_name||c.set.toUpperCase(), price,
-                     released_at: c.released_at||'1900-01-01', img, thumb,
+                     released_at: c.released_at||'1900-01-01', img, thumb, imgBack,
                      cmLink: c.purchase_uris?.cardmarket||'#',
                      gathererLink: c.related_uris?.gatherer||'',
                      edhrecLink:   c.related_uris?.edhrec||'',
@@ -1598,6 +1611,28 @@ async function searchCard(query) {
         status.style.display = 'none'; res.style.display = 'block';
         document.getElementById('manual-search').value = currentVariants[0].name;
     } catch(e) { status.innerText = '❌ Fandt ikke kortet — tjek stavningen og prøv igen.'; }
+}
+
+function flipCard() {
+    if (!currentCard?.imgBack) return;
+    const img = document.getElementById('res-image');
+    img.style.transition = 'transform .18s ease-in, opacity .18s';
+    img.style.transform = 'rotateY(90deg)';
+    img.style.opacity = '0';
+    setTimeout(() => {
+        cardFlipped = !cardFlipped;
+        img.src = cardFlipped ? currentCard.imgBack : currentCard.img;
+        img.style.transform = 'rotateY(-90deg)';
+        setTimeout(() => {
+            img.style.transition = 'transform .18s ease-out, opacity .18s';
+            img.style.transform = 'rotateY(0deg)';
+            img.style.opacity = '1';
+        }, 20);
+    }, 180);
+    const btn = document.getElementById('flip-btn');
+    btn.style.transition = 'transform .36s';
+    btn.style.transform = 'rotate(180deg)';
+    setTimeout(() => { btn.style.transform = 'rotate(0deg)'; }, 360);
 }
 
 function sortVariants() {
@@ -1632,10 +1667,13 @@ function selectVariant(i) {
     const th = document.getElementById('thumb-'+i);
     if (th) { th.classList.add('active'); th.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); }
     currentCard = currentVariants[i];
+    cardFlipped = false;
     document.getElementById('res-name').innerText  = currentCard.name;
     document.getElementById('res-set').innerText   = 'Set: ' + currentCard.set;
     document.getElementById('res-price').innerText = fmt(currentCard.price);
     document.getElementById('res-image').src       = currentCard.img;
+    const flipBtn = document.getElementById('flip-btn');
+    flipBtn.style.display = currentCard.imgBack ? 'flex' : 'none';
     document.getElementById('link-cm').href        = currentCard.cmLink;
     document.getElementById('link-kelz').href      = 'https://kelz0r.dk/magic/advanced_search_result.php?keywords=' + encodeURIComponent(currentCard.name);
     document.getElementById('link-gatherer').href  = currentCard.gathererLink || `https://gatherer.wizards.com/Pages/Card/Details.aspx?name=${encodeURIComponent(currentCard.name)}`;
