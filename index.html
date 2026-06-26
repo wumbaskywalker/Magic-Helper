@@ -836,6 +836,30 @@
         nav div span { line-height: 1; }
         nav div.active i { filter: drop-shadow(0 0 5px var(--gold)); }
 
+        /* ── FULLSCREEN BUTTON ── */
+        #fs-btn {
+            display: none;
+            position: fixed; bottom: calc(max(env(safe-area-inset-bottom,10px),10px) + 66px); right: 14px;
+            z-index: 195;
+            width: 38px; height: 38px; border-radius: 50%;
+            background: rgba(12,14,24,.75); border: 1px solid var(--border-lit);
+            color: var(--muted); font-size: 15px; cursor: pointer;
+            align-items: center; justify-content: center;
+            backdrop-filter: blur(8px);
+            transition: color var(--tr), bottom var(--tr), background var(--tr);
+        }
+        #view-play.active ~ #fs-btn,
+        #view-play.active #fs-btn { display: flex; } /* shown via JS */
+        /* Fullscreen mode: hide chrome, board fills screen */
+        body.fs-mode nav            { display: none !important; }
+        body.fs-mode #play-btns-bar { display: none !important; }
+        body.fs-mode #view-play     { padding-bottom: 0 !important; }
+        body.fs-mode #fs-btn {
+            bottom: max(env(safe-area-inset-bottom,14px), 14px);
+            background: rgba(12,14,24,.6);
+            color: var(--gold-lt);
+        }
+
         /* ── TOAST ── */
         #toast {
             position: fixed; bottom: 78px; left: 50%; transform: translateX(-50%);
@@ -1253,12 +1277,17 @@
     </div>
 
     <div id="game-board" class="play-area players-4"></div>
-    <div class="play-btns">
+    <div class="play-btns" id="play-btns-bar">
         <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="rollDice(20)">🎲 Terning</button>
         <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="flipCoin()">🪙 Mønt</button>
         <button class="app-btn btn-gold" style="flex:1;font-size:13px;" onclick="whoStarts()"><svg width="12" height="12" viewBox="0 0 13 13" style="vertical-align:-1px;margin-right:3px"><line x1="1.5" y1="11.5" x2="11.5" y2="1.5" stroke="#0c0e18" stroke-width="2" stroke-linecap="round"/><line x1="2.8" y1="7.6" x2="6.6" y2="11.3" stroke="#0c0e18" stroke-width="2.2" stroke-linecap="round"/><circle cx="1.8" cy="11.2" r="1.6" fill="#0c0e18"/></svg>Starter?</button>
         <button class="app-btn btn-red"  style="flex:1;font-size:13px;" onclick="showResetConfirm()">↺ Genstart</button>
     </div>
+
+    <!-- Fullscreen toggle button -->
+    <button id="fs-btn" onclick="toggleFsMode()" title="Fuld skærm">
+        <i class="fa-solid fa-expand"></i>
+    </button>
 </main>
 
 <!-- ══ DICE / COIN MODAL ══ -->
@@ -1600,6 +1629,8 @@ function releaseWakeLock(){ if(wakeLock){ wakeLock.release(); wakeLock=null; } }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&currentView==='play') requestWakeLock(); });
 
 function switchView(name, el) {
+    // Exit fullscreen when leaving play view
+    if (name !== 'play' && document.body.classList.contains('fs-mode')) exitFsMode();
     currentView = name;
     document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('nav div').forEach(d => d.classList.remove('active','shimmer'));
@@ -1608,6 +1639,8 @@ function switchView(name, el) {
     setTimeout(()=>el.classList.remove('shimmer'), 550);
     name === 'scan' ? startCamera() : stopCamera();
     document.getElementById('app-header').style.display = name === 'play' ? 'none' : 'flex';
+    const fsBtn = document.getElementById('fs-btn');
+    fsBtn.style.display = name === 'play' ? 'flex' : 'none';
     if (name === 'play') {
         requestWakeLock();
         if (gamePlayers.length === 0) showSetup(1);
@@ -1616,6 +1649,29 @@ function switchView(name, el) {
     }
     if (name === 'collection') requestPersistentStorage();
 }
+
+function toggleFsMode(){
+    document.body.classList.contains('fs-mode') ? exitFsMode() : enterFsMode();
+}
+function enterFsMode(){
+    document.body.classList.add('fs-mode');
+    const btn = document.getElementById('fs-btn');
+    btn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+    btn.title = 'Afslut fuld skærm';
+    // Try native fullscreen (Android/desktop); silently ignored on iOS
+    document.documentElement.requestFullscreen?.().catch(()=>{});
+}
+function exitFsMode(){
+    document.body.classList.remove('fs-mode');
+    const btn = document.getElementById('fs-btn');
+    btn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+    btn.title = 'Fuld skærm';
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(()=>{});
+}
+// Sync if native fullscreen exits via Escape
+document.addEventListener('fullscreenchange', ()=>{
+    if (!document.fullscreenElement && document.body.classList.contains('fs-mode')) exitFsMode();
+});
 
 // ═══════════════════════════════════════════════
 //  SEARCH
