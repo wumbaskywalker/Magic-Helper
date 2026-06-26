@@ -254,14 +254,20 @@
         /* ── TRADE ── */
         .trade-cols { display: flex; gap: 10px; }
         .trade-col {
-            flex: 1; background: var(--bg-card); padding: 12px;
+            flex: 1; min-width: 0; background: var(--bg-card); padding: 12px;
             border-radius: var(--r-md); border: 1px solid var(--border);
         }
         .trade-col-hdr { text-align: center; font-weight: 700; margin-bottom: 10px; font-size: 12px; letter-spacing: .6px; text-transform: uppercase; }
         .trade-item {
-            display: flex; justify-content: space-between; background: var(--bg-input);
+            display: flex; align-items: center; gap: 6px; background: var(--bg-input);
             padding: 8px 10px; margin-bottom: 5px; border-radius: var(--r-sm); font-size: 12px;
+            cursor: pointer;
         }
+        .trade-item-name { flex: 1; min-width: 0; overflow: hidden; }
+        .trade-item-name > div:first-child {
+            font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .trade-item-price { flex-shrink: 0; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
         .trade-total-box {
             margin-top: 14px; padding: 16px; border-radius: var(--r-md);
             text-align: center; font-size: 17px; font-weight: 700; color: #fff;
@@ -836,6 +842,10 @@
         nav div span { line-height: 1; }
         nav div.active i { filter: drop-shadow(0 0 5px var(--gold)); }
 
+        /* ── UPDATE BUTTON SPIN ── */
+        @keyframes spin-cw { to { transform: rotate(360deg); } }
+        .spinning { animation: spin-cw .55s cubic-bezier(.4,0,.2,1) forwards; }
+
         /* ── FULLSCREEN BUTTON ── */
         #fs-btn {
             display: none;
@@ -880,12 +890,12 @@
     <span class="header-title">⚔️ Magic Helper</span>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
         <div style="display:flex;align-items:center;gap:6px;">
-            <button onclick="window.location.href=location.pathname+'?v='+Date.now()" title="Hent seneste version"
+            <button id="update-btn" onclick="triggerUpdate(this)" title="Hent seneste version"
                 style="background:var(--bg-input);border:1px solid var(--border-lit);border-radius:8px;
                        color:var(--muted);font-size:11px;font-weight:600;padding:6px 10px;
                        cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;
                        letter-spacing:.02em;">
-                <i class="fa-solid fa-rotate-right" style="font-size:12px;"></i> Opdater app
+                <i id="update-icon" class="fa-solid fa-rotate-right" style="font-size:12px;"></i> Opdater app
             </button>
             <select id="currency-select" onchange="changeCurrency(this.value)" style="margin:0;">
                 <option value="EUR">€ EUR</option>
@@ -2011,6 +2021,7 @@ function updateListView() {
     priceList.forEach((item,i)=>{
         const lt=item.price>0?item.price*item.amount:0; total+=lt;
         const el=document.createElement('div'); el.className='list-item';
+        el.style.cursor='pointer';
         el.innerHTML=`
             <div style="font-weight:700;margin-right:8px;min-width:26px;">${item.amount}×</div>
             <div style="flex:1;overflow:hidden;padding-right:8px;min-width:0;">
@@ -2018,7 +2029,8 @@ function updateListView() {
                 <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;margin-top:1px;">${item.setName||item.set}</div>
             </div>
             <div class="price-text" style="margin-right:10px;white-space:nowrap;">${fmt(lt)}</div>
-            <div style="color:var(--red);font-weight:700;cursor:pointer;font-size:20px;padding:0 4px;" onclick="removeItem(${i})">×</div>`;
+            <div style="color:var(--red);font-weight:700;cursor:pointer;font-size:20px;padding:0 4px;" onclick="event.stopPropagation();removeItem(${i})">×</div>`;
+        el.addEventListener('click', ()=> openListCardPreview(item));
         c.appendChild(el);
     });
     document.getElementById('list-total').innerText=fmt(total);
@@ -2026,14 +2038,49 @@ function updateListView() {
 updateListView();
 
 function removeItem(i){priceList.splice(i,1);saveList();updateListView();}
+
+function openListCardPreview(item){
+    colCardDetailItem = item; colCardFlipped = false;
+    const modal = document.getElementById('col-card-detail-modal');
+    const img   = document.getElementById('ccd-img');
+    const body  = document.getElementById('ccd-body');
+    const flipBtn = document.getElementById('ccd-flip-btn');
+    img.src = item.img||''; img.style.display = item.img ? 'block' : 'none';
+    img.style.transform=''; img.style.opacity='1';
+    flipBtn.onclick = flipColCard;
+    flipBtn.style.display = item.imgBack ? 'flex' : 'none';
+    body.innerHTML=`
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${item.name}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;">${item.setName||item.set}</div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Stykpris</div>
+                <div style="font-size:18px;font-weight:700;color:var(--gold);">${fmt(item.price)}</div>
+            </div>
+            <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Antal</div>
+                <div style="font-size:18px;font-weight:700;">${item.amount}</div>
+            </div>
+        </div>`;
+    modal.style.display='block';
+}
+
 function clearList(){if(confirm('Ryd hele listen?')){priceList=[];saveList();updateListView();}}
+
+function triggerUpdate(btn){
+    const icon = document.getElementById('update-icon');
+    icon.classList.add('spinning');
+    btn.disabled = true;
+    setTimeout(()=>{ window.location.href = location.pathname+'?v='+Date.now(); }, 500);
+}
 
 function exportToKelz0r(){
     if(!priceList.length)return toast('Listen er tom!','#e74c3c');
-    navigator.clipboard.writeText(priceList.map(x=>x.name).join('\n')).then(()=>{
-        toast('Kopieret! Åbner Kelz0r…');
-        setTimeout(()=>window.open('https://www.kelz0r.dk/magic/multi_search.php','_blank'),900);
-    }).catch(()=>alert('Kunne ikke kopiere:\n\n'+priceList.map(x=>x.name).join('\n')));
+    const names=priceList.map(x=>x.name).join('\n');
+    navigator.clipboard.writeText(names).then(()=>{
+        toast('✅ Kortnavne kopieret! Åbner Kelz0r — tryk "Indsæt" i søgefeltet');
+        setTimeout(()=>window.open('https://www.kelz0r.dk/magic/multi_search.php','_blank'),1400);
+    }).catch(()=>alert('Kunne ikke kopiere — kopiér manuelt:\n\n'+names));
 }
 function shareList(){
     if(!priceList.length)return toast('Listen er tom!','#e74c3c');
@@ -2117,22 +2164,19 @@ function openTradePreview(card){
 
 function updateTradeUI(){
     let gT=0,rT=0;
-    document.getElementById('trade-give-list').innerHTML=tradeGive.map((c,i)=>{if(c.price>0)gT+=c.price;
-        return`<div class="trade-item" onclick="openTradePreview(tradeGive[${i}])" style="cursor:pointer;">
-            <span style="overflow:hidden;min-width:0;flex:1;">
-                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
-                <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${c.setName||c.set}</div>
-            </span>
-            <span style="white-space:nowrap;">${fmt(c.price)} <span style="color:var(--red);cursor:pointer;font-weight:700;padding-left:6px;" onclick="event.stopPropagation();removeTradeCard(${i},'give')">×</span></span>
-        </div>`;}).join('');
-    document.getElementById('trade-get-list').innerHTML=tradeGet.map((c,i)=>{if(c.price>0)rT+=c.price;
-        return`<div class="trade-item" onclick="openTradePreview(tradeGet[${i}])" style="cursor:pointer;">
-            <span style="overflow:hidden;min-width:0;flex:1;">
-                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
-                <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${c.setName||c.set}</div>
-            </span>
-            <span style="white-space:nowrap;">${fmt(c.price)} <span style="color:var(--red);cursor:pointer;font-weight:700;padding-left:6px;" onclick="event.stopPropagation();removeTradeCard(${i},'get')">×</span></span>
-        </div>`;}).join('');
+    const tradeItemHtml=(c,i,side)=>`
+        <div class="trade-item" onclick="openTradePreview(trade${side==='give'?'Give':'Get'}[${i}])">
+            <div class="trade-item-name">
+                <div>${c.name.split('//')[0].trim()}</div>
+                <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;margin-top:1px;">${c.setName||c.set}</div>
+            </div>
+            <div class="trade-item-price">
+                <span>${fmt(c.price)}</span>
+                <span style="color:var(--red);font-weight:700;font-size:16px;padding:0 2px;" onclick="event.stopPropagation();removeTradeCard(${i},'${side}')">×</span>
+            </div>
+        </div>`;
+    document.getElementById('trade-give-list').innerHTML=tradeGive.map((c,i)=>{if(c.price>0)gT+=c.price; return tradeItemHtml(c,i,'give');}).join('');
+    document.getElementById('trade-get-list').innerHTML=tradeGet.map((c,i) =>{if(c.price>0)rT+=c.price; return tradeItemHtml(c,i,'get'); }).join('');
     document.getElementById('trade-give-total').innerText=fmt(gT);
     document.getElementById('trade-get-total').innerText=fmt(rT);
     const box=document.getElementById('trade-result-box');
