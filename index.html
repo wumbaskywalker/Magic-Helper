@@ -1127,7 +1127,15 @@
             style="background:none;border:1px solid var(--border-lit);border-radius:8px;padding:8px 14px;color:var(--muted);cursor:pointer;margin-bottom:16px;">
             ← Tilbage
         </button>
-        <img id="ccd-img" src="" style="width:100%;border-radius:12px;margin-bottom:16px;">
+        <div style="position:relative;display:inline-block;width:100%;margin-bottom:16px;">
+            <img id="ccd-img" src="" style="width:100%;border-radius:12px;display:block;">
+            <button id="ccd-flip-btn" onclick="flipColCard()" style="display:none;position:absolute;bottom:10px;right:10px;
+                background:rgba(12,14,24,.85);border:1px solid rgba(255,255,255,.25);border-radius:50%;
+                width:42px;height:42px;cursor:pointer;color:#fff;font-size:16px;
+                display:none;align-items:center;justify-content:center;">
+                <i class="fa-solid fa-rotate"></i>
+            </button>
+        </div>
         <div id="ccd-body"></div>
     </div>
 </div>
@@ -2056,7 +2064,9 @@ async function openTradeModal(query,side){
             let price=-1;
             const p=c.prices;
             if(p?.eur)price=+p.eur; else if(p?.eur_foil)price=+p.eur_foil; else if(p?.usd)price=+p.usd/rates.USD;
-            return{name:c.name,set:c.set.toUpperCase(),setName:c.set_name||c.set.toUpperCase(),price,thumb};
+            const img=c.image_uris?.normal??c.card_faces?.[0]?.image_uris?.normal??'';
+            const imgBack=c.card_faces?.[1]?.image_uris?.normal??'';
+            return{name:c.name,set:c.set.toUpperCase(),setName:c.set_name||c.set.toUpperCase(),price,thumb,img,imgBack};
         });
         content.innerHTML=tradeVariants.map((c,i)=>`
             <div class="trade-variant-item" onclick="addTradeCard(${i})">
@@ -2068,17 +2078,61 @@ async function openTradeModal(query,side){
 }
 function addTradeCard(i){
     const c=tradeVariants[i];
-    tradeSide==='give'?(tradeGive.push({name:c.name,set:c.set,setName:c.setName,price:c.price}),document.getElementById('trade-give-input').value='')
-                      :(tradeGet.push({name:c.name,set:c.set,setName:c.setName,price:c.price}), document.getElementById('trade-get-input').value='');
+    const obj={name:c.name,set:c.set,setName:c.setName,price:c.price,img:c.img||'',imgBack:c.imgBack||''};
+    tradeSide==='give'?(tradeGive.push(obj),document.getElementById('trade-give-input').value='')
+                      :(tradeGet.push(obj), document.getElementById('trade-get-input').value='');
     document.getElementById('trade-modal').style.display='none'; updateTradeUI();
 }
 function removeTradeCard(i,side){side==='give'?tradeGive.splice(i,1):tradeGet.splice(i,1);updateTradeUI();}
+
+let tradePreviewCard = null;
+let tradePreviewFlipped = false;
+function openTradePreview(card){
+    tradePreviewCard=card; tradePreviewFlipped=false;
+    const m=document.getElementById('col-card-detail-modal');
+    const img=document.getElementById('ccd-img');
+    const body=document.getElementById('ccd-body');
+    const flipBtn=document.getElementById('ccd-flip-btn');
+    img.src=card.img||''; img.style.display=card.img?'block':'none';
+    img.style.transform=''; img.style.opacity='1';
+    flipBtn.style.display=card.imgBack?'flex':'none';
+    // Override flip to use tradePreviewCard
+    flipBtn.onclick=()=>{
+        if(!tradePreviewCard?.imgBack)return;
+        img.style.transition='transform .18s ease-in,opacity .18s';
+        img.style.transform='rotateY(90deg)'; img.style.opacity='0';
+        setTimeout(()=>{
+            tradePreviewFlipped=!tradePreviewFlipped;
+            img.src=tradePreviewFlipped?tradePreviewCard.imgBack:tradePreviewCard.img;
+            img.style.transform='rotateY(-90deg)';
+            setTimeout(()=>{img.style.transition='transform .18s ease-out,opacity .18s';img.style.transform='rotateY(0deg)';img.style.opacity='1';},20);
+        },180);
+    };
+    body.innerHTML=`
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${card.name}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;">${card.setName||card.set}</div>
+        <div style="text-align:center;font-size:24px;font-weight:700;color:var(--gold);margin-bottom:16px;">${fmt(card.price)}</div>`;
+    m.style.display='block';
+}
+
 function updateTradeUI(){
     let gT=0,rT=0;
     document.getElementById('trade-give-list').innerHTML=tradeGive.map((c,i)=>{if(c.price>0)gT+=c.price;
-        return`<div class="trade-item"><span style="overflow:hidden;min-width:0;flex:1;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div><div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${c.setName||c.set}</div></span><span style="white-space:nowrap;">${fmt(c.price)} <span style="color:var(--red);cursor:pointer;font-weight:700;padding-left:6px;" onclick="removeTradeCard(${i},'give')">×</span></span></div>`;}).join('');
+        return`<div class="trade-item" onclick="openTradePreview(tradeGive[${i}])" style="cursor:pointer;">
+            <span style="overflow:hidden;min-width:0;flex:1;">
+                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
+                <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${c.setName||c.set}</div>
+            </span>
+            <span style="white-space:nowrap;">${fmt(c.price)} <span style="color:var(--red);cursor:pointer;font-weight:700;padding-left:6px;" onclick="event.stopPropagation();removeTradeCard(${i},'give')">×</span></span>
+        </div>`;}).join('');
     document.getElementById('trade-get-list').innerHTML=tradeGet.map((c,i)=>{if(c.price>0)rT+=c.price;
-        return`<div class="trade-item"><span style="overflow:hidden;min-width:0;flex:1;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div><div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${c.setName||c.set}</div></span><span style="white-space:nowrap;">${fmt(c.price)} <span style="color:var(--red);cursor:pointer;font-weight:700;padding-left:6px;" onclick="removeTradeCard(${i},'get')">×</span></span></div>`;}).join('');
+        return`<div class="trade-item" onclick="openTradePreview(tradeGet[${i}])" style="cursor:pointer;">
+            <span style="overflow:hidden;min-width:0;flex:1;">
+                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
+                <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${c.setName||c.set}</div>
+            </span>
+            <span style="white-space:nowrap;">${fmt(c.price)} <span style="color:var(--red);cursor:pointer;font-weight:700;padding-left:6px;" onclick="event.stopPropagation();removeTradeCard(${i},'get')">×</span></span>
+        </div>`;}).join('');
     document.getElementById('trade-give-total').innerText=fmt(gT);
     document.getElementById('trade-get-total').innerText=fmt(rT);
     const box=document.getElementById('trade-result-box');
@@ -2587,6 +2641,8 @@ function addToCollection() {
             qty: amt,
             price: currentCard.price,
             img: currentCard.img,
+            imgBack: currentCard.imgBack || '',
+            thumb: currentCard.thumb || '',
             addedAt: Date.now()
         });
     }
@@ -2625,14 +2681,58 @@ function confirmClearCollection() {
     }
 }
 
-function openColCardDetail(id) {
+let colCardFlipped = false;
+let colCardDetailItem = null;
+
+function flipColCard() {
+    if (!colCardDetailItem?.imgBack) return;
+    const img = document.getElementById('ccd-img');
+    img.style.transition = 'transform .18s ease-in, opacity .18s';
+    img.style.transform = 'rotateY(90deg)'; img.style.opacity = '0';
+    setTimeout(() => {
+        colCardFlipped = !colCardFlipped;
+        img.src = colCardFlipped ? colCardDetailItem.imgBack : colCardDetailItem.img;
+        img.style.transform = 'rotateY(-90deg)';
+        setTimeout(() => {
+            img.style.transition = 'transform .18s ease-out, opacity .18s';
+            img.style.transform = 'rotateY(0deg)'; img.style.opacity = '1';
+        }, 20);
+    }, 180);
+}
+
+async function openColCardDetail(id) {
     const item = collection.find(x => x.id === id);
     if (!item) return;
+    colCardDetailItem = item;
+    colCardFlipped = false;
     const modal = document.getElementById('col-card-detail-modal');
     const img   = document.getElementById('ccd-img');
     const body  = document.getElementById('ccd-body');
     img.src = item.img || '';
     img.style.display = item.img ? 'block' : 'none';
+    img.style.transform = ''; img.style.opacity = '1';
+    const flipBtn = document.getElementById('ccd-flip-btn');
+    flipBtn.style.display = 'none';
+    modal.style.display = 'block';
+
+    // Hent imgBack fra Scryfall hvis det mangler (ældre gemt kort)
+    if (item.imgBack === undefined || item.imgBack === '') {
+        try {
+            const r = await fetch(`https://api.scryfall.com/cards/${item.id}`);
+            if (r.ok) {
+                const c = await r.json();
+                const fetched = c.card_faces?.[1]?.image_uris?.normal ?? '';
+                if (fetched) {
+                    item.imgBack = fetched;
+                    saveCollection(); // gem permanent
+                    colCardDetailItem = item;
+                    flipBtn.style.display = 'flex';
+                }
+            }
+        } catch(e) {}
+    } else if (item.imgBack) {
+        flipBtn.style.display = 'flex';
+    }
     const lineTotal = item.price > 0 ? fmt(item.price * item.qty) : '–';
     body.innerHTML = `
         <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${item.name}</div>
@@ -2666,7 +2766,6 @@ function openColCardDetail(id) {
             }">
             <i class="fa-solid fa-trash-can"></i> Fjern fra samling
         </button>`;
-    modal.style.display = 'block';
 }
 
 function updateCollectionView(query = '') {
