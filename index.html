@@ -1176,6 +1176,43 @@
     </div>
 </div>
 
+<!-- ══ KELZ0R GUIDE MODAL ══ -->
+<div id="kelz0r-guide" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.88);z-index:1001;align-items:flex-end;justify-content:center;padding:16px;">
+    <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-lg);padding:24px;width:100%;max-width:420px;">
+        <div style="font-size:18px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+            <span style="background:#fff;border-radius:6px;padding:2px 8px;display:inline-flex;align-items:center;"><img src="image_a8185c.png" style="height:18px;object-fit:contain;"></span>
+            Eksportér til Kelz0r
+        </div>
+        <!-- Clipboard confirmation -->
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.35);border-radius:10px;padding:12px;margin-bottom:18px;">
+            <i class="fa-solid fa-circle-check" style="color:#2ecc71;font-size:22px;flex-shrink:0;"></i>
+            <span style="font-size:14px;color:#2ecc71;font-weight:600;">Kortnavne kopieret til udklipsholder</span>
+        </div>
+        <!-- Step-by-step -->
+        <div style="font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Sådan gør du</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="background:var(--accent);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">1</span>
+                <span>Tryk <strong>Åbn Kelz0r</strong> nedenfor</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="background:var(--accent);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">2</span>
+                <span>Hold fingeren nede i søgefeltet</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="background:var(--accent);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">3</span>
+                <span>Tryk <strong>Indsæt</strong> — og søg!</span>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="app-btn btn-dark" style="flex:1;margin:0;" onclick="document.getElementById('kelz0r-guide').style.display='none'">Annuller</button>
+            <button class="app-btn" style="flex:2;margin:0;background:#3a2fbe;" onclick="openKelz0r()">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Åbn Kelz0r
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ══ SHARE COLLECTION MODAL ══ -->
 <div id="share-col-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.93);z-index:1000;align-items:center;justify-content:center;padding:20px;">
     <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-lg);padding:24px;width:100%;max-width:400px;">
@@ -2077,11 +2114,13 @@ function triggerUpdate(btn){
 function exportToKelz0r(){
     if(!priceList.length)return toast('Listen er tom!','#e74c3c');
     const names=priceList.map(x=>x.name).join('\n');
-    // Åbn synkront (iOS blokerer window.open i async callbacks)
+    // Kopier til udklipsholder, vis guide (Åbn-knap er synkron → iOS-sikker)
+    navigator.clipboard.writeText(names).catch(()=>{});
+    document.getElementById('kelz0r-guide').style.display='flex';
+}
+function openKelz0r(){
+    document.getElementById('kelz0r-guide').style.display='none';
     window.open('https://www.kelz0r.dk/magic/multi_search.php','_blank');
-    navigator.clipboard.writeText(names)
-        .then(()=>toast('✅ Kortnavne kopieret — tryk "Indsæt" i søgefeltet på Kelz0r'))
-        .catch(()=>toast('Åbnede Kelz0r — kopiér kortnavne manuelt','#e67e22'));
 }
 function shareList(){
     if(!priceList.length)return toast('Listen er tom!','#e74c3c');
