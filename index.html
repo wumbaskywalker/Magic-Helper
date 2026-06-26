@@ -2025,7 +2025,7 @@ function updateListView() {
         el.innerHTML=`
             <div style="font-weight:700;margin-right:8px;min-width:26px;">${item.amount}×</div>
             <div style="flex:1;overflow:hidden;padding-right:8px;min-width:0;">
-                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
+                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name.split('//')[0].trim()}</div>
                 <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;margin-top:1px;">${item.setName||item.set}</div>
             </div>
             <div class="price-text" style="margin-right:10px;white-space:nowrap;">${fmt(lt)}</div>
@@ -2077,10 +2077,11 @@ function triggerUpdate(btn){
 function exportToKelz0r(){
     if(!priceList.length)return toast('Listen er tom!','#e74c3c');
     const names=priceList.map(x=>x.name).join('\n');
-    navigator.clipboard.writeText(names).then(()=>{
-        toast('✅ Kortnavne kopieret! Åbner Kelz0r — tryk "Indsæt" i søgefeltet');
-        setTimeout(()=>window.open('https://www.kelz0r.dk/magic/multi_search.php','_blank'),1400);
-    }).catch(()=>alert('Kunne ikke kopiere — kopiér manuelt:\n\n'+names));
+    // Åbn synkront (iOS blokerer window.open i async callbacks)
+    window.open('https://www.kelz0r.dk/magic/multi_search.php','_blank');
+    navigator.clipboard.writeText(names)
+        .then(()=>toast('✅ Kortnavne kopieret — tryk "Indsæt" i søgefeltet på Kelz0r'))
+        .catch(()=>toast('Åbnede Kelz0r — kopiér kortnavne manuelt','#e67e22'));
 }
 function shareList(){
     if(!priceList.length)return toast('Listen er tom!','#e74c3c');
