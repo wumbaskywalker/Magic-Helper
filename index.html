@@ -861,18 +861,110 @@
             z-index: 200; backdrop-filter: blur(12px);
         }
         nav div {
-            flex: 1; font-size: 10px; color: var(--muted);
-            cursor: pointer; padding: 8px 4px 6px; transition: color var(--tr);
+            flex: 1; font-size: 9px; color: var(--muted);
+            cursor: pointer; padding: 8px 2px 6px; transition: color var(--tr);
             min-width: 0;
             display: flex; flex-direction: column; align-items: center; gap: 3px;
         }
-        /* Yderste faner får ekstra tryk-areal indad så iPhone-hjørnerne ikke spiser dem */
-        nav div:first-child { padding-left: 10px; }
-        nav div:last-child  { padding-right: 10px; }
+        nav div:first-child { padding-left: 6px; }
+        nav div:last-child  { padding-right: 6px; }
         nav div.active { color: var(--gold-lt); }
-        nav div i { font-size: 22px; }
+        nav div i { font-size: 20px; }
         nav div span { line-height: 1; }
         nav div.active i { filter: drop-shadow(0 0 5px var(--gold)); }
+
+        /* ── SEARCH MODE TOGGLE ── */
+        .search-mode-toggle {
+            display: flex; gap: 0; margin-bottom: 14px;
+            background: var(--bg-input); border-radius: var(--r-md);
+            border: 1px solid var(--border); overflow: hidden;
+        }
+        .search-mode-btn {
+            flex: 1; padding: 10px; font-size: 13px; font-weight: 700;
+            color: var(--muted); background: transparent; border: none;
+            cursor: pointer; transition: all .2s;
+        }
+        .search-mode-btn.active {
+            background: var(--accent); color: #fff;
+            box-shadow: 0 0 10px rgba(79,124,255,.3);
+        }
+
+        /* ── RULES ── */
+        #rules-panel { display: none; }
+        .rules-result {
+            background: var(--bg-panel); border: 1px solid var(--border);
+            border-radius: var(--r-md); padding: 14px; margin-bottom: 10px;
+        }
+        .rules-keyword {
+            font-size: 15px; font-weight: 700; color: var(--gold-lt); margin-bottom: 6px;
+        }
+        .rules-text { font-size: 13px; color: var(--text); line-height: 1.55; }
+        .rules-ruling {
+            border-left: 3px solid var(--accent); padding-left: 12px;
+            margin-bottom: 10px; font-size: 13px; line-height: 1.55;
+        }
+        .rules-ruling-date { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+        /* ── DECK BUILDER ── */
+        .deck-list-item {
+            background: var(--bg-panel); border: 1px solid var(--border);
+            border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 10px;
+            cursor: pointer; display: flex; align-items: center; gap: 12px;
+            transition: border-color var(--tr);
+        }
+        .deck-list-item:active { border-color: var(--accent); }
+        .deck-meta { flex: 1; min-width: 0; }
+        .deck-name-label { font-size: 16px; font-weight: 700; }
+        .deck-info-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+        .deck-editor-header {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+        }
+        .deck-back-btn {
+            width: 36px; height: 36px; border-radius: 50%; background: var(--bg-input);
+            border: 1px solid var(--border-lit); color: var(--muted); font-size: 16px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .deck-stat-box {
+            background: var(--bg-panel); border: 1px solid var(--border);
+            border-radius: var(--r-md); padding: 12px; margin-bottom: 10px;
+        }
+        .deck-stat-title {
+            font-size: 10px; font-weight: 800; letter-spacing: .06em;
+            color: var(--muted); text-transform: uppercase; margin-bottom: 10px;
+        }
+        .curve-bar-row {
+            display: flex; align-items: center; gap: 6px; margin-bottom: 5px; font-size: 12px;
+        }
+        .curve-bar-label { width: 16px; text-align: right; color: var(--muted); flex-shrink: 0; }
+        .curve-bar-track { flex: 1; height: 14px; background: var(--bg-input); border-radius: 3px; overflow: hidden; }
+        .curve-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; }
+        .curve-bar-count { width: 22px; color: var(--muted); font-size: 11px; }
+        .color-pip {
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 700; flex-shrink: 0;
+        }
+        .deck-card-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 10px; background: var(--bg-input);
+            border-radius: var(--r-sm); margin-bottom: 6px; font-size: 13px;
+        }
+        .deck-card-thumb {
+            width: 32px; height: 44px; object-fit: cover;
+            border-radius: 3px; flex-shrink: 0;
+        }
+        .deck-card-info { flex: 1; min-width: 0; }
+        .deck-card-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .deck-card-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+        .deck-type-badge {
+            font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px;
+            letter-spacing: .04em; text-transform: uppercase;
+        }
+        .legal-badge {
+            font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px;
+            margin-bottom: 4px; display: inline-flex; align-items: center; gap: 4px;
+        }
 
         /* ── UPDATE BUTTON SPIN ── */
         @keyframes spin-cw { to { transform: rotate(360deg); } }
@@ -954,6 +1046,12 @@
 <main id="view-search" class="view-section active">
     <img src="logo.png" alt="Magic Helper Logo" class="app-logo">
 
+    <div class="search-mode-toggle">
+        <button class="search-mode-btn active" id="mode-kort" onclick="setSearchMode('kort')">🃏 Kort</button>
+        <button class="search-mode-btn" id="mode-regler" onclick="setSearchMode('regler')">📖 Regler</button>
+    </div>
+
+    <div id="kort-panel">
     <div class="search-container">
         <input type="text" id="manual-search" placeholder="Søg efter Magic kort…"
                oninput="handleAutocomplete(this.value,'main')"
@@ -1030,6 +1128,21 @@
         </div>
         <div id="res-legality" style="display:none;border-top:1px solid var(--border);padding-top:12px;margin-top:12px;"></div>
     </div>
+    </div><!-- end #kort-panel -->
+
+    <!-- ══ REGLER PANEL ══ -->
+    <div id="rules-panel">
+        <div class="search-container">
+            <input type="text" id="rules-search" placeholder="Søg keyword eller kortnavn…"
+                   oninput="searchRules(this.value)"
+                   onkeypress="if(event.key==='Enter')searchRules(this.value)">
+        </div>
+        <div id="rules-results">
+            <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">
+                Søg efter et MTG-keyword (fx "trample") eller et kortnavnfor at se officielle regler.
+            </div>
+        </div>
+    </div>
 </main>
 
 <!-- ══ SCAN ══ -->
@@ -1081,6 +1194,11 @@
         </span>
         Eksportér til Kelz0r
     </button>
+    <div style="display:flex;gap:10px;">
+        <button class="app-btn btn-dark" style="flex:1;" onclick="showWishImport()">
+            <i class="fa-solid fa-file-import"></i> Importér liste
+        </button>
+    </div>
     <div style="display:flex;gap:10px;">
         <button class="app-btn" style="flex:1;" onclick="shareList()">
             <i class="fa-solid fa-share-nodes"></i> Del
@@ -1350,6 +1468,193 @@
     </div>
 </div>
 
+<!-- ══ DECK BUILDER ══ -->
+<main id="view-deck" class="view-section">
+    <!-- Deck list -->
+    <div id="deck-list-view">
+        <h2 class="section-title">Mine Dæk</h2>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <button class="app-btn btn-green" style="flex:1;" onclick="createNewDeck()">
+                <i class="fa-solid fa-plus"></i> Nyt dæk
+            </button>
+            <button class="app-btn btn-dark" style="flex:1;" onclick="showDeckImport()">
+                <i class="fa-solid fa-file-import"></i> Importér liste
+            </button>
+        </div>
+        <div id="deck-list-container">
+            <div style="color:var(--muted);text-align:center;padding:32px;font-size:15px;">
+                Ingen dæk endnu.<br>Tryk "Nyt dæk" for at komme i gang.
+            </div>
+        </div>
+    </div>
+
+    <!-- Deck editor -->
+    <div id="deck-editor-view" style="display:none;">
+        <div class="deck-editor-header">
+            <button class="deck-back-btn" onclick="closeDeckEditor()"><i class="fa-solid fa-arrow-left"></i></button>
+            <input type="text" id="deck-name-input" placeholder="Dæk-navn…"
+                   style="flex:1;margin:0;font-size:15px;font-weight:700;"
+                   oninput="renameDeck(this.value)">
+            <select id="deck-format-select" style="width:auto;margin:0;font-size:12px;padding:8px 10px;"
+                    onchange="setDeckFormat(this.value)">
+                <option value="commander">Commander</option>
+                <option value="standard">Standard</option>
+                <option value="modern">Modern</option>
+                <option value="pioneer">Pioneer</option>
+                <option value="legacy">Legacy</option>
+                <option value="pauper">Pauper</option>
+            </select>
+        </div>
+
+        <!-- Stats strip -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;flex:1;min-width:70px;text-align:center;">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Kort</div>
+                <div id="deck-stat-count" style="font-size:18px;font-weight:700;">0</div>
+            </div>
+            <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;flex:1;min-width:70px;text-align:center;">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Lands</div>
+                <div id="deck-stat-lands" style="font-size:18px;font-weight:700;">0</div>
+            </div>
+            <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;flex:1;min-width:70px;text-align:center;">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Gns. CMC</div>
+                <div id="deck-stat-cmc" style="font-size:18px;font-weight:700;">0</div>
+            </div>
+            <div style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);border-radius:var(--r-sm);padding:8px 12px;flex:1;min-width:70px;text-align:center;">
+                <div style="font-size:10px;color:var(--gold);margin-bottom:2px;font-weight:700;">TOTAL</div>
+                <div id="deck-stat-value" class="price-text" style="font-size:16px;font-weight:700;">0</div>
+            </div>
+        </div>
+
+        <!-- Colors -->
+        <div class="deck-stat-box">
+            <div class="deck-stat-title">Farver</div>
+            <div id="deck-colors-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"></div>
+        </div>
+
+        <!-- Mana curve -->
+        <div class="deck-stat-box">
+            <div class="deck-stat-title">Mana-kurve (ikke-lands)</div>
+            <div id="deck-curve"></div>
+        </div>
+
+        <!-- Legality -->
+        <div class="deck-stat-box">
+            <div class="deck-stat-title">Format-legalitet</div>
+            <div id="deck-legality-info" style="font-size:13px;color:var(--muted);">Tilføj kort for at tjekke legalitet.</div>
+        </div>
+
+        <!-- Add card -->
+        <div style="position:relative;margin-bottom:12px;">
+            <div style="display:flex;gap:8px;">
+                <input type="text" id="deck-card-search" placeholder="Søg og tilføj kort…"
+                       style="flex:1;margin:0;"
+                       oninput="handleAutocomplete(this.value,'deck')"
+                       onkeypress="if(event.key==='Enter'){openDeckSearch(this.value);hideAC()}">
+                <button class="app-btn" style="width:auto;margin:0;padding:0 16px;white-space:nowrap;"
+                        onclick="openDeckSearch(document.getElementById('deck-card-search').value);hideAC()">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            <div id="deck-ac-suggestions" class="autocomplete-box"></div>
+        </div>
+
+        <!-- Card list -->
+        <div id="deck-card-list"></div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+            <button class="app-btn btn-dark" style="flex:1;" onclick="showDeckImport('add')">
+                <i class="fa-solid fa-list"></i> Tilføj via liste
+            </button>
+            <button class="app-btn" style="flex:1;" onclick="exportDeck()">
+                <i class="fa-solid fa-file-export"></i> Eksportér
+            </button>
+            <button class="app-btn btn-dark" style="flex:1;" onclick="deleteDeck()">
+                <i class="fa-solid fa-trash-can"></i> Slet dæk
+            </button>
+        </div>
+    </div>
+</main>
+
+<!-- Deck search modal -->
+<div id="deck-search-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--bg-panel);border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-width:520px;max-height:70vh;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:16px;">Vælg udgave</div>
+            <button onclick="document.getElementById('deck-search-modal').style.display='none'"
+                    style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;">×</button>
+        </div>
+        <div id="deck-search-content"></div>
+    </div>
+</div>
+
+<!-- Wish list import modal -->
+<div id="wish-import-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--bg-panel);border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:24px;padding-bottom:max(24px,env(safe-area-inset-bottom));">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:17px;font-weight:800;">Importér til Ønskeliste</div>
+            <button onclick="document.getElementById('wish-import-modal').style.display='none'"
+                style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;">×</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Én linje pr. kort — fx <code style="background:var(--bg-input);padding:2px 5px;border-radius:4px;">4 Lightning Bolt</code> eller <code style="background:var(--bg-input);padding:2px 5px;border-radius:4px;">1 Sol Ring</code></div>
+        <textarea id="wish-import-textarea" rows="12" style="width:100%;background:var(--bg-input);border:1px solid var(--border-lit);border-radius:var(--r-md);color:var(--text);font-size:13px;padding:10px;resize:vertical;font-family:monospace;box-sizing:border-box;" placeholder="4 Lightning Bolt&#10;1 Sol Ring&#10;2 Counterspell"></textarea>
+        <div id="wish-import-status" style="display:none;font-size:12px;color:var(--muted);margin-top:8px;"></div>
+        <div style="display:flex;gap:10px;margin-top:14px;">
+            <button class="app-btn btn-dark" style="flex:1;" onclick="document.getElementById('wish-import-modal').style.display='none'">Annuller</button>
+            <button class="app-btn" style="flex:2;" onclick="importWishList()"><i class="fa-solid fa-file-import"></i> Importér</button>
+        </div>
+    </div>
+</div>
+
+<!-- Deck card preview modal -->
+<div id="deck-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.96);z-index:1000;overflow-y:auto;padding:20px;">
+    <div style="max-width:400px;margin:0 auto;">
+        <button onclick="document.getElementById('deck-preview-modal').style.display='none'"
+            style="background:none;border:1px solid var(--border-lit);border-radius:8px;padding:8px 14px;color:var(--muted);cursor:pointer;margin-bottom:16px;">
+            ← Tilbage
+        </button>
+        <div style="position:relative;display:inline-block;width:100%;margin-bottom:16px;">
+            <img id="dpm-img" src="" style="width:100%;border-radius:12px;display:block;">
+            <button id="dpm-flip-btn" onclick="flipDeckPreviewCard()" style="display:none;position:absolute;bottom:10px;right:10px;
+                background:rgba(12,14,24,.85);border:1px solid rgba(255,255,255,.25);border-radius:50%;
+                width:42px;height:42px;cursor:pointer;color:#fff;font-size:16px;
+                align-items:center;justify-content:center;">
+                <i class="fa-solid fa-rotate"></i>
+            </button>
+        </div>
+        <div id="dpm-body"></div>
+    </div>
+</div>
+
+<!-- Deck import modal -->
+<div id="deck-import-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--bg-panel);border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:24px;padding-bottom:max(24px,env(safe-area-inset-bottom));">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div id="deck-import-title" style="font-weight:700;font-size:17px;">Importér dækliste</div>
+            <button onclick="document.getElementById('deck-import-modal').style.display='none'"
+                    style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;">×</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Indsæt en dækliste — én linje per kort, fx <code style="color:var(--accent);">4 Lightning Bolt</code> eller <code style="color:var(--accent);">1 Sol Ring (C21)</code></div>
+        <div id="deck-import-name-row" style="margin-bottom:8px;">
+            <input type="text" id="deck-import-name" placeholder="Dæk-navn (valgfrit)" style="margin:0;">
+        </div>
+        <textarea id="deck-import-text" placeholder="4 Lightning Bolt&#10;4 Monastery Swiftspear&#10;1 Sol Ring&#10;..."
+                  style="width:100%;height:160px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);
+                         padding:12px;color:#fff;font-size:13px;resize:vertical;box-sizing:border-box;margin-bottom:12px;"></textarea>
+        <button class="app-btn btn-green" onclick="importDeckList()" id="deck-import-btn">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Importér og hent priser
+        </button>
+        <div id="deck-import-progress" style="display:none;margin-top:12px;font-size:13px;color:var(--muted);text-align:center;"></div>
+        <!-- Failed cards shown after import -->
+        <div id="deck-import-failed" style="display:none;margin-top:14px;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:var(--r-md);padding:14px;">
+            <div style="font-weight:700;color:var(--red);margin-bottom:8px;font-size:14px;">⚠️ Følgende kort blev ikke fundet:</div>
+            <div id="deck-import-failed-list" style="font-size:13px;color:var(--text);line-height:1.8;"></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Tjek stavningen og tilføj dem manuelt via søgning i dækket.</div>
+        </div>
+    </div>
+</div>
+
 <!-- ══ LIFE COUNTER ══ -->
 <main id="view-play" class="view-section setup-mode">
 
@@ -1616,6 +1921,9 @@
     <div onclick="switchView('collection',this)">
         <i class="fa-solid fa-box-archive"></i><span>Samling</span>
     </div>
+    <div onclick="switchView('deck',this)">
+        <i class="fa-solid fa-layer-group"></i><span>Deck</span>
+    </div>
     <div onclick="switchView('play',this)">
         <i class="fa-solid fa-heart-pulse"></i><span>Life</span>
     </div>
@@ -1707,16 +2015,18 @@ function changeCurrency(v) {
 //  AUTOCOMPLETE
 // ═══════════════════════════════════════════════
 function hideAC() {
-    ['autocomplete-suggestions','trade-give-suggestions','trade-get-suggestions']
-        .forEach(id => document.getElementById(id).style.display = 'none');
+    ['autocomplete-suggestions','trade-give-suggestions','trade-get-suggestions','deck-ac-suggestions']
+        .forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
 }
 document.addEventListener('click', e => { if (!e.target.closest('.search-container')) hideAC(); });
 
 async function handleAutocomplete(q, type) {
     hideAC(); clearTimeout(acTimeout);
     if (q.length < 3) return;
-    const boxId   = type === 'main' ? 'autocomplete-suggestions' : `trade-${type}-suggestions`;
-    const inputId = type === 'main' ? 'manual-search' : `trade-${type}-input`;
+    let boxId, inputId;
+    if (type === 'main')  { boxId = 'autocomplete-suggestions';   inputId = 'manual-search'; }
+    else if (type === 'deck') { boxId = 'deck-ac-suggestions';    inputId = 'deck-card-search'; }
+    else                  { boxId = `trade-${type}-suggestions`;   inputId = `trade-${type}-input`; }
     acTimeout = setTimeout(async () => {
         try {
             const d = await (await fetch('https://api.scryfall.com/cards/autocomplete?q=' + encodeURIComponent(q))).json();
@@ -1728,7 +2038,9 @@ async function handleAutocomplete(q, type) {
                 div.className = 'suggestion-item'; div.innerText = name;
                 div.onclick = () => {
                     document.getElementById(inputId).value = name; hideAC();
-                    type === 'main' ? searchCard(name) : openTradeModal(name, type);
+                    if (type === 'main')       searchCard(name);
+                    else if (type === 'deck')  openDeckSearch(name);
+                    else                       openTradeModal(name, type);
                 };
                 box.appendChild(div);
             });
@@ -1832,6 +2144,8 @@ async function searchCard(query) {
             const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
             return { id:c.id, name:c.name, set:c.set.toUpperCase(), setName:c.set_name||c.set.toUpperCase(), price, priceFoil,
                      released_at: c.released_at||'1900-01-01', img, thumb, imgBack,
+                     cmc: c.cmc||0, colors: c.colors||[], colorIdentity: c.color_identity||[],
+                     typeLine: c.type_line||'', manaCost: c.mana_cost||'',
                      cmLink: c.purchase_uris?.cardmarket||'#',
                      gathererLink: c.related_uris?.gatherer||'',
                      edhrecLink:   c.related_uris?.edhrec||'',
@@ -2218,6 +2532,89 @@ function openListCardPreview(item){
 }
 
 function clearList(){if(confirm('Ryd hele listen?')){priceList=[];saveList();updateListView();}}
+
+function showWishImport() {
+    document.getElementById('wish-import-textarea').value = '';
+    document.getElementById('wish-import-status').style.display = 'none';
+    document.getElementById('wish-import-modal').style.display = 'flex';
+}
+
+async function importWishList() {
+    const text = document.getElementById('wish-import-textarea').value.trim();
+    if (!text) return;
+    const statusEl = document.getElementById('wish-import-status');
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const entries = [];
+    for (const line of lines) {
+        const clean = line.replace(/^SB:\s*/i, '');
+        const m = clean.match(/^(\d+)[x×]?\s+(.+?)(?:\s+\([A-Za-z0-9]+\))?(?:\s+\d+)?$/);
+        if (m) {
+            const name = m[2].trim().split(/\s*\/\/\s*/)[0].trim();
+            entries.push({ qty: parseInt(m[1]), name });
+        }
+    }
+    if (!entries.length) return toast('Ingen kort fundet i listen', '#e74c3c');
+
+    statusEl.style.display = 'block';
+    statusEl.innerText = `Henter ${entries.length} kort fra Scryfall…`;
+
+    const BATCH = 75;
+    const failed = [];
+    const cardMap = {};
+    for (let i = 0; i < entries.length; i += BATCH) {
+        const batch = entries.slice(i, i + BATCH);
+        try {
+            const r = await fetch('https://api.scryfall.com/cards/collection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifiers: batch.map(e => ({ name: e.name })) })
+            });
+            const result = await r.json();
+            (result.data || []).forEach(c => {
+                cardMap[c.name.toLowerCase()] = c;
+                const front = c.name.split('//')[0].trim().toLowerCase();
+                if (front !== c.name.toLowerCase()) cardMap[front] = c;
+            });
+            (result.not_found || []).forEach(nf => failed.push(nf.name || '?'));
+        } catch(e) {
+            batch.forEach(e => failed.push(e.name));
+        }
+        if (i + BATCH < entries.length) await new Promise(r => setTimeout(r, 150));
+    }
+
+    let addedQty = 0;
+    entries.forEach(entry => {
+        const c = cardMap[entry.name.toLowerCase()];
+        if (!c) return;
+        const p = c.prices;
+        let price = -1;
+        if (p?.eur) price = +p.eur;
+        else if (p?.usd) price = +p.usd / (rates?.USD || 1);
+        if (price < 0 && p?.eur_foil) price = +p.eur_foil;
+        const img   = c.image_uris?.normal  ?? c.card_faces?.[0]?.image_uris?.normal  ?? '';
+        const thumb = c.image_uris?.small   ?? c.card_faces?.[0]?.image_uris?.small   ?? '';
+        const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
+        const listKey = c.id;
+        const ex = priceList.find(x => (x._listKey||x.id) === listKey);
+        if (ex) { ex.amount += entry.qty; }
+        else {
+            priceList.push({ id: c.id, _listKey: listKey, name: c.name,
+                set: c.set.toUpperCase(), setName: c.set_name || c.set.toUpperCase(),
+                price, foil: false, amount: entry.qty, img, thumb, imgBack });
+        }
+        addedQty += entry.qty;
+    });
+
+    saveList(); updateListView();
+
+    if (failed.length) {
+        statusEl.innerHTML = `✓ ${addedQty} kort tilføjet. <span style="color:var(--red);">Ikke fundet (${failed.length}): ${failed.join(', ')}</span>`;
+    } else {
+        statusEl.innerText = `✓ Alle ${addedQty} kort tilføjet!`;
+        setTimeout(() => { document.getElementById('wish-import-modal').style.display = 'none'; }, 1200);
+    }
+    toast(`${addedQty} kort tilføjet til ønskelisten!`);
+}
 
 function triggerUpdate(btn){
     const icon = document.getElementById('update-icon');
@@ -2907,6 +3304,49 @@ function confirmClearCollection() {
 let colCardFlipped = false;
 let colCardDetailItem = null;
 
+let deckPreviewCard = null, deckPreviewFlipped = false;
+function openDeckCardPreview(deckKey) {
+    const activeDeck = getActiveDeck();
+    if (!activeDeck) return;
+    const card = activeDeck.cards.find(c => (c._deckKey||c.id) === deckKey);
+    if (!card) return;
+    deckPreviewCard = card; deckPreviewFlipped = false;
+    const img = document.getElementById('dpm-img');
+    img.src = card.img || card.thumb || '';
+    img.style.transform = ''; img.style.opacity = '1';
+    const flipBtn = document.getElementById('dpm-flip-btn');
+    flipBtn.style.display = card.imgBack ? 'flex' : 'none';
+    document.getElementById('dpm-body').innerHTML = `
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${card.name}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;">${card.setName||card.set}</div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Pris</div>
+                <div style="font-size:18px;font-weight:700;color:var(--gold);">${fmt(card.price)}</div>
+            </div>
+            <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Antal</div>
+                <div style="font-size:18px;font-weight:700;">${card.qty}</div>
+            </div>
+        </div>`;
+    document.getElementById('deck-preview-modal').style.display = 'block';
+}
+function flipDeckPreviewCard() {
+    if (!deckPreviewCard?.imgBack) return;
+    const img = document.getElementById('dpm-img');
+    img.style.transition = 'transform .18s ease-in, opacity .18s';
+    img.style.transform = 'rotateY(90deg)'; img.style.opacity = '0';
+    setTimeout(() => {
+        deckPreviewFlipped = !deckPreviewFlipped;
+        img.src = deckPreviewFlipped ? deckPreviewCard.imgBack : deckPreviewCard.img;
+        img.style.transform = 'rotateY(-90deg)';
+        setTimeout(() => {
+            img.style.transition = 'transform .18s ease-out, opacity .18s';
+            img.style.transform = 'rotateY(0deg)'; img.style.opacity = '1';
+        }, 20);
+    }, 180);
+}
+
 function flipColCard() {
     if (!colCardDetailItem?.imgBack) return;
     const img = document.getElementById('ccd-img');
@@ -3396,6 +3836,561 @@ async function requestPersistentStorage() {
         setTimeout(() => toast('💾 Husk at tage en backup af din samling!', '#c9a84c'), 3000);
     }
 })();
+
+// ═══════════════════════════════════════════════
+//  SEARCH MODE (Kort / Regler)
+// ═══════════════════════════════════════════════
+function setSearchMode(mode) {
+    const kort = document.getElementById('kort-panel');
+    const rules = document.getElementById('rules-panel');
+    document.getElementById('mode-kort').classList.toggle('active', mode==='kort');
+    document.getElementById('mode-regler').classList.toggle('active', mode==='regler');
+    kort.style.display  = mode==='kort'   ? 'block' : 'none';
+    rules.style.display = mode==='regler' ? 'block' : 'none';
+    if (mode==='regler') document.getElementById('rules-search').focus();
+}
+
+// ═══════════════════════════════════════════════
+//  RULES SEARCH
+// ═══════════════════════════════════════════════
+const GLOSSARY = [
+    {k:'Flying',          t:'Flyvning',       d:'En skabning med flying kan kun blokeres af skabninger med flying eller reach. Den kan angribe frit over skabninger uden nogen af disse evner.'},
+    {k:'Trample',         t:'Trampe',         d:'Hvis en skabning med trample er blokeret, kan overskydende kampskade tildeles direkte til forsvarsspilleren eller planeswalker, selvom blokkeren er i live.'},
+    {k:'Deathtouch',      t:'Dødsgreb',       d:'Enhver skadesamt fra en skabning med deathtouch er nok til at destruere det skadede mål — selv 1 skade er dødelig.'},
+    {k:'First Strike',    t:'Første slag',    d:'En skabning med first strike deler kampskade i første kampskade-trin. Modstandere uden first strike/double strike svarer igen i næste trin.'},
+    {k:'Double Strike',   t:'Dobbelt slag',   d:'Skabningen deler skade i begge kampskade-trin — den har effektivt både first strike og normal strikke.'},
+    {k:'Lifelink',        t:'Livslink',       d:'Skade fra en skabning med lifelink giver kontrolløren samme antal livspoint, som der deles skade.'},
+    {k:'Vigilance',       t:'Vagt',           d:'En skabning med vigilance bliver ikke tappet, når den angriber.'},
+    {k:'Haste',           t:'Hastighed',      d:'En skabning med haste kan angribe og bruge tapaktiviteter allerede den runde den kommer i spil, selvom den normalt lider af summoning sickness.'},
+    {k:'Flash',           t:'Flash',          d:'Et permanent med flash kan spilles som om det var et instant — til enhver tid du kan spille et instant.'},
+    {k:'Hexproof',        t:'Hexsikret',      d:'Skabningen kan ikke være mål for trylleformularer eller evner kontrolleret af dine modstandere.'},
+    {k:'Shroud',          t:'Slør',           d:'Skabningen kan ikke være mål for nogen trylleformularer eller evner overhovedet — heller ikke dine egne.'},
+    {k:'Indestructible',  t:'Uødelæggelig',   d:'Permanents med indestructible kan ikke destrueres af effekter eller dødelig skade. De kan stadig eksileres, returneres til hånd eller ofres.'},
+    {k:'Menace',          t:'Trussel',        d:'En skabning med menace kan kun blokeres af to eller flere skabninger.'},
+    {k:'Reach',           t:'Rækkevidde',     d:'En skabning med reach kan blokere skabninger med flying.'},
+    {k:'Prowess',         t:'Dygtighed',      d:'Hver gang du spiller et non-permanent tryllekort, får skabningen +1/+1 indtil slut på runden.'},
+    {k:'Ward',            t:'Beskyttelse',    d:'Når en skabning med ward bliver mål for en trylleformel eller evne fra en modstander, countes den medmindre modstanderen betaler ward-omkostningen.'},
+    {k:'Defender',        t:'Forsvar',        d:'En skabning med defender kan ikke angribe.'},
+    {k:'Protection',      t:'Beskyttelse',    d:'Protection from [quality] betyder: kan ikke skades, enchantes, udstyres, blokeres eller være mål for noget med den pågældende egenskab.'},
+    {k:'Infect',          t:'Infektion',      d:'Skade fra en skabning med infect gives til spillere som gift-tæller og til skabninger som -1/-1 tæller. En spiller med 10 gift-tæller taber.'},
+    {k:'Wither',          t:'Visnen',         d:'Skade fra en skabning med wither gives til skabninger som -1/-1 tæller i stedet for at markere skade normalt.'},
+    {k:'Undying',         t:'Udødelig',       d:'Når en skabning med undying dør, hvis den ikke havde en +1/+1 tæller, vender den tilbage til spil med en +1/+1 tæller.'},
+    {k:'Persist',         t:'Vedvarer',       d:'Når en skabning med persist dør, hvis den ikke havde en -1/-1 tæller, vender den tilbage til spil med en -1/-1 tæller.'},
+    {k:'Flashback',       t:'Tilbageblik',    d:'Du kan spille et kort med flashback fra din graveyard ved at betale flashback-omkostningen. Derefter eksileres kortet.'},
+    {k:'Cycling',         t:'Cykla',          d:'Betal cycling-omkostningen og kassér kortet: træk et kort.'},
+    {k:'Kicker',          t:'Spark',          d:'Du kan betale kicker-omkostningen som et ekstra kost, når du spiller kortet, for at aktivere den ekstra effekt.'},
+    {k:'Cascade',         t:'Kaskade',        d:'Når du spiller kortet, eksilerer du kort fra toppen af dit bibliotek, indtil du finder et der koster mindre. Du kan spille det gratis.'},
+    {k:'Convoke',         t:'Indkald',        d:'Dine skabninger kan hjælpe med at betale for tryllekort med convoke. Tap en skabning for at betale {1} eller ét mana af dens farve.'},
+    {k:'Delve',           t:'Fordyb',         d:'Du kan eksilere kort fra din graveyard for at betale generiske manakostnader: hvert eksil betaler {1}.'},
+    {k:'Storm',           t:'Storm',          d:'Kopier tryllekortet for hvert tryllekort, der er spillet denne runde inden dette. Du kan vælge nye mål for kopier.'},
+    {k:'Morph',           t:'Morfose',        d:'Du kan spille et kort med morph med forsiden nedad for {3}. Du kan til enhver tid vende det om ved at betale morph-omkostningen.'},
+    {k:'Equip',           t:'Udstyr',         d:'Equip er en sorteret aktiveringsevne på udstyrskort: betal omkostningen, tildel udstyret en skabning du kontrollerer (kun som sorcery).'},
+    {k:'Annihilator',     t:'Tilintetgører',  d:'Når skabningen angriber, ofrer forsvarsspilleren et antal permanents svarende til annihilator-værdien.'},
+    {k:'Landfall',        t:'Landfald',       d:'Evnen udløses, hver gang et land kommer i spil under din kontrol.'},
+    {k:'Devotion',        t:'Hengivenhed',    d:'Dit devotion til en farve er antallet af symboler af den farve i manaomkostningerne på permanents du kontrollerer.'},
+    {k:'Surveil',         t:'Spionér',        d:'Se det øverste N kort af dit bibliotek. Læg hvert i din graveyard eller tilbage på toppen af dit bibliotek i en vilkårlig rækkefølge.'},
+    {k:'Scry',            t:'Spå',            d:'Se de øverste N kort af dit bibliotek. Sæt et vilkårligt antal af dem i bunden af biblioteket i vilkårlig rækkefølge, resten forbliver på toppen.'},
+    {k:'Amass',           t:'Ophob',          d:'Sæt det angivne antal +1/+1 tæller på en Army-token du kontrollerer. Har du ingen, lav en 0/0 Zombie Army-token først.'},
+    {k:'Escape',          t:'Undslippe',      d:'Du kan spille kortet fra din graveyard ved at betale escape-omkostningen og eksilere det angivne antal kort fra din graveyard.'},
+    {k:'Companion',       t:'Ledsager',       d:'Hvis din starthand opfylder companion-betingelsen, kan du en gang per spil kalde det ind fra sideboard til din hånd mod {3}.'},
+    {k:'Mutate',          t:'Mutér',          d:'Spil kortet under/over et non-Human skabelse du kontrollerer. De to skabninger smelter sammen til ét kort med kombinerede evner.'},
+    {k:'Foretell',        t:'Forudsig',       d:'Du kan for {2} eksilere kortet fra din hånd med forsiden nedad. Fra næste runde kan du spille det fra eksil til reduceret pris.'},
+    {k:'Connive',         t:'Intrigér',       d:'Træk et kort og kassér et. Hvis du kasserede et non-land-kort, sæt en +1/+1 tæller på skabningen.'},
+    {k:'Blitz',           t:'Lynangreb',      d:'Et alternativt udspilningskost. Skabningen får haste og "Når denne dør, træk et kort." Den ofres ved end-of-turn.'},
+    {k:'Toxic',           t:'Giftig',         d:'Når skabningen deler kampskade til en spiller, modtager den spiller det angivne antal gift-tæller udover normal skade.'},
+    {k:'Phasing',         t:'Fasering',       d:'En skabning med phasing "faser ud" (forsvinder midlertidigt) ved start af sin kontrollers tur og vender tilbage ved start af næste tur.'},
+    {k:'Regenerate',      t:'Gendan',         d:'Den næste gang skabningen ville gå til graveyard denne runde fra dødelig skade, tap den og fjern al skade fra den i stedet.'},
+    {k:'Exalted',         t:'Ophøjet',        d:'Hver gang en skabning du kontrollerer angriber alene, får den +1/+1 indtil slut på runden for hvert exalted din permanents har.'},
+    {k:'Extort',          t:'Afpres',         d:'Når du spiller en trylleformel, kan du betale {W/B}. Gør du det, mister hver modstander 1 liv og du vinder liv svarende til det tabte.'},
+    {k:'Overload',        t:'Overbelast',     d:'Spil kortet til overload-prisen for at erstatte "mål" med "hver" og ramme alle gyldige mål.'},
+    {k:'Bestow',          t:'Skænke',         d:'Du kan spille skabningen som et Aura Enchantment ved at betale bestow-prisen. Hvis enchantmentet forlader spil fjernes Aura\'en og skabningen vender tilbage.'},
+    {k:'Heroic',          t:'Heroisk',        d:'Hver gang du spiller en trylleformel, der gør denne skabning til mål, udløses heroic-effekten.'},
+    {k:'Renown',          t:'Berømmelse',     d:'Første gang skabningen skader en spiller i kamp sættes en +1/+1 tæller på den og den bliver "renowned".'},
+    {k:'Investigate',     t:'Undersøg',       d:'Lav en Clue-artefakttoken. Den har: "{2}, Ofr denne: Træk et kort."'},
+    {k:'Proliferate',     t:'Formér',         d:'Vælg et vilkårligt antal spillere og/eller permanents med tæller. Sæt en ekstra tæller af en allerede-eksisterende type på hver af de valgte.'},
+];
+
+async function searchRules(q) {
+    const container = document.getElementById('rules-results');
+    q = (q||'').trim().toLowerCase();
+    if (q.length < 2) {
+        container.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">Søg efter et MTG-keyword (fx "trample") eller et kortnavn for at se officielle regler.</div>';
+        return;
+    }
+
+    // Find glossary matches
+    const glMatches = GLOSSARY.filter(g =>
+        g.k.toLowerCase().includes(q) || g.t.toLowerCase().includes(q) || g.d.toLowerCase().includes(q)
+    );
+
+    let html = '';
+    if (glMatches.length) {
+        html += `<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">KEYWORDS</div>`;
+        glMatches.forEach(g => {
+            html += `<div class="rules-result">
+                <div class="rules-keyword">${g.k} <span style="color:var(--muted);font-size:12px;font-weight:400;">(${g.t})</span></div>
+                <div class="rules-text">${g.d}</div>
+            </div>`;
+        });
+    }
+
+    // Fetch card rulings from Scryfall
+    html += `<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin:12px 0 8px;">KORTREGLER FRA SCRYFALL</div>`;
+    html += `<div id="card-rulings-content"><div style="color:var(--muted);font-size:13px;">Søger kort…</div></div>`;
+    container.innerHTML = html;
+
+    try {
+        let r = await fetch('https://api.scryfall.com/cards/named?fuzzy=' + encodeURIComponent(q));
+        if (!r.ok) throw 0;
+        const card = await r.json();
+        const ru = await (await fetch(`https://api.scryfall.com/cards/${card.id}/rulings`)).json();
+        const rc = document.getElementById('card-rulings-content');
+        if (!rc) return;
+        if (!ru.data?.length) {
+            rc.innerHTML = `<div style="color:var(--muted);font-size:13px;">Ingen specifikke regler for <strong>${card.name}</strong>.</div>`;
+            return;
+        }
+        rc.innerHTML = `<div style="font-weight:700;margin-bottom:10px;">${card.name}</div>` +
+            ru.data.map(r => `
+                <div class="rules-ruling">
+                    ${r.comment}
+                    <div class="rules-ruling-date">${r.published_at}</div>
+                </div>`).join('');
+    } catch(e) {
+        const rc = document.getElementById('card-rulings-content');
+        if (rc) rc.innerHTML = `<div style="color:var(--muted);font-size:13px;">Intet kort fundet med det navn. Prøv et mere præcist kortnavn.</div>`;
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  DECK BUILDER
+// ═══════════════════════════════════════════════
+let decks = JSON.parse(localStorage.getItem('mtg_decks') || '[]');
+let activeDeckId = null;
+let deckSearchVariants = [];
+
+const saveDecks = () => localStorage.setItem('mtg_decks', JSON.stringify(decks));
+
+function getActiveDeck() { return decks.find(d => d.id === activeDeckId) || null; }
+
+function createNewDeck() {
+    const deck = {
+        id: Date.now().toString(),
+        name: 'Nyt dæk',
+        format: 'commander',
+        cards: []
+    };
+    decks.push(deck);
+    saveDecks();
+    openDeckEditor(deck.id);
+}
+
+function openDeckEditor(id) {
+    activeDeckId = id;
+    const deck = getActiveDeck();
+    if (!deck) return;
+    document.getElementById('deck-list-view').style.display = 'none';
+    document.getElementById('deck-editor-view').style.display = '';
+    document.getElementById('deck-name-input').value = deck.name;
+    document.getElementById('deck-format-select').value = deck.format || 'commander';
+    renderDeckEditor();
+}
+
+function closeDeckEditor() {
+    activeDeckId = null;
+    document.getElementById('deck-editor-view').style.display = 'none';
+    document.getElementById('deck-list-view').style.display = '';
+    renderDeckList();
+}
+
+function renameDeck(name) {
+    const deck = getActiveDeck(); if (!deck) return;
+    deck.name = name; saveDecks();
+}
+
+function setDeckFormat(fmt) {
+    const deck = getActiveDeck(); if (!deck) return;
+    deck.format = fmt; saveDecks(); renderDeckEditor();
+}
+
+function deleteDeck() {
+    const deck = getActiveDeck(); if (!deck) return;
+    if (!confirm(`Slet dækket "${deck.name}"?`)) return;
+    decks = decks.filter(d => d.id !== activeDeckId);
+    saveDecks(); closeDeckEditor();
+}
+
+function renderDeckList() {
+    const c = document.getElementById('deck-list-container');
+    if (!decks.length) {
+        c.innerHTML = '<div style="color:var(--muted);text-align:center;padding:32px;font-size:15px;">Ingen dæk endnu.<br>Tryk "Nyt dæk" for at komme i gang.</div>';
+        return;
+    }
+    const COLOR_ICONS = {W:'⚪',U:'🔵',B:'⚫',R:'🔴',G:'🟢'};
+    c.innerHTML = decks.map(d => {
+        const total = d.cards.reduce((s,c)=>s+c.qty,0);
+        const val   = d.cards.reduce((s,c)=>s+(c.price>0?c.price*c.qty:0),0);
+        const ci    = [...new Set(d.cards.flatMap(c=>c.colorIdentity||[]))];
+        return `<div class="deck-list-item" onclick="openDeckEditor('${d.id}')">
+            <div style="font-size:24px;">🃏</div>
+            <div class="deck-meta">
+                <div class="deck-name-label">${d.name}</div>
+                <div class="deck-info-label">${total} kort · ${fmt(val)} · ${(d.format||'commander').charAt(0).toUpperCase()+(d.format||'commander').slice(1)} ${ci.map(c=>COLOR_ICONS[c]||c).join('')}</div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color:var(--muted);font-size:14px;"></i>
+        </div>`;
+    }).join('');
+}
+renderDeckList();
+
+function renderDeckEditor() {
+    const deck = getActiveDeck(); if (!deck) return;
+    const cards = deck.cards;
+    const totalQty = cards.reduce((s,c)=>s+c.qty,0);
+    const lands = cards.filter(c=>(c.typeLine||'').includes('Land')).reduce((s,c)=>s+c.qty,0);
+    const nonLands = cards.filter(c=>!(c.typeLine||'').includes('Land'));
+    const totalVal = cards.reduce((s,c)=>s+(c.price>0?c.price*c.qty:0),0);
+    const cmcSum = nonLands.reduce((s,c)=>s+(c.cmc||0)*c.qty,0);
+    const nonLandQty = nonLands.reduce((s,c)=>s+c.qty,0);
+    const avgCmc = nonLandQty ? (cmcSum/nonLandQty).toFixed(1) : '0';
+
+    document.getElementById('deck-stat-count').innerText = totalQty;
+    document.getElementById('deck-stat-lands').innerText = lands;
+    document.getElementById('deck-stat-cmc').innerText = avgCmc;
+    document.getElementById('deck-stat-value').innerText = fmt(totalVal);
+
+    // Colors
+    const COLOR_STYLES = {
+        W:{bg:'#f9faf0',color:'#555',label:'W'},
+        U:{bg:'#1a4a8a',color:'#fff',label:'U'},
+        B:{bg:'#1a1a1a',color:'#fff',label:'B'},
+        R:{bg:'#b01a1a',color:'#fff',label:'R'},
+        G:{bg:'#1a6b1a',color:'#fff',label:'G'},
+    };
+    const usedColors = [...new Set(cards.flatMap(c=>c.colorIdentity||[]))];
+    const colRow = document.getElementById('deck-colors-row');
+    if (!usedColors.length) {
+        colRow.innerHTML = '<span style="color:var(--muted);font-size:13px;">Ingen farver endnu</span>';
+    } else {
+        colRow.innerHTML = ['W','U','B','R','G'].filter(c=>usedColors.includes(c)).map(c=>{
+            const s = COLOR_STYLES[c];
+            return `<div class="color-pip" style="background:${s.bg};color:${s.color};border:2px solid rgba(255,255,255,.15);">${s.label}</div>`;
+        }).join('');
+    }
+
+    // Mana curve
+    const buckets = [0,1,2,3,4,5,6];
+    const counts = {};
+    buckets.forEach(b=>counts[b]=0);
+    nonLands.forEach(c=>{
+        const b = Math.min(Math.floor(c.cmc||0),6);
+        counts[b] += c.qty;
+    });
+    const maxCount = Math.max(...Object.values(counts),1);
+    document.getElementById('deck-curve').innerHTML = buckets.map(b=>`
+        <div class="curve-bar-row">
+            <div class="curve-bar-label">${b===6?'6+':b}</div>
+            <div class="curve-bar-track">
+                <div class="curve-bar-fill" style="width:${Math.round(counts[b]/maxCount*100)}%"></div>
+            </div>
+            <div class="curve-bar-count">${counts[b]||''}</div>
+        </div>`).join('');
+
+    // Legality
+    const fmt_key = deck.format||'commander';
+    const illegal = cards.filter(c=>c.legalities&&c.legalities[fmt_key]==='not_legal');
+    const banned  = cards.filter(c=>c.legalities&&c.legalities[fmt_key]==='banned');
+    const legEl = document.getElementById('deck-legality-info');
+    if (!cards.length) {
+        legEl.innerHTML = '<span style="color:var(--muted);">Tilføj kort for at tjekke legalitet.</span>';
+    } else if (!illegal.length && !banned.length) {
+        legEl.innerHTML = '<span style="color:var(--green);">✓ Alle kort er lovlige i ' + fmt_key.charAt(0).toUpperCase()+fmt_key.slice(1) + '</span>';
+    } else {
+        const problems = [...banned.map(c=>`<div class="legal-badge" style="background:rgba(231,76,60,.15);color:var(--red);">🚫 ${c.name} — Banned</div>`),
+                          ...illegal.map(c=>`<div class="legal-badge" style="background:rgba(231,76,60,.08);color:#ff8888;">✗ ${c.name} — Ikke lovlig</div>`)];
+        legEl.innerHTML = problems.join('');
+    }
+
+    // Card list grouped by type
+    const TYPE_ORDER = ['Creature','Planeswalker','Instant','Sorcery','Enchantment','Artifact','Land'];
+    const groups = {};
+    TYPE_ORDER.forEach(t=>groups[t]=[]);
+    groups['Andet']=[];
+    cards.forEach(c=>{
+        const tl = c.typeLine||'';
+        const matched = TYPE_ORDER.find(t=>tl.includes(t));
+        (matched?groups[matched]:groups['Andet']).push(c);
+    });
+    let listHtml = '';
+    TYPE_ORDER.concat(['Andet']).forEach(type=>{
+        const grp = groups[type]; if(!grp.length) return;
+        const grpQty = grp.reduce((s,c)=>s+c.qty,0);
+        const TYPE_COLORS = {Creature:'#4f7cff',Planeswalker:'#f39c12',Instant:'#3498db',Sorcery:'#9b59b6',Enchantment:'#2ecc71',Artifact:'#95a5a6',Land:'#8b6914',Andet:'#666'};
+        listHtml += `<div style="font-size:11px;font-weight:800;letter-spacing:.05em;color:${TYPE_COLORS[type]||'#666'};margin:10px 0 5px;">${type.toUpperCase()} (${grpQty})</div>`;
+        grp.forEach(c=>{
+            const ck = c._deckKey||c.id;
+            listHtml += `<div class="deck-card-item">
+                <img class="deck-card-thumb" src="${c.img||c.thumb||''}" loading="lazy" onerror="this.style.display='none'"
+                     style="cursor:pointer;" onclick="openDeckCardPreview('${ck}')">
+                <div class="deck-card-info" style="cursor:pointer;" onclick="openDeckCardPreview('${ck}')">
+                    <div class="deck-card-name">${c.name}</div>
+                    <div class="deck-card-sub">${c.setName||c.set} · ${fmt(c.price)}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <button style="width:24px;height:24px;border-radius:50%;background:var(--bg-panel);border:1px solid var(--border-lit);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                        onclick="changeDeckQty('${ck}',-1)">−</button>
+                    <span style="font-weight:700;min-width:16px;text-align:center;">${c.qty}</span>
+                    <button style="width:24px;height:24px;border-radius:50%;background:var(--bg-panel);border:1px solid var(--border-lit);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                        onclick="changeDeckQty('${ck}',1)">+</button>
+                    <button style="width:24px;height:24px;border-radius:50%;background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:var(--red);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                        onclick="removeDeckCard('${ck}')">×</button>
+                </div>
+            </div>`;
+        });
+    });
+    if (listHtml && totalVal > 0) {
+        listHtml += `<div style="display:flex;justify-content:space-between;align-items:center;
+            border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+            <span style="font-size:13px;color:var(--muted);">Samlet værdi (${totalQty} kort)</span>
+            <span class="price-text" style="font-size:18px;font-weight:700;">${fmt(totalVal)}</span>
+        </div>`;
+    }
+    document.getElementById('deck-card-list').innerHTML = listHtml || '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px;">Ingen kort endnu — søg og tilføj ovenfor.</div>';
+}
+
+async function openDeckSearch(query) {
+    if (!query?.trim()) return;
+    const modal = document.getElementById('deck-search-modal');
+    const content = document.getElementById('deck-search-content');
+    modal.style.display = 'flex';
+    content.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);">Søger… ⏳</div>';
+    try {
+        let r = await fetch('https://api.scryfall.com/cards/named?exact='+encodeURIComponent(query));
+        if (!r.ok) r = await fetch('https://api.scryfall.com/cards/named?fuzzy='+encodeURIComponent(query));
+        if (!r.ok) throw 0;
+        const base = await r.json();
+        const prints = await (await fetch(`https://api.scryfall.com/cards/search?order=released&q=oracle_id:${base.oracle_id}&unique=prints`)).json();
+        deckSearchVariants = prints.data.map(c=>{
+            const thumb = c.image_uris?.small??c.card_faces?.[0]?.image_uris?.small??'';
+            const img   = c.image_uris?.normal??c.card_faces?.[0]?.image_uris?.normal??'';
+            const p = c.prices;
+            let price=-1, priceFoil=-1;
+            if(p?.eur)price=+p.eur; else if(p?.usd)price=+p.usd/rates.USD;
+            if(p?.eur_foil)priceFoil=+p.eur_foil; else if(p?.usd_foil)priceFoil=+p.usd_foil/rates.USD;
+            if(price<0&&priceFoil>=0)price=priceFoil;
+            return {
+                id:c.id, name:c.name, set:c.set.toUpperCase(), setName:c.set_name||c.set.toUpperCase(),
+                price, priceFoil, thumb, img,
+                cmc:c.cmc||0, colors:c.colors||[], colorIdentity:c.color_identity||[],
+                typeLine:c.type_line||'', manaCost:c.mana_cost||'',
+                legalities:c.legalities||{}
+            };
+        });
+        content.innerHTML = deckSearchVariants.flatMap((c,i)=>{
+            const rows = [];
+            if(c.price>=0) rows.push(`
+                <div class="trade-variant-item" onclick="addCardToDeck(${i},false)">
+                    <img src="${c.thumb}" style="height:58px;width:42px;object-fit:cover;border-radius:4px;margin-right:10px;" loading="lazy">
+                    <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${c.name}</div><div style="font-size:11px;font-weight:800;color:var(--accent);">${c.setName}</div></div>
+                    <div class="price-text">${fmt(c.price)}</div>
+                </div>`);
+            if(c.priceFoil>=0) rows.push(`
+                <div class="trade-variant-item" onclick="addCardToDeck(${i},true)" style="background:linear-gradient(135deg,rgba(180,130,255,.08),rgba(100,180,255,.05));border-left:2px solid #b47fff;">
+                    <img src="${c.thumb}" style="height:58px;width:42px;object-fit:cover;border-radius:4px;margin-right:10px;" loading="lazy">
+                    <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${c.name} <span style="font-size:11px;background:linear-gradient(135deg,#b47fff,#7ec8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">✨ Foil</span></div><div style="font-size:11px;font-weight:800;color:var(--accent);">${c.setName}</div></div>
+                    <div class="price-text">${fmt(c.priceFoil)}</div>
+                </div>`);
+            return rows;
+        }).join('');
+    } catch(e) {
+        content.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red);">Kort ikke fundet. Prøv det fulde navn.</div>';
+    }
+}
+
+function addCardToDeck(i, foil=false) {
+    const deck = getActiveDeck(); if(!deck) return;
+    const c = deckSearchVariants[i];
+    const price = foil && c.priceFoil>=0 ? c.priceFoil : c.price;
+    const deckKey = foil ? c.id+'_foil' : c.id;
+    const ex = deck.cards.find(x=>(x._deckKey||x.id)===deckKey);
+    if (ex) { ex.qty++; }
+    else {
+        deck.cards.push({
+            id:c.id, _deckKey:deckKey, name:c.name, set:c.set, setName:c.setName,
+            qty:1, price, foil, img:c.img, thumb:c.thumb,
+            cmc:c.cmc, colors:c.colors, colorIdentity:c.colorIdentity,
+            typeLine:c.typeLine, manaCost:c.manaCost, legalities:c.legalities
+        });
+    }
+    document.getElementById('deck-card-search').value = '';
+    document.getElementById('deck-search-modal').style.display = 'none';
+    saveDecks(); renderDeckEditor();
+    toast(`${c.name}${foil?' (Foil)':''} tilføjet til dæk!`);
+}
+
+function changeDeckQty(deckKey, delta) {
+    const deck = getActiveDeck(); if(!deck) return;
+    const card = deck.cards.find(c=>(c._deckKey||c.id)===deckKey);
+    if(!card) return;
+    card.qty = Math.max(1, card.qty+delta);
+    saveDecks(); renderDeckEditor();
+}
+
+function removeDeckCard(deckKey) {
+    const deck = getActiveDeck(); if(!deck) return;
+    deck.cards = deck.cards.filter(c=>(c._deckKey||c.id)!==deckKey);
+    saveDecks(); renderDeckEditor();
+}
+
+let deckImportMode = 'new'; // 'new' or 'add'
+function showDeckImport(mode = 'new') {
+    deckImportMode = mode;
+    document.getElementById('deck-import-name').value = '';
+    document.getElementById('deck-import-text').value = '';
+    document.getElementById('deck-import-progress').style.display = 'none';
+    document.getElementById('deck-import-failed').style.display = 'none';
+    document.getElementById('deck-import-btn').disabled = false;
+    document.getElementById('deck-import-name-row').style.display = mode === 'new' ? '' : 'none';
+    document.getElementById('deck-import-title').innerText = mode === 'new' ? 'Importér dækliste' : 'Tilføj kort via liste';
+    document.getElementById('deck-import-modal').style.display = 'flex';
+}
+
+async function importDeckList() {
+    const raw = document.getElementById('deck-import-text').value.trim();
+    if (!raw) return toast('Indsæt en dækliste først', '#e74c3c');
+
+    // Parse lines: "4 Lightning Bolt", "1 Sol Ring (C21) 123", "// comment", "SB: 1 Fog"
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//') && !l.startsWith('#'));
+    const entries = [];
+    for (const line of lines) {
+        // Strip "SB: " prefix (sideboard), then match "qty name"
+        const clean = line.replace(/^SB:\s*/i,'');
+        const m = clean.match(/^(\d+)[x×]?\s+(.+?)(?:\s+\([A-Za-z0-9]+\))?(?:\s+\d+)?$/);
+        if (m) {
+            // Strip double-faced card back name (e.g. "Shatterskull Smashing // Shatterskull, the Hammer Pass")
+            const name = m[2].trim().split(/\s*\/\/\s*/)[0].trim();
+            entries.push({ qty: parseInt(m[1]), name });
+        }
+    }
+    if (!entries.length) return toast('Ingen kort fundet i listen', '#e74c3c');
+
+    let deck;
+    if (deckImportMode === 'add') {
+        deck = getActiveDeck();
+        if (!deck) return toast('Intet aktivt dæk', '#e74c3c');
+    } else {
+        const deckName = document.getElementById('deck-import-name').value.trim() || 'Importeret dæk';
+        deck = { id: Date.now().toString(), name: deckName, format: 'commander', cards: [] };
+        decks.push(deck);
+        saveDecks();
+    }
+
+    const btn = document.getElementById('deck-import-btn');
+    const progress = document.getElementById('deck-import-progress');
+    btn.disabled = true;
+    progress.style.display = 'block';
+    document.getElementById('deck-import-failed').style.display = 'none';
+
+    // Build qty lookup: name → qty
+    const qtyMap = {};
+    entries.forEach(e => { qtyMap[e.name.toLowerCase()] = (qtyMap[e.name.toLowerCase()]||0) + e.qty; });
+
+    // Scryfall Collection API: up to 75 per batch
+    const BATCH = 75;
+    const failed = [];
+    const cardMap = {}; // id → scryfall card
+
+    progress.innerHTML = `<div>Henter kort fra Scryfall…</div>`;
+
+    for (let i = 0; i < entries.length; i += BATCH) {
+        const batch = entries.slice(i, i + BATCH);
+        progress.innerHTML = `<div>Henter ${Math.min(i+BATCH, entries.length)} / ${entries.length} kort…</div>`;
+        try {
+            const r = await fetch('https://api.scryfall.com/cards/collection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifiers: batch.map(e => ({ name: e.name })) })
+            });
+            const result = await r.json();
+
+            // Found cards
+            (result.data || []).forEach(c => {
+                cardMap[c.name.toLowerCase()] = c;
+                // Also index by front-face name for DFCs (e.g. "Shatterskull Smashing")
+                const frontName = c.name.split('//')[0].trim().toLowerCase();
+                if (frontName !== c.name.toLowerCase()) cardMap[frontName] = c;
+            });
+
+            // Not found
+            (result.not_found || []).forEach(nf => { failed.push(nf.name || nf.id || '?'); });
+        } catch(e) {
+            // On network error, mark whole batch as failed
+            batch.forEach(e => failed.push(e.name));
+        }
+        // Small pause between batches (Scryfall recommends it)
+        if (i + BATCH < entries.length) await new Promise(r => setTimeout(r, 150));
+    }
+
+    // Add found cards to deck
+    entries.forEach(entry => {
+        const c = cardMap[entry.name.toLowerCase()];
+        if (!c) return;
+        const p = c.prices;
+        let price = -1;
+        if (p?.eur) price = +p.eur; else if (p?.usd) price = +p.usd / rates.USD;
+        const img   = c.image_uris?.normal  ?? c.card_faces?.[0]?.image_uris?.normal  ?? '';
+        const thumb = c.image_uris?.small   ?? c.card_faces?.[0]?.image_uris?.small   ?? '';
+        const ex = deck.cards.find(x => x.id === c.id);
+        if (ex) { ex.qty += entry.qty; }
+        else {
+            deck.cards.push({
+                id: c.id, _deckKey: c.id, name: c.name, set: c.set.toUpperCase(),
+                setName: c.set_name || c.set.toUpperCase(), qty: entry.qty, price,
+                img, thumb, cmc: c.cmc || 0, colors: c.colors || [],
+                colorIdentity: c.color_identity || [], typeLine: c.type_line || '',
+                manaCost: c.mana_cost || '', legalities: c.legalities || {}
+            });
+        }
+    });
+
+    saveDecks();
+
+    // Open deck editor
+    if (deckImportMode === 'new') {
+        activeDeckId = deck.id;
+        openDeckEditor(deck.id);
+    } else {
+        renderDeckEditor();
+    }
+
+    const totalQty = entries.reduce((s, e) => s + e.qty, 0);
+    const failedQty = failed.length; // failed is by card name, not qty
+    const foundQty = totalQty - entries.filter(e => failed.includes(e.name)).reduce((s, e) => s + e.qty, 0);
+    progress.style.display = 'none';
+    btn.disabled = false;
+
+    if (failed.length) {
+        btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Prøv igen med manglende';
+        document.getElementById('deck-import-text').value = failed.map(n => `1 ${n}`).join('\n');
+        document.getElementById('deck-import-failed-list').innerHTML = failed.map(n => `<div>• ${n}</div>`).join('');
+        document.getElementById('deck-import-failed').style.display = 'block';
+        deckImportMode = 'add';
+        document.getElementById('deck-import-name-row').style.display = 'none';
+        document.getElementById('deck-import-title').innerText = 'Tilføj manglende kort';
+        toast(`${foundQty} kort importeret — ${failed.length} ikke fundet`, '#e67e22');
+    } else {
+        document.getElementById('deck-import-modal').style.display = 'none';
+        toast(`Alle ${totalQty} kort importeret! ✓`);
+    }
+}
+
+function exportDeck() {
+    const deck = getActiveDeck(); if(!deck) return;
+    const lines = deck.cards.map(c=>`${c.qty} ${c.name}`).join('\n');
+    const text = `// ${deck.name}\n// ${deck.cards.reduce((s,c)=>s+c.qty,0)} kort\n\n${lines}`;
+    if(navigator.share) navigator.share({title:deck.name, text}).catch(()=>{});
+    else { navigator.clipboard.writeText(text).catch(()=>{}); toast('Dækliste kopieret!'); }
+}
 
 // ═══════════════════════════════════════════════
 //  INIT
