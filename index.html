@@ -206,9 +206,41 @@
             border-radius: var(--r-md); overflow: hidden;
             display: flex; flex-direction: column;
         }
+        .col-card.foil-card {
+            border-color: #7b4faf;
+            box-shadow: 0 0 0 1px rgba(180,130,255,.3), 0 2px 12px rgba(130,100,220,.2);
+            background: linear-gradient(160deg, rgba(180,130,255,.06) 0%, var(--bg-card) 60%);
+        }
+        .col-card.foil-card img { position: relative; }
+        .col-card-img-wrap { position: relative; }
+        .col-card-img-wrap .foil-shimmer {
+            position: absolute; inset: 0; pointer-events: none;
+            background: linear-gradient(135deg,
+                rgba(180,130,255,.18) 0%,
+                rgba(100,180,255,.12) 35%,
+                rgba(180,130,255,.0) 60%);
+            border-radius: 0;
+        }
         .col-card img {
             width: 100%; aspect-ratio: 5/7; object-fit: cover;
             display: block; background: var(--bg-input);
+        }
+        /* Collection toolbar */
+        .col-toolbar {
+            display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;
+        }
+        .col-filter-chip {
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-lit);
+            background: var(--bg-input); color: var(--muted); font-size: 12px; font-weight: 700;
+            cursor: pointer; transition: all .2s; white-space: nowrap;
+        }
+        .col-filter-chip.active {
+            border-color: #b47fff; background: rgba(123,94,167,.2); color: #e0c8ff;
+            box-shadow: 0 0 8px rgba(180,130,255,.25);
+        }
+        .col-sort-select {
+            flex: 1; min-width: 0; padding: 7px 10px; font-size: 12px;
+            margin: 0; border-radius: 20px;
         }
         .col-card-body { padding: 7px 8px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
         .col-card-name { font-size: 11px; font-weight: 700; line-height: 1.3; word-break: break-word; }
@@ -845,6 +877,17 @@
         /* ── UPDATE BUTTON SPIN ── */
         @keyframes spin-cw { to { transform: rotate(360deg); } }
         .spinning { animation: spin-cw .55s cubic-bezier(.4,0,.2,1) forwards; }
+        #foil-toggle-btn.foil-active {
+            background: linear-gradient(135deg, #7b3fbf, #4a6fd4) !important;
+            border-color: #b47fff !important; color: #fff !important;
+            box-shadow: 0 0 14px rgba(180,130,255,.5), 0 0 4px rgba(180,130,255,.3);
+            text-shadow: 0 0 8px rgba(255,255,255,.4);
+        }
+        .foil-badge {
+            display:inline-block;background:linear-gradient(135deg,#b47fff,#7ec8ff);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+            background-clip:text;font-size:11px;font-weight:800;margin-left:4px;
+        }
 
         /* ── FULLSCREEN BUTTON ── */
         #fs-btn {
@@ -927,7 +970,14 @@
     <div id="search-result" style="display:none;" class="result-card">
         <h3 id="res-name" style="margin:0 0 4px;font-size:21px;"></h3>
         <div id="res-set" class="muted-text" style="margin-bottom:8px;"></div>
-        <div id="res-price" class="price-text" style="font-size:23px;margin-bottom:14px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div id="res-price" class="price-text" style="font-size:23px;"></div>
+            <button id="foil-toggle-btn" onclick="toggleFoil()" style="display:none;align-items:center;gap:5px;
+                padding:6px 14px;border-radius:20px;border:1px solid var(--border-lit);background:var(--bg-input);
+                color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;">
+                ✨ Foil
+            </button>
+        </div>
 
         <div style="display:flex;gap:10px;">
             <input type="number" id="add-amount" value="1" min="1" style="flex:1;margin:0;">
@@ -1101,6 +1151,19 @@
 
     <input type="text" class="collection-search" id="col-search"
            placeholder="🔍 Søg i samling…" oninput="filterCollection(this.value)">
+
+    <div class="col-toolbar">
+        <button class="col-filter-chip" id="col-foil-chip" onclick="toggleColFoilFilter()">✨ Kun Foil</button>
+        <select class="col-sort-select" id="col-sort" onchange="updateCollectionView(document.getElementById('col-search').value)">
+            <option value="added-desc">Sidst tilføjet</option>
+            <option value="name-asc">Navn A→Z</option>
+            <option value="price-desc">Pris ↓</option>
+            <option value="price-asc">Pris ↑</option>
+            <option value="foil-first">Foil først</option>
+        </select>
+    </div>
+
+    <div id="col-price-status" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:16px;"></div>
 
     <div id="col-grid" class="collection-grid"></div>
 
@@ -1564,6 +1627,7 @@
 // ═══════════════════════════════════════════════
 let currentCard     = null;
 let cardFlipped     = false;
+let currentFoil     = false;
 let currentVariants = [];
 let priceList       = JSON.parse(localStorage.getItem('mtg_list') || '[]');
 let videoStream     = null;
@@ -1702,7 +1766,7 @@ function switchView(name, el) {
     } else {
         releaseWakeLock();
     }
-    if (name === 'collection') requestPersistentStorage();
+    if (name === 'collection') { requestPersistentStorage(); refreshCollectionPrices(); }
 }
 
 function toggleFsMode(){
@@ -1757,14 +1821,16 @@ async function searchCard(query) {
         currentVariants = prints.data.map(c => {
             const img   = c.image_uris?.normal  ?? c.card_faces?.[0]?.image_uris?.normal  ?? '';
             const thumb = c.image_uris?.small   ?? c.card_faces?.[0]?.image_uris?.small   ?? '';
-            let price = -1;
             const p = c.prices;
+            let price = -1, priceFoil = -1;
             if (p?.eur)       price = +p.eur;
-            else if (p?.eur_foil) price = +p.eur_foil;
             else if (p?.usd)  price = +p.usd / rates.USD;
-            else if (p?.usd_foil) price = +p.usd_foil / rates.USD;
+            if (p?.eur_foil)  priceFoil = +p.eur_foil;
+            else if (p?.usd_foil) priceFoil = +p.usd_foil / rates.USD;
+            // Fallback: if no regular price, use foil as default
+            if (price < 0 && priceFoil >= 0) price = priceFoil;
             const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
-            return { id:c.id, name:c.name, set:c.set.toUpperCase(), setName:c.set_name||c.set.toUpperCase(), price,
+            return { id:c.id, name:c.name, set:c.set.toUpperCase(), setName:c.set_name||c.set.toUpperCase(), price, priceFoil,
                      released_at: c.released_at||'1900-01-01', img, thumb, imgBack,
                      cmLink: c.purchase_uris?.cardmarket||'#',
                      gathererLink: c.related_uris?.gatherer||'',
@@ -1776,6 +1842,15 @@ async function searchCard(query) {
         status.style.display = 'none'; res.style.display = 'block';
         document.getElementById('manual-search').value = currentVariants[0].name;
     } catch(e) { status.innerText = '❌ Fandt ikke kortet — tjek stavningen og prøv igen.'; }
+}
+
+function toggleFoil() {
+    if (!currentCard || currentCard.priceFoil < 0) return;
+    currentFoil = !currentFoil;
+    const btn = document.getElementById('foil-toggle-btn');
+    btn.classList.toggle('foil-active', currentFoil);
+    const displayPrice = currentFoil ? currentCard.priceFoil : currentCard.price;
+    document.getElementById('res-price').innerText = fmt(displayPrice);
 }
 
 function flipCard() {
@@ -1833,12 +1908,19 @@ function selectVariant(i) {
     if (th) { th.classList.add('active'); th.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); }
     currentCard = currentVariants[i];
     cardFlipped = false;
+    currentFoil = false;
     document.getElementById('res-name').innerText  = currentCard.name;
     document.getElementById('res-set').innerText   = 'Set: ' + currentCard.set;
     document.getElementById('res-price').innerText = fmt(currentCard.price);
     document.getElementById('res-image').src       = currentCard.img;
     const flipBtn = document.getElementById('flip-btn');
     flipBtn.style.display = currentCard.imgBack ? 'flex' : 'none';
+    // Foil toggle
+    const foilBtn = document.getElementById('foil-toggle-btn');
+    if (foilBtn) {
+        foilBtn.style.display = currentCard.priceFoil >= 0 ? 'flex' : 'none';
+        foilBtn.classList.remove('foil-active');
+    }
     document.getElementById('link-cm').href        = currentCard.cmLink;
     document.getElementById('link-kelz').href      = 'https://kelz0r.dk/magic/advanced_search_result.php?keywords=' + encodeURIComponent(currentCard.name);
     document.getElementById('link-gatherer').href  = currentCard.gathererLink || `https://gatherer.wizards.com/Pages/Card/Details.aspx?name=${encodeURIComponent(currentCard.name)}`;
@@ -2071,10 +2153,14 @@ const saveList=()=>localStorage.setItem('mtg_list',JSON.stringify(priceList));
 function addToList() {
     if (!currentCard) return;
     const amt=parseInt(document.getElementById('add-amount').value)||1;
-    const ex=priceList.find(x=>x.id===currentCard.id);
-    ex ? ex.amount+=amt : priceList.push({...currentCard,amount:amt});
+    const activePrice = currentFoil && currentCard.priceFoil >= 0 ? currentCard.priceFoil : currentCard.price;
+    // Foil and non-foil are separate entries (different id suffix)
+    const listKey = currentFoil ? currentCard.id + '_foil' : currentCard.id;
+    const ex=priceList.find(x=>x._listKey===listKey);
+    if (ex) { ex.amount+=amt; }
+    else { priceList.push({...currentCard, _listKey:listKey, price:activePrice, foil:currentFoil, amount:amt}); }
     saveList(); updateListView(); vib(40);
-    toast(`${amt}× ${currentCard.name} tilføjet!`);
+    toast(`${amt}× ${currentCard.name}${currentFoil?' (Foil)':''} tilføjet!`);
 }
 
 function updateListView() {
@@ -2091,7 +2177,7 @@ function updateListView() {
         el.innerHTML=`
             <div style="font-weight:700;margin-right:8px;min-width:26px;">${item.amount}×</div>
             <div style="flex:1;overflow:hidden;padding-right:8px;min-width:0;">
-                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name.split('//')[0].trim()}</div>
+                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name.split('//')[0].trim()}${item.foil?'<span class="foil-badge">✨</span>':''}</div>
                 <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;margin-top:1px;">${item.setName||item.set}</div>
             </div>
             <div class="price-text" style="margin-right:10px;white-space:nowrap;">${fmt(lt)}</div>
@@ -2177,24 +2263,37 @@ async function openTradeModal(query,side){
         const prints=await(await fetch(`https://api.scryfall.com/cards/search?order=released&q=oracle_id:${base.oracle_id}&unique=prints`)).json();
         tradeVariants=prints.data.map(c=>{
             const thumb=c.image_uris?.small??c.card_faces?.[0]?.image_uris?.small??'';
-            let price=-1;
             const p=c.prices;
-            if(p?.eur)price=+p.eur; else if(p?.eur_foil)price=+p.eur_foil; else if(p?.usd)price=+p.usd/rates.USD;
+            let price=-1, priceFoil=-1;
+            if(p?.eur)price=+p.eur; else if(p?.usd)price=+p.usd/rates.USD;
+            if(p?.eur_foil)priceFoil=+p.eur_foil; else if(p?.usd_foil)priceFoil=+p.usd_foil/rates.USD;
+            if(price<0&&priceFoil>=0)price=priceFoil;
             const img=c.image_uris?.normal??c.card_faces?.[0]?.image_uris?.normal??'';
             const imgBack=c.card_faces?.[1]?.image_uris?.normal??'';
-            return{name:c.name,set:c.set.toUpperCase(),setName:c.set_name||c.set.toUpperCase(),price,thumb,img,imgBack};
+            return{name:c.name,set:c.set.toUpperCase(),setName:c.set_name||c.set.toUpperCase(),price,priceFoil,thumb,img,imgBack};
         });
-        content.innerHTML=tradeVariants.map((c,i)=>`
-            <div class="trade-variant-item" onclick="addTradeCard(${i})">
-                <img src="${c.thumb}" style="height:58px;width:42px;object-fit:cover;border-radius:4px;margin-right:10px;" loading="lazy">
-                <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${c.name}</div><div style="font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${c.setName}</div></div>
-                <div class="price-text">${fmt(c.price)}</div>
-            </div>`).join('');
+        content.innerHTML=tradeVariants.flatMap((c,i)=>{
+            const rows=[];
+            if(c.price>=0) rows.push(`
+                <div class="trade-variant-item" onclick="addTradeCard(${i},false)">
+                    <img src="${c.thumb}" style="height:58px;width:42px;object-fit:cover;border-radius:4px;margin-right:10px;" loading="lazy">
+                    <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${c.name}</div><div style="font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${c.setName}</div></div>
+                    <div class="price-text">${fmt(c.price)}</div>
+                </div>`);
+            if(c.priceFoil>=0) rows.push(`
+                <div class="trade-variant-item" onclick="addTradeCard(${i},true)" style="background:linear-gradient(135deg,rgba(180,130,255,.08),rgba(100,180,255,.05));border-left:2px solid #b47fff;">
+                    <img src="${c.thumb}" style="height:58px;width:42px;object-fit:cover;border-radius:4px;margin-right:10px;" loading="lazy">
+                    <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${c.name} <span style="font-size:11px;background:linear-gradient(135deg,#b47fff,#7ec8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">✨ Foil</span></div><div style="font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.04em;">${c.setName}</div></div>
+                    <div class="price-text">${fmt(c.priceFoil)}</div>
+                </div>`);
+            return rows;
+        }).join('');
     } catch(e){content.innerHTML=`<div style="text-align:center;padding:20px;color:var(--red);">Kort ikke fundet. Prøv det fulde navn.</div>`;}
 }
-function addTradeCard(i){
+function addTradeCard(i, foil=false){
     const c=tradeVariants[i];
-    const obj={name:c.name,set:c.set,setName:c.setName,price:c.price,img:c.img||'',imgBack:c.imgBack||''};
+    const price = foil && c.priceFoil >= 0 ? c.priceFoil : c.price;
+    const obj={name:c.name,set:c.set,setName:c.setName,price,foil,img:c.img||'',imgBack:c.imgBack||''};
     tradeSide==='give'?(tradeGive.push(obj),document.getElementById('trade-give-input').value='')
                       :(tradeGet.push(obj), document.getElementById('trade-get-input').value='');
     document.getElementById('trade-modal').style.display='none'; updateTradeUI();
@@ -2234,9 +2333,9 @@ function openTradePreview(card){
 function updateTradeUI(){
     let gT=0,rT=0;
     const tradeItemHtml=(c,i,side)=>`
-        <div class="trade-item" onclick="openTradePreview(trade${side==='give'?'Give':'Get'}[${i}])">
+        <div class="trade-item" onclick="openTradePreview(trade${side==='give'?'Give':'Get'}[${i}])" style="${c.foil?'border-left:2px solid #b47fff;':''}">
             <div class="trade-item-name">
-                <div>${c.name.split('//')[0].trim()}</div>
+                <div>${c.name.split('//')[0].trim()}${c.foil?'<span class="foil-badge">✨</span>':''}</div>
                 <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;margin-top:1px;">${c.setName||c.set}</div>
             </div>
             <div class="trade-item-price">
@@ -2742,17 +2841,22 @@ const saveCollection = () => localStorage.setItem('mtg_collection', JSON.stringi
 function addToCollection() {
     if (!currentCard) return;
     const amt = parseInt(document.getElementById('add-amount').value) || 1;
-    const ex = collection.find(x => x.id === currentCard.id);
+    const activePrice = currentFoil && currentCard.priceFoil >= 0 ? currentCard.priceFoil : currentCard.price;
+    // Foil and non-foil are separate entries
+    const colKey = currentFoil ? currentCard.id + '_foil' : currentCard.id;
+    const ex = collection.find(x => (x._colKey || x.id) === colKey);
     if (ex) {
         ex.qty += amt;
     } else {
         collection.push({
             id: currentCard.id,
+            _colKey: colKey,
             name: currentCard.name,
             set: currentCard.set,
             setName: currentCard.setName || currentCard.set,
             qty: amt,
-            price: currentCard.price,
+            price: activePrice,
+            foil: currentFoil,
             img: currentCard.img,
             imgBack: currentCard.imgBack || '',
             thumb: currentCard.thumb || '',
@@ -2762,11 +2866,11 @@ function addToCollection() {
     saveCollection();
     updateCollectionView();
     vib(40);
-    toast(`${amt}× ${currentCard.name} gemt i samling!`);
+    toast(`${amt}× ${currentCard.name}${currentFoil?' (Foil)':''} gemt i samling!`);
 }
 
 function changeColQty(id, delta) {
-    const item = collection.find(x => x.id === id);
+    const item = collection.find(x => (x._colKey||x.id) === id);
     if (!item) return;
     item.qty = Math.max(1, item.qty + delta);
     saveCollection();
@@ -2774,11 +2878,17 @@ function changeColQty(id, delta) {
 }
 
 function removeFromCollection(id) {
-    collection = collection.filter(x => x.id !== id);
+    collection = collection.filter(x => (x._colKey||x.id) !== id);
     saveCollection();
     updateCollectionView(document.getElementById('col-search').value);
 }
 
+let colFoilFilter = false;
+function toggleColFoilFilter() {
+    colFoilFilter = !colFoilFilter;
+    document.getElementById('col-foil-chip').classList.toggle('active', colFoilFilter);
+    updateCollectionView(document.getElementById('col-search').value);
+}
 function filterCollection(query) {
     updateCollectionView(query);
 }
@@ -2814,7 +2924,8 @@ function flipColCard() {
 }
 
 async function openColCardDetail(id) {
-    const item = collection.find(x => x.id === id);
+    // id may be a _colKey (for foil) or a plain scryfall id
+    const item = collection.find(x => (x._colKey||x.id) === id) || collection.find(x => x.id === id);
     if (!item) return;
     colCardDetailItem = item;
     colCardFlipped = false;
@@ -2848,7 +2959,7 @@ async function openColCardDetail(id) {
     }
     const lineTotal = item.price > 0 ? fmt(item.price * item.qty) : '–';
     body.innerHTML = `
-        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${item.name}</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${item.name}${item.foil?'<span class="foil-badge"> ✨ Foil</span>':''}</div>
         <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;">${item.setName||item.set}</div>
         <div style="display:flex;gap:10px;margin-bottom:16px;">
             <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
@@ -2874,7 +2985,7 @@ async function openColCardDetail(id) {
         </button>
         <button class="app-btn btn-dark" style="margin-top:8px;" onclick="
             if(confirm('Fjern ${item.name.replace(/'/g,"\\'")} fra samlingen?')){
-                removeFromCollection('${item.id}');
+                removeFromCollection('${(item._colKey||item.id).replace(/'/g,"\\'")}');
                 document.getElementById('col-card-detail-modal').style.display='none';
             }">
             <i class="fa-solid fa-trash-can"></i> Fjern fra samling
@@ -2884,9 +2995,24 @@ async function openColCardDetail(id) {
 function updateCollectionView(query = '') {
     const grid = document.getElementById('col-grid');
     const q = query.toLowerCase().trim();
-    const filtered = q ? collection.filter(x =>
+    const sort = document.getElementById('col-sort')?.value || 'added-desc';
+
+    let filtered = q ? collection.filter(x =>
         x.name.toLowerCase().includes(q) || (x.setName||x.set).toLowerCase().includes(q)
-    ) : collection;
+    ) : [...collection];
+
+    // Foil filter
+    if (colFoilFilter) filtered = filtered.filter(x => x.foil);
+
+    // Sort
+    filtered.sort((a, b) => {
+        if (sort === 'name-asc')    return a.name.localeCompare(b.name);
+        if (sort === 'price-desc')  return (b.price||0) - (a.price||0);
+        if (sort === 'price-asc')   return (a.price||0) - (b.price||0);
+        if (sort === 'foil-first')  return (b.foil?1:0) - (a.foil?1:0);
+        // added-desc (default)
+        return (b.addedAt||0) - (a.addedAt||0);
+    });
 
     // Update stats (always from full collection)
     const totalQty = collection.reduce((s, x) => s + x.qty, 0);
@@ -2908,27 +3034,97 @@ function updateCollectionView(query = '') {
     grid.innerHTML = '';
     filtered.forEach(item => {
         const lineTotal = item.price > 0 ? fmt(item.price * item.qty) : '–';
+        const ck = item._colKey || item.id;
         const el = document.createElement('div');
-        el.className = 'col-card';
+        el.className = 'col-card' + (item.foil ? ' foil-card' : '');
         el.innerHTML = `
-            <img src="${item.img||''}" alt="${item.name}" loading="lazy"
-                 style="cursor:pointer;" onclick="openColCardDetail('${item.id}')"
-                 onerror="this.style.background='var(--bg-input)';this.style.minHeight='80px'">
+            <div class="col-card-img-wrap" style="cursor:pointer;" onclick="openColCardDetail('${ck}')">
+                <img src="${item.img||''}" alt="${item.name}" loading="lazy"
+                     onerror="this.style.background='var(--bg-input)';this.style.minHeight='80px'">
+                ${item.foil ? '<div class="foil-shimmer"></div>' : ''}
+            </div>
             <div class="col-card-body">
-                <div class="col-card-name" style="cursor:pointer;" onclick="openColCardDetail('${item.id}')">${item.name}</div>
+                <div class="col-card-name" style="cursor:pointer;" onclick="openColCardDetail('${ck}')">${item.name}${item.foil?'<span class="foil-badge"> ✨</span>':''}</div>
                 <div class="col-card-set">${item.setName||item.set}</div>
                 <div class="col-card-price">${lineTotal}</div>
                 <div class="col-qty-row">
-                    <button class="col-qty-btn" onclick="changeColQty('${item.id}',-1)">−</button>
+                    <button class="col-qty-btn" onclick="changeColQty('${ck}',-1)">−</button>
                     <span class="col-qty-num">${item.qty}</span>
-                    <button class="col-qty-btn" onclick="changeColQty('${item.id}',1)">+</button>
+                    <button class="col-qty-btn" onclick="changeColQty('${ck}',1)">+</button>
                 </div>
-                <button class="col-del-btn" onclick="removeFromCollection('${item.id}')">🗑 Fjern</button>
+                <button class="col-del-btn" onclick="removeFromCollection('${ck}')">🗑 Fjern</button>
             </div>`;
         grid.appendChild(el);
     });
 }
 updateCollectionView();
+
+// ═══════════════════════════════════════════════
+//  AUTOMATISK PRISOPDATERING
+// ═══════════════════════════════════════════════
+let priceRefreshRunning = false;
+
+async function refreshCollectionPrices(force = false) {
+    if (!collection.length) return;
+    if (priceRefreshRunning) return;
+
+    const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const lastUpdate = localStorage.getItem('mtg_prices_date');
+    if (!force && lastUpdate === today) {
+        // Already fresh today — just show the timestamp
+        setColPriceStatus(`✓ Priser opdateret i dag`);
+        return;
+    }
+
+    priceRefreshRunning = true;
+    const status = document.getElementById('col-price-status');
+    const total = collection.length;
+    let done = 0;
+
+    setColPriceStatus(`⏳ Henter dagspriser… (0/${total})`);
+
+    for (const item of collection) {
+        try {
+            const r = await fetch(`https://api.scryfall.com/cards/${item.id}`);
+            if (r.ok) {
+                const c = await r.json();
+                const p = c.prices;
+                let price = -1, priceFoil = -1;
+                if (p?.eur)      price = +p.eur;
+                else if (p?.usd) price = +p.usd / rates.USD;
+                if (p?.eur_foil)      priceFoil = +p.eur_foil;
+                else if (p?.usd_foil) priceFoil = +p.usd_foil / rates.USD;
+
+                // Update the item's price based on whether it's foil
+                if (item.foil && priceFoil >= 0) item.price = priceFoil;
+                else if (!item.foil && price >= 0) item.price = price;
+                else if (price < 0 && priceFoil >= 0) item.price = priceFoil;
+
+                // Also store priceFoil for reference
+                if (priceFoil >= 0) item.priceFoil = priceFoil;
+                if (price >= 0)     item.priceNormal = price;
+            }
+        } catch(e) { /* skip on error */ }
+
+        done++;
+        setColPriceStatus(`⏳ Henter dagspriser… (${done}/${total})`);
+
+        // Scryfall: max 10 req/s — wait 110ms between requests
+        await new Promise(r => setTimeout(r, 110));
+    }
+
+    saveCollection();
+    localStorage.setItem('mtg_prices_date', today);
+    priceRefreshRunning = false;
+
+    updateCollectionView(document.getElementById('col-search').value);
+    setColPriceStatus(`✓ Priser opdateret i dag`);
+}
+
+function setColPriceStatus(msg) {
+    const el = document.getElementById('col-price-status');
+    if (el) el.innerText = msg;
+}
 
 function importCollectionCSV(input) {
     const file = input.files[0];
