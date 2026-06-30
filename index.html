@@ -1052,10 +1052,13 @@
     </div>
 
     <div id="kort-panel">
-    <div class="search-container">
+    <div class="search-container" style="position:relative;display:flex;align-items:center;">
         <input type="text" id="manual-search" placeholder="Søg efter Magic kort…"
-               oninput="handleAutocomplete(this.value,'main')"
+               style="padding-right:32px;"
+               oninput="handleAutocomplete(this.value,'main');document.getElementById('search-clear-btn').style.display=this.value?'flex':'none';"
                onkeypress="if(event.key==='Enter'){searchCard(this.value);hideAC()}">
+        <button id="search-clear-btn" onclick="document.getElementById('manual-search').value='';document.getElementById('search-clear-btn').style.display='none';hideAC();document.getElementById('manual-search').focus();"
+            style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;width:24px;height:24px;align-items:center;justify-content:center;border-radius:50%;padding:0;line-height:1;">×</button>
         <div id="autocomplete-suggestions" class="autocomplete-box"></div>
     </div>
 
@@ -3316,10 +3319,19 @@ function openDeckCardPreview(deckKey) {
     img.style.transform = ''; img.style.opacity = '1';
     const flipBtn = document.getElementById('dpm-flip-btn');
     flipBtn.style.display = card.imgBack ? 'flex' : 'none';
+    const isCommander = activeDeck.format === 'commander';
+    const isCmd = activeDeck.commanderKey === deckKey;
+    const cmdBtnHtml = isCommander ? `
+        <button onclick="setDeckCommander('${deckKey}');document.getElementById('deck-preview-modal').style.display='none';"
+            style="width:100%;margin-top:4px;padding:10px;border-radius:10px;border:1px solid ${isCmd?'#f4b942':'var(--border-lit)'};
+                   background:${isCmd?'rgba(244,185,66,.15)':'var(--bg-panel)'};color:${isCmd?'#f4b942':'var(--muted)'};
+                   font-size:13px;font-weight:700;cursor:pointer;">
+            ${isCmd ? '⭐ Fjern som commander' : '⭐ Sæt som commander'}
+        </button>` : '';
     document.getElementById('dpm-body').innerHTML = `
         <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${card.name}</div>
         <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;">${card.setName||card.set}</div>
-        <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <div style="display:flex;gap:10px;margin-bottom:12px;">
             <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
                 <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Pris</div>
                 <div style="font-size:18px;font-weight:700;color:var(--gold);">${fmt(card.price)}</div>
@@ -3328,7 +3340,8 @@ function openDeckCardPreview(deckKey) {
                 <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Antal</div>
                 <div style="font-size:18px;font-weight:700;">${card.qty}</div>
             </div>
-        </div>`;
+        </div>
+        ${cmdBtnHtml}`;
     document.getElementById('deck-preview-modal').style.display = 'block';
 }
 function flipDeckPreviewCard() {
@@ -4013,6 +4026,12 @@ function setDeckFormat(fmt) {
     deck.format = fmt; saveDecks(); renderDeckEditor();
 }
 
+function setDeckCommander(deckKey) {
+    const deck = getActiveDeck(); if (!deck) return;
+    deck.commanderKey = deck.commanderKey === deckKey ? null : deckKey;
+    saveDecks(); renderDeckEditor();
+}
+
 function deleteDeck() {
     const deck = getActiveDeck(); if (!deck) return;
     if (!confirm(`Slet dækket "${deck.name}"?`)) return;
@@ -4121,32 +4140,54 @@ function renderDeckEditor() {
         const matched = TYPE_ORDER.find(t=>tl.includes(t));
         (matched?groups[matched]:groups['Andet']).push(c);
     });
+
+    const cmdKey = deck.commanderKey || null;
+    const isCommander = deck.format === 'commander';
+
+    function deckCardHtml(c) {
+        const ck = c._deckKey||c.id;
+        const isCmd = cmdKey === ck;
+        const border = isCmd ? 'border:2px solid #f4b942;background:rgba(244,185,66,.08);' : '';
+        return `<div class="deck-card-item" style="${border}">
+            <img class="deck-card-thumb" src="${c.img||c.thumb||''}" loading="lazy" onerror="this.style.display=\'none\'"
+                 style="cursor:pointer;" onclick="openDeckCardPreview('${ck}')">
+            <div class="deck-card-info" style="cursor:pointer;" onclick="openDeckCardPreview('${ck}')">
+                <div class="deck-card-name">${isCmd ? '⭐ ' : ''}${c.name}</div>
+                <div class="deck-card-sub">${c.setName||c.set} · ${fmt(c.price)}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <button style="width:24px;height:24px;border-radius:50%;background:var(--bg-panel);border:1px solid var(--border-lit);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                    onclick="changeDeckQty('${ck}',-1)">−</button>
+                <span style="font-weight:700;min-width:16px;text-align:center;">${c.qty}</span>
+                <button style="width:24px;height:24px;border-radius:50%;background:var(--bg-panel);border:1px solid var(--border-lit);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                    onclick="changeDeckQty('${ck}',1)">+</button>
+                <button style="width:24px;height:24px;border-radius:50%;background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:var(--red);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                    onclick="removeDeckCard('${ck}')">×</button>
+            </div>
+        </div>`;
+    }
+
+    // Commander card shown first if set, otherwise show reminder
     let listHtml = '';
+    const cmdCard = cmdKey ? cards.find(c=>(c._deckKey||c.id)===cmdKey) : null;
+    if (isCommander && cards.length) {
+        if (cmdCard) {
+            listHtml += `<div style="font-size:11px;font-weight:800;letter-spacing:.05em;color:#f4b942;margin:0 0 5px;">⭐ COMMANDER</div>`;
+            listHtml += deckCardHtml(cmdCard);
+            listHtml += `<div style="border-top:1px solid var(--border);margin:10px 0;"></div>`;
+        } else {
+            listHtml += `<div style="background:rgba(244,185,66,.07);border:1px dashed #f4b942;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#f4b942;">
+                ⭐ Husk at vælge din commander — tryk på et kort og vælg "Sæt som commander"
+            </div>`;
+        }
+    }
+
     TYPE_ORDER.concat(['Andet']).forEach(type=>{
-        const grp = groups[type]; if(!grp.length) return;
+        const grp = groups[type].filter(c=>(c._deckKey||c.id)!==cmdKey); if(!grp.length) return;
         const grpQty = grp.reduce((s,c)=>s+c.qty,0);
         const TYPE_COLORS = {Creature:'#4f7cff',Planeswalker:'#f39c12',Instant:'#3498db',Sorcery:'#9b59b6',Enchantment:'#2ecc71',Artifact:'#95a5a6',Land:'#8b6914',Andet:'#666'};
         listHtml += `<div style="font-size:11px;font-weight:800;letter-spacing:.05em;color:${TYPE_COLORS[type]||'#666'};margin:10px 0 5px;">${type.toUpperCase()} (${grpQty})</div>`;
-        grp.forEach(c=>{
-            const ck = c._deckKey||c.id;
-            listHtml += `<div class="deck-card-item">
-                <img class="deck-card-thumb" src="${c.img||c.thumb||''}" loading="lazy" onerror="this.style.display='none'"
-                     style="cursor:pointer;" onclick="openDeckCardPreview('${ck}')">
-                <div class="deck-card-info" style="cursor:pointer;" onclick="openDeckCardPreview('${ck}')">
-                    <div class="deck-card-name">${c.name}</div>
-                    <div class="deck-card-sub">${c.setName||c.set} · ${fmt(c.price)}</div>
-                </div>
-                <div style="display:flex;align-items:center;gap:6px;">
-                    <button style="width:24px;height:24px;border-radius:50%;background:var(--bg-panel);border:1px solid var(--border-lit);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
-                        onclick="changeDeckQty('${ck}',-1)">−</button>
-                    <span style="font-weight:700;min-width:16px;text-align:center;">${c.qty}</span>
-                    <button style="width:24px;height:24px;border-radius:50%;background:var(--bg-panel);border:1px solid var(--border-lit);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
-                        onclick="changeDeckQty('${ck}',1)">+</button>
-                    <button style="width:24px;height:24px;border-radius:50%;background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:var(--red);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
-                        onclick="removeDeckCard('${ck}')">×</button>
-                </div>
-            </div>`;
-        });
+        grp.forEach(c=>{ listHtml += deckCardHtml(c); });
     });
     if (listHtml && totalVal > 0) {
         listHtml += `<div style="display:flex;justify-content:space-between;align-items:center;
