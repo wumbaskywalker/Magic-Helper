@@ -1203,8 +1203,8 @@
         </button>
     </div>
     <div style="display:flex;gap:10px;">
-        <button class="app-btn" style="flex:1;" onclick="shareList()">
-            <i class="fa-solid fa-share-nodes"></i> Del
+        <button class="app-btn" style="flex:1;" onclick="showShareModal('wish')">
+            <i class="fa-solid fa-share-nodes"></i> Del / Eksportér
         </button>
         <button class="app-btn btn-red" style="flex:1;" onclick="clearList()">
             <i class="fa-solid fa-trash"></i> Ryd
@@ -1219,12 +1219,16 @@
         <div class="trade-col">
             <div class="trade-col-hdr" style="color:var(--red);">📤 Jeg Giver</div>
             <div class="search-container" style="display:flex;gap:6px;">
-                <input type="text" id="trade-give-input" placeholder="Søg kort…"
-                       oninput="handleAutocomplete(this.value,'give')"
-                       onkeypress="if(event.key==='Enter'){openTradeModal(this.value,'give');hideAC()}">
+                <div style="position:relative;flex:1;display:flex;align-items:center;">
+                    <input type="text" id="trade-give-input" placeholder="Søg kort…" style="width:100%;padding-right:28px;"
+                           oninput="handleAutocomplete(this.value,'give');document.getElementById('trade-give-clear').style.display=this.value?'flex':'none';"
+                           onkeypress="if(event.key==='Enter'){openTradeModal(this.value,'give');hideAC()}">
+                    <button id="trade-give-clear" onclick="document.getElementById('trade-give-input').value='';this.style.display='none';hideAC();document.getElementById('trade-give-input').focus();"
+                        style="display:none;position:absolute;right:6px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;width:22px;height:22px;align-items:center;justify-content:center;padding:0;line-height:1;">×</button>
+                    <div id="trade-give-suggestions" class="autocomplete-box"></div>
+                </div>
                 <button class="app-btn btn-red" style="width:44px;margin-bottom:10px;padding:0;flex-shrink:0;"
                         onclick="openTradeModal(document.getElementById('trade-give-input').value,'give');hideAC()">+</button>
-                <div id="trade-give-suggestions" class="autocomplete-box"></div>
             </div>
             <div id="trade-give-list"></div>
             <div style="text-align:right;font-weight:700;margin-top:8px;font-size:13px;color:var(--muted);" id="trade-give-total">0.00</div>
@@ -1232,12 +1236,16 @@
         <div class="trade-col">
             <div class="trade-col-hdr" style="color:var(--green);">📥 Jeg Får</div>
             <div class="search-container" style="display:flex;gap:6px;">
-                <input type="text" id="trade-get-input" placeholder="Søg kort…"
-                       oninput="handleAutocomplete(this.value,'get')"
-                       onkeypress="if(event.key==='Enter'){openTradeModal(this.value,'get');hideAC()}">
+                <div style="position:relative;flex:1;display:flex;align-items:center;">
+                    <input type="text" id="trade-get-input" placeholder="Søg kort…" style="width:100%;padding-right:28px;"
+                           oninput="handleAutocomplete(this.value,'get');document.getElementById('trade-get-clear').style.display=this.value?'flex':'none';"
+                           onkeypress="if(event.key==='Enter'){openTradeModal(this.value,'get');hideAC()}">
+                    <button id="trade-get-clear" onclick="document.getElementById('trade-get-input').value='';this.style.display='none';hideAC();document.getElementById('trade-get-input').focus();"
+                        style="display:none;position:absolute;right:6px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;width:22px;height:22px;align-items:center;justify-content:center;padding:0;line-height:1;">×</button>
+                    <div id="trade-get-suggestions" class="autocomplete-box"></div>
+                </div>
                 <button class="app-btn btn-green" style="width:44px;margin-bottom:10px;padding:0;flex-shrink:0;"
                         onclick="openTradeModal(document.getElementById('trade-get-input').value,'get');hideAC()">+</button>
-                <div id="trade-get-suggestions" class="autocomplete-box"></div>
             </div>
             <div id="trade-get-list"></div>
             <div style="text-align:right;font-weight:700;margin-top:8px;font-size:13px;color:var(--muted);" id="trade-get-total">0.00</div>
@@ -1270,8 +1278,12 @@
         </div>
     </div>
 
-    <input type="text" class="collection-search" id="col-search"
-           placeholder="🔍 Søg i samling…" oninput="filterCollection(this.value)">
+    <div style="position:relative;display:flex;align-items:center;">
+        <input type="text" class="collection-search" id="col-search" style="padding-right:32px;"
+               placeholder="🔍 Søg i samling…" oninput="filterCollection(this.value);document.getElementById('col-search-clear').style.display=this.value?'flex':'none';">
+        <button id="col-search-clear" onclick="document.getElementById('col-search').value='';filterCollection('');this.style.display='none';document.getElementById('col-search').focus();"
+            style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;width:24px;height:24px;align-items:center;justify-content:center;border-radius:50%;padding:0;line-height:1;">×</button>
+    </div>
 
     <div class="col-toolbar">
         <button class="col-filter-chip" id="col-foil-chip" onclick="toggleColFoilFilter()">✨ Kun Foil</button>
@@ -1288,8 +1300,8 @@
 
     <div id="col-grid" class="collection-grid"></div>
 
-    <button class="app-btn" style="background:#1a1a2e;border:1px solid #3a3a6e;color:#8888ff;margin-bottom:14px;" onclick="shareCollection()">
-        <i class="fa-solid fa-share-nodes"></i> Del min samling
+    <button class="app-btn" style="background:#1a1a2e;border:1px solid #3a3a6e;color:#8888ff;margin-bottom:14px;" onclick="showShareCollectionModal()">
+        <i class="fa-solid fa-share-nodes"></i> Del / Eksportér samling
     </button>
 
     <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
@@ -1397,20 +1409,50 @@
     </div>
 </div>
 
-<!-- ══ SHARE COLLECTION MODAL ══ -->
-<div id="share-col-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.93);z-index:1000;align-items:center;justify-content:center;padding:20px;">
-    <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-lg);padding:24px;width:100%;max-width:400px;">
-        <h3 style="margin:0 0 8px;text-align:center;">Del din samling</h3>
-        <p style="font-size:13px;color:var(--muted);text-align:center;margin:0 0 16px;">Modtageren kan se dine kort og priser — men ikke redigere din samling.</p>
-        <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--accent);word-break:break-all;margin-bottom:14px;max-height:80px;overflow:auto;" id="share-url-display"></div>
-        <div style="display:flex;gap:10px;">
-            <button class="app-btn btn-dark" style="flex:1;margin:0;" onclick="document.getElementById('share-col-modal').style.display='none'">Luk</button>
-            <button class="app-btn" style="flex:2;margin:0;" onclick="copyShareUrl()">
+<!-- ══ UNIVERSAL SHARE MODAL ══ -->
+<div id="share-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.93);z-index:1000;align-items:flex-end;justify-content:center;padding:20px;">
+    <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:24px;width:100%;max-width:480px;padding-bottom:max(24px,env(safe-area-inset-bottom));">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <div id="share-modal-title" style="font-size:17px;font-weight:800;">Del / Eksportér</div>
+            <button onclick="document.getElementById('share-modal').style.display='none'"
+                style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;">×</button>
+        </div>
+
+        <button onclick="_shareAsText()" style="width:100%;text-align:left;background:var(--bg-input);border:1px solid var(--border-lit);border-radius:12px;padding:14px 16px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:14px;">
+            <span style="font-size:24px;">📋</span>
+            <div>
+                <div style="font-weight:700;color:var(--text);font-size:14px;">Kopiér som tekstliste</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:2px;">Let at paste i en besked eller mail</div>
+            </div>
+        </button>
+
+        <button id="share-csv-btn" onclick="_shareAsCSV()" style="width:100%;text-align:left;background:var(--bg-input);border:1px solid var(--border-lit);border-radius:12px;padding:14px 16px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:14px;">
+            <span style="font-size:24px;">📊</span>
+            <div>
+                <div style="font-weight:700;color:var(--text);font-size:14px;">Eksportér som CSV</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:2px;">Kan åbnes i Excel eller Google Sheets</div>
+            </div>
+        </button>
+
+        <button onclick="_shareAsLink()" style="width:100%;text-align:left;background:var(--bg-input);border:1px solid var(--border-lit);border-radius:12px;padding:14px 16px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:14px;">
+            <span style="font-size:24px;">🔗</span>
+            <div>
+                <div style="font-weight:700;color:var(--text);font-size:14px;">Del som link</div>
+                <div id="share-link-desc" style="font-size:12px;color:var(--muted);margin-top:2px;">Generér et link andre kan åbne</div>
+            </div>
+        </button>
+
+        <div id="share-link-result" style="display:none;margin-top:4px;margin-bottom:10px;">
+            <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--accent);word-break:break-all;margin-bottom:8px;" id="share-url-display"></div>
+            <button class="app-btn" style="width:100%;" onclick="copyShareUrl()">
                 <i class="fa-solid fa-copy"></i> Kopiér link
             </button>
         </div>
     </div>
 </div>
+
+<!-- keep old id for backward compat -->
+<div id="share-col-modal" style="display:none;"></div>
 
 <!-- ══ VIEW SHARED COLLECTION ══ -->
 <div id="shared-view-modal" style="display:none;position:fixed;inset:0;background:var(--bg-body);z-index:2000;overflow-y:auto;padding:20px;">
@@ -1549,12 +1591,16 @@
 
         <!-- Add card -->
         <div style="position:relative;margin-bottom:12px;">
-            <div style="display:flex;gap:8px;">
-                <input type="text" id="deck-card-search" placeholder="Søg og tilføj kort…"
-                       style="flex:1;margin:0;"
-                       oninput="handleAutocomplete(this.value,'deck')"
-                       onkeypress="if(event.key==='Enter'){openDeckSearch(this.value);hideAC()}">
-                <button class="app-btn" style="width:auto;margin:0;padding:0 16px;white-space:nowrap;"
+            <div style="display:flex;gap:8px;align-items:center;">
+                <div style="position:relative;flex:1;display:flex;align-items:center;">
+                    <input type="text" id="deck-card-search" placeholder="Søg og tilføj kort…"
+                           style="flex:1;margin:0;width:100%;padding-right:28px;"
+                           oninput="handleAutocomplete(this.value,'deck');document.getElementById('deck-search-clear').style.display=this.value?'flex':'none';"
+                           onkeypress="if(event.key==='Enter'){openDeckSearch(this.value);hideAC()}">
+                    <button id="deck-search-clear" onclick="document.getElementById('deck-card-search').value='';this.style.display='none';hideAC();document.getElementById('deck-card-search').focus();"
+                        style="display:none;position:absolute;right:6px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;width:22px;height:22px;align-items:center;justify-content:center;padding:0;line-height:1;">×</button>
+                </div>
+                <button class="app-btn" style="width:auto;margin:0;padding:0 16px;white-space:nowrap;flex-shrink:0;"
                         onclick="openDeckSearch(document.getElementById('deck-card-search').value);hideAC()">
                     <i class="fa-solid fa-plus"></i>
                 </button>
@@ -1570,8 +1616,8 @@
             <button class="app-btn btn-dark" style="flex:1;" onclick="showDeckImport('add')">
                 <i class="fa-solid fa-list"></i> Tilføj via liste
             </button>
-            <button class="app-btn" style="flex:1;" onclick="exportDeck()">
-                <i class="fa-solid fa-file-export"></i> Eksportér
+            <button class="app-btn" style="flex:1;" onclick="showShareModal('deck')">
+                <i class="fa-solid fa-share-nodes"></i> Del / Eksportér
             </button>
             <button class="app-btn btn-dark" style="flex:1;" onclick="deleteDeck()">
                 <i class="fa-solid fa-trash-can"></i> Slet dæk
@@ -3727,6 +3773,104 @@ function shareCollection() {
         toast('CSV downloadet — send den manuelt!');
     }
 }
+
+// ── Universal share modal ──
+let _shareCtx = 'col'; // 'col' | 'wish' | 'deck'
+
+function showShareModal(ctx) {
+    _shareCtx = ctx || 'col';
+    const data = _shareData();
+    if (!data || !data.items.length) return toast('Ingen data at dele!', '#e74c3c');
+    const titles = { col: 'Del / Eksportér samling', wish: 'Del / Eksportér ønskeliste', deck: 'Del / Eksportér dæk' };
+    document.getElementById('share-modal-title').innerText = titles[_shareCtx] || 'Del / Eksportér';
+    // Show/hide CSV for deck (deck uses text format, not tabular)
+    document.getElementById('share-csv-btn').style.display = _shareCtx === 'deck' ? 'none' : 'flex';
+    // Link warning if >300 items
+    const count = data.items.reduce((s,x) => s + (x.qty||x.amount||x.q||1), 0);
+    document.getElementById('share-link-desc').innerHTML = count > 300
+        ? 'Generér et link — <span style="color:#e67e22;">⚠ Din samling er stor ('+count+' kort), link kan blive meget langt</span>'
+        : 'Generér et link andre kan åbne';
+    document.getElementById('share-link-result').style.display = 'none';
+    document.getElementById('share-modal').style.display = 'flex';
+}
+
+function showShareCollectionModal() { showShareModal('col'); } // backward compat
+
+function _shareData() {
+    if (_shareCtx === 'col') {
+        return { items: collection, title: 'Min MTG Samling', label: x => `${x.qty}x ${x.name} (${x.setName||x.set})${x.foil?' [Foil]':''} — ${fmt(x.price*x.qty)}`, qty: x => x.qty, price: x => x.price, total: collection.reduce((s,x)=>s+(x.price>0?x.price*x.qty:0),0) };
+    } else if (_shareCtx === 'wish') {
+        return { items: priceList, title: 'Min MTG Ønskeliste', label: x => `${x.amount}x ${x.name} (${x.setName||x.set})${x.foil?' [Foil]':''} — ${fmt(x.price*x.amount)}`, qty: x => x.amount, price: x => x.price, total: priceList.reduce((s,x)=>s+(x.price>0?x.price*x.amount:0),0) };
+    } else if (_shareCtx === 'deck') {
+        const deck = getActiveDeck();
+        if (!deck) return null;
+        return { items: deck.cards, title: deck.name, label: x => `${x.qty}x ${x.name}`, qty: x => x.qty, price: x => x.price, total: deck.cards.reduce((s,x)=>s+(x.price>0?x.price*x.qty:0),0), deckName: deck.name };
+    }
+    return null;
+}
+
+function _shareAsText() {
+    const d = _shareData(); if (!d) return;
+    const text = `${d.title}\n${'─'.repeat(30)}\n` + d.items.map(d.label).join('\n') + `\n${'─'.repeat(30)}\nTotal: ${fmt(d.total)}`;
+    navigator.clipboard.writeText(text).then(() => {
+        toast('Kopieret! ✓');
+        document.getElementById('share-modal').style.display = 'none';
+    }).catch(() => { if (navigator.share) navigator.share({ title: d.title, text }).catch(()=>{}); });
+}
+
+function _shareAsCSV() {
+    document.getElementById('share-modal').style.display = 'none';
+    if (_shareCtx === 'col') shareCollection();
+    else if (_shareCtx === 'wish') {
+        const cur = currency === 'DKK' ? 'kr.' : currency === 'USD' ? '$' : '€';
+        const toLocal = eur => eur <= 0 ? 0 : currency === 'DKK' ? +(eur*rates.DKK).toFixed(2) : currency === 'USD' ? +(eur*rates.USD).toFixed(2) : +eur.toFixed(2);
+        const rows = [['Navn','Sæt','Antal',`Stykpris (${cur})`,`Total (${cur})`]];
+        const grand = priceList.reduce((s,x)=>s+toLocal(x.price)*x.amount,0);
+        priceList.forEach(x => { const u=toLocal(x.price); rows.push([x.name,x.setName||x.set,x.amount,u.toFixed(2),(u*x.amount).toFixed(2)]); });
+        rows.push(['','','TOTAL','',grand.toFixed(2)]);
+        const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+        const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='mtg-oenskeliste.csv'; a.click();
+    }
+}
+
+function _shareAsLink() {
+    const d = _shareData(); if (!d || !d.items.length) return;
+    const minimal = d.items.map(x => ({ n:x.name, s:x.setName||x.set, q:x.qty||x.amount||1, p:x.price>0?+x.price.toFixed(2):0, f:x.foil?1:0 }));
+    let encoded;
+    try { encoded = btoa(unescape(encodeURIComponent(JSON.stringify(minimal)))); }
+    catch(e) { return toast('For mange data til et link — brug tekstliste.', '#e67e22'); }
+    const url = location.href.split('#')[0] + '#share=' + encoded;
+    document.getElementById('share-url-display').innerText = url;
+    window._shareUrl = url;
+    document.getElementById('share-link-result').style.display = 'block';
+}
+
+function shareColAsText() { _shareCtx='col'; _shareAsText(); }
+function shareColAsCSV()  { _shareCtx='col'; _shareAsCSV(); }
+function shareColAsLink() { _shareCtx='col'; _shareAsLink(); }
+
+function copyShareUrl() {
+    const url = window._shareUrl || document.getElementById('share-url-display').innerText;
+    navigator.clipboard.writeText(url).then(() => toast('Link kopieret! ✓')).catch(() => {
+        if (navigator.share) navigator.share({ title: 'Min MTG Samling', url }).catch(()=>{});
+    });
+}
+
+// Check on load if there's a shared collection in the URL hash
+(function checkShareHash() {
+    const hash = location.hash;
+    if (!hash.startsWith('#share=')) return;
+    try {
+        const encoded = hash.slice(7);
+        const items = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+        if (Array.isArray(items) && items.length) {
+            // Clear hash so refresh doesn't re-open
+            history.replaceState(null, '', location.href.split('#')[0]);
+            renderSharedCollection(items);
+        }
+    } catch(e) { /* invalid share link */ }
+})();
 
 function renderSharedCollection(items) {
     const modal = document.getElementById('shared-view-modal');
