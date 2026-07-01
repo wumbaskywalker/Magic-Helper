@@ -3376,6 +3376,14 @@ function openDeckCardPreview(deckKey) {
     img.style.transform = ''; img.style.opacity = '1';
     const flipBtn = document.getElementById('dpm-flip-btn');
     flipBtn.style.display = card.imgBack ? 'flex' : 'none';
+    // Fallback: hent imgBack fra Scryfall hvis det mangler (ældre gemt kort)
+    if (!card.imgBack) {
+        fetch(`https://api.scryfall.com/cards/${card.id}`).then(r=>r.ok?r.json():null).then(data=>{
+            if (!data) return;
+            const fetched = data.card_faces?.[1]?.image_uris?.normal ?? '';
+            if (fetched) { card.imgBack = fetched; saveDecks(); flipBtn.style.display = 'flex'; }
+        }).catch(()=>{});
+    }
     const isCommander = activeDeck.format === 'commander';
     const isCmd = activeDeck.commanderKey === deckKey;
     const cmdBtnHtml = isCommander ? `
@@ -4705,7 +4713,7 @@ function addCardToDeck(i, foil=false) {
     else {
         deck.cards.push({
             id:c.id, _deckKey:deckKey, name:c.name, set:c.set, setName:c.setName,
-            qty:1, price, foil, img:c.img, thumb:c.thumb,
+            qty:1, price, foil, img:c.img, thumb:c.thumb, imgBack:c.imgBack||'',
             cmc:c.cmc, colors:c.colors, colorIdentity:c.colorIdentity,
             typeLine:c.typeLine, manaCost:c.manaCost, legalities:c.legalities
         });
@@ -4826,15 +4834,16 @@ async function importDeckList() {
         const p = c.prices;
         let price = -1;
         if (p?.eur) price = +p.eur; else if (p?.usd) price = +p.usd / rates.USD;
-        const img   = c.image_uris?.normal  ?? c.card_faces?.[0]?.image_uris?.normal  ?? '';
-        const thumb = c.image_uris?.small   ?? c.card_faces?.[0]?.image_uris?.small   ?? '';
+        const img     = c.image_uris?.normal  ?? c.card_faces?.[0]?.image_uris?.normal  ?? '';
+        const thumb   = c.image_uris?.small   ?? c.card_faces?.[0]?.image_uris?.small   ?? '';
+        const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
         const ex = deck.cards.find(x => x.id === c.id);
         if (ex) { ex.qty += entry.qty; }
         else {
             deck.cards.push({
                 id: c.id, _deckKey: c.id, name: c.name, set: c.set.toUpperCase(),
                 setName: c.set_name || c.set.toUpperCase(), qty: entry.qty, price,
-                img, thumb, cmc: c.cmc || 0, colors: c.colors || [],
+                img, thumb, imgBack, cmc: c.cmc || 0, colors: c.colors || [],
                 colorIdentity: c.color_identity || [], typeLine: c.type_line || '',
                 manaCost: c.mana_cost || '', legalities: c.legalities || {}
             });
