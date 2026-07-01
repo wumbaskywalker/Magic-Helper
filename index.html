@@ -891,6 +891,16 @@
 
         /* ── RULES ── */
         #rules-panel { display: none; }
+        #kalender-panel { display: none; }
+        .kal-card {
+            background: var(--bg-panel); border: 1px solid var(--border-lit);
+            border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 10px;
+            display: flex; gap: 14px; align-items: center;
+        }
+        .kal-icon { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bg-input); display:flex; align-items:center; justify-content:center; }
+        .kal-name { font-weight: 700; font-size: 15px; margin-bottom: 3px; }
+        .kal-date { font-size: 12px; color: var(--accent); font-weight: 700; }
+        .kal-type { font-size: 11px; color: var(--muted); margin-top: 2px; }
         .rules-result {
             background: var(--bg-panel); border: 1px solid var(--border);
             border-radius: var(--r-md); padding: 14px; margin-bottom: 10px;
@@ -1049,6 +1059,7 @@
     <div class="search-mode-toggle">
         <button class="search-mode-btn active" id="mode-kort" onclick="setSearchMode('kort')">🃏 Kort</button>
         <button class="search-mode-btn" id="mode-regler" onclick="setSearchMode('regler')">📖 Regler</button>
+        <button class="search-mode-btn" id="mode-kalender" onclick="setSearchMode('kalender')">📅 Kalender</button>
     </div>
 
     <div id="kort-panel">
@@ -1136,13 +1147,21 @@
     <!-- ══ REGLER PANEL ══ -->
     <div id="rules-panel">
         <div class="search-container">
-            <input type="text" id="rules-search" placeholder="Søg keyword eller kortnavn…"
+            <input type="text" id="rules-search" placeholder="Søg MTG-keyword, fx trample eller hexproof…"
                    oninput="searchRules(this.value)"
                    onkeypress="if(event.key==='Enter')searchRules(this.value)">
         </div>
         <div id="rules-results">
             <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">
-                Søg efter et MTG-keyword (fx "trample") eller et kortnavnfor at se officielle regler.
+                Søg efter et MTG-keyword for at se en forklaring — fx <em>trample</em>, <em>hexproof</em> eller <em>deathtouch</em>.
+            </div>
+        </div>
+    </div>
+
+    <div id="kalender-panel" style="display:none;">
+        <div id="kalender-content">
+            <div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 0;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Henter sæt-kalender…
             </div>
         </div>
     </div>
@@ -3987,11 +4006,101 @@ async function requestPersistentStorage() {
 function setSearchMode(mode) {
     const kort = document.getElementById('kort-panel');
     const rules = document.getElementById('rules-panel');
+    const kal = document.getElementById('kalender-panel');
     document.getElementById('mode-kort').classList.toggle('active', mode==='kort');
     document.getElementById('mode-regler').classList.toggle('active', mode==='regler');
-    kort.style.display  = mode==='kort'   ? 'block' : 'none';
-    rules.style.display = mode==='regler' ? 'block' : 'none';
+    document.getElementById('mode-kalender').classList.toggle('active', mode==='kalender');
+    kort.style.display  = mode==='kort'      ? 'block' : 'none';
+    rules.style.display = mode==='regler'    ? 'block' : 'none';
+    kal.style.display   = mode==='kalender'  ? 'block' : 'none';
     if (mode==='regler') document.getElementById('rules-search').focus();
+    if (mode==='kalender') loadKalender();
+}
+
+let _kalenderLoaded = false;
+async function loadKalender() {
+    if (_kalenderLoaded) return;
+    const el = document.getElementById('kalender-content');
+    try {
+        const r = await fetch('https://api.scryfall.com/sets');
+        const data = await r.json();
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const SET_TYPES = {
+            'core':'Core Set', 'expansion':'Udvidelse', 'masters':'Masters',
+            'draft_innovation':'Draft', 'commander':'Commander',
+            'starter':'Starter', 'funny':'Acorn/Silver', 'memorabilia':'Samleobjekt',
+            'token':'Token', 'promo':'Promo', 'box':'Box Set', 'duel_deck':'Duel Deck',
+            'from_the_vault':'From the Vault', 'premium_deck':'Premium Deck',
+            'archenemy':'Archenemy', 'planechase':'Planechase', 'vanguard':'Vanguard',
+            'treasure_chest':'Treasure Chest', 'spellbook':'Spellbook',
+        };
+
+        // Show upcoming sets (next 12 months) + recently released (last 60 days)
+        const upcoming = [], recent = [];
+        const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 60);
+        const horizon = new Date(today); horizon.setFullYear(horizon.getFullYear() + 1);
+
+        data.data.forEach(s => {
+            if (!s.released_at) return;
+            const d = new Date(s.released_at);
+            // Only show main sets, commanders, masters — skip tokens/promos/misc
+            const skip = ['token','promo','memorabilia','vanguard','archenemy','planechase','treasure_chest','funny'];
+            if (skip.includes(s.set_type)) return;
+            if (d >= today && d <= horizon) upcoming.push(s);
+            else if (d >= cutoff && d < today) recent.push(s);
+        });
+
+        upcoming.sort((a,b) => new Date(a.released_at) - new Date(b.released_at));
+        recent.sort((a,b) => new Date(b.released_at) - new Date(a.released_at));
+
+        function fmtDate(str) {
+            const d = new Date(str);
+            return d.toLocaleDateString('da-DK', {day:'numeric', month:'long', year:'numeric'});
+        }
+        function daysUntil(str) {
+            const d = new Date(str); d.setHours(0,0,0,0);
+            const diff = Math.round((d - today) / 86400000);
+            if (diff === 0) return '🎉 Udkommer i dag!';
+            if (diff === 1) return 'I morgen';
+            return `Om ${diff} dage`;
+        }
+        function setCard(s, isUpcoming) {
+            const typeLabel = SET_TYPES[s.set_type] || s.set_type;
+            const icon = s.icon_svg_uri
+                ? `<img src="${s.icon_svg_uri}" style="width:32px;height:32px;filter:invert(1) brightness(.7);" onerror="this.style.display='none'">`
+                : `<i class="fa-solid fa-cards-blank" style="font-size:20px;color:var(--muted);"></i>`;
+            const badge = isUpcoming
+                ? `<span style="font-size:11px;background:rgba(79,124,255,.15);color:var(--accent);border-radius:6px;padding:2px 7px;font-weight:700;">${daysUntil(s.released_at)}</span>`
+                : `<span style="font-size:11px;background:rgba(46,204,113,.1);color:var(--green);border-radius:6px;padding:2px 7px;font-weight:700;">Udkommet</span>`;
+            return `<div class="kal-card">
+                <div class="kal-icon">${icon}</div>
+                <div style="flex:1;min-width:0;">
+                    <div class="kal-name">${s.name}</div>
+                    <div class="kal-date">${fmtDate(s.released_at)}</div>
+                    <div class="kal-type">${typeLabel} · ${s.card_count} kort</div>
+                </div>
+                ${badge}
+            </div>`;
+        }
+
+        let html = '';
+        if (upcoming.length) {
+            html += `<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--accent);margin:0 0 10px;">KOMMENDE SÆT</div>`;
+            html += upcoming.map(s => setCard(s, true)).join('');
+        }
+        if (recent.length) {
+            html += `<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--green);margin:${upcoming.length?'18px':0} 0 10px;">NETOP UDKOMMET</div>`;
+            html += recent.map(s => setCard(s, false)).join('');
+        }
+        if (!html) html = '<div style="color:var(--muted);text-align:center;padding:30px;">Ingen sæt fundet.</div>';
+
+        el.innerHTML = html;
+        _kalenderLoaded = true;
+    } catch(e) {
+        el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:30px;">Kunne ikke hente kalender — tjek din forbindelse.</div>';
+    }
 }
 
 // ═══════════════════════════════════════════════
@@ -4058,7 +4167,7 @@ async function searchRules(q) {
     const container = document.getElementById('rules-results');
     q = (q||'').trim().toLowerCase();
     if (q.length < 2) {
-        container.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">Søg efter et MTG-keyword (fx "trample") eller et kortnavn for at se officielle regler.</div>';
+        container.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">Søg efter et MTG-keyword for at se en forklaring — fx <em>trample</em>, <em>hexproof</em> eller <em>deathtouch</em>.</div>';
         return;
     }
 
