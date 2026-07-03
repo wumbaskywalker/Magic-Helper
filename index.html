@@ -1097,9 +1097,12 @@
                 <i class="fa-solid fa-plus"></i> Tilføj til Ønskeliste
             </button>
         </div>
-        <button class="app-btn" style="background:#1a2a1a;border:1px solid #2e5c2e;color:#5dcc7a;margin-top:8px;" onclick="addToCollection()">
-            <i class="fa-solid fa-box-archive"></i> Gem i Samling
-        </button>
+        <div style="margin-top:8px;">
+            <select id="add-to-col-select" style="display:none;width:100%;margin:0 0 6px;font-size:13px;padding:8px 10px;background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-sm);color:var(--text);"></select>
+            <button class="app-btn" style="background:#1a2a1a;border:1px solid #2e5c2e;color:#5dcc7a;" onclick="addToCollection()">
+                <i class="fa-solid fa-box-archive"></i> Gem i Samling
+            </button>
+        </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
             <span class="muted-text" style="font-weight:700;">Udgave / Artwork:</span>
@@ -1280,7 +1283,7 @@
 
 <!-- ══ COLLECTION ══ -->
 <main id="view-collection" class="view-section">
-    <h2 class="section-title">Min Samling</h2>
+    <div id="col-tabs-bar" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px;"></div>
 
     <div class="collection-header">
         <div class="collection-stats">
@@ -1619,6 +1622,11 @@
             <div id="deck-ac-suggestions" class="autocomplete-box"></div>
         </div>
 
+        <!-- Prøvehånd -->
+        <button onclick="drawOpeningHand(7)" style="width:100%;margin-bottom:10px;padding:10px;background:rgba(79,124,255,.1);border:1px solid rgba(79,124,255,.35);border-radius:var(--r-sm);color:#7fa8ff;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.03em;">
+            🃏 Træk prøvehånd
+        </button>
+
         <!-- Card list -->
         <div id="deck-card-list"></div>
 
@@ -1663,6 +1671,34 @@
         <div style="display:flex;gap:10px;margin-top:14px;">
             <button class="app-btn btn-dark" style="flex:1;" onclick="document.getElementById('wish-import-modal').style.display='none'">Annuller</button>
             <button class="app-btn" style="flex:2;" onclick="importWishList()"><i class="fa-solid fa-file-import"></i> Importér</button>
+        </div>
+    </div>
+</div>
+
+<!-- Opening hand modal -->
+<div id="hand-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.97);z-index:1100;flex-direction:column;align-items:center;padding:20px;overflow-y:auto;">
+    <div style="width:100%;max-width:560px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div>
+                <div style="font-size:18px;font-weight:700;">🃏 Prøvehånd</div>
+                <div id="hand-modal-subtitle" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
+            </div>
+            <button onclick="document.getElementById('hand-modal').style.display='none'"
+                style="background:none;border:1px solid var(--border-lit);border-radius:8px;color:var(--muted);font-size:13px;padding:6px 12px;cursor:pointer;">✕ Luk</button>
+        </div>
+        <!-- Cards -->
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-align:center;">← Swipe for at se alle kort →</div>
+        <div id="hand-cards" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;"></div>
+        <!-- Actions -->
+        <div style="display:flex;gap:8px;margin-top:16px;">
+            <button id="hand-btn-mulligan"
+                style="flex:1;padding:12px;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.35);border-radius:10px;color:#e74c3c;font-size:13px;font-weight:700;cursor:pointer;">
+                🔄 Mulligan (<span id="hand-mulligan-count">6</span>)
+            </button>
+            <button onclick="drawOpeningHand(7)"
+                style="flex:1;padding:12px;background:rgba(79,124,255,.12);border:1px solid rgba(79,124,255,.35);border-radius:10px;color:#7fa8ff;font-size:13px;font-weight:700;cursor:pointer;">
+                ↺ Ny hånd (7)
+            </button>
         </div>
     </div>
 </div>
@@ -3292,20 +3328,124 @@ function triggerLightning() {
 // ═══════════════════════════════════════════════
 //  COLLECTION
 // ═══════════════════════════════════════════════
-let collection = JSON.parse(localStorage.getItem('mtg_collection') || '[]');
-const saveCollection = () => localStorage.setItem('mtg_collection', JSON.stringify(collection));
+// ── Multi-collection init ──────────────────────────────────────
+let collections = JSON.parse(localStorage.getItem('mtg_collections') || 'null');
+let activeCollectionId = localStorage.getItem('mtg_active_col') || 'col_default';
+
+if (!collections) {
+    // Migrate from old single-collection format
+    const old = JSON.parse(localStorage.getItem('mtg_collection') || '[]');
+    collections = { col_default: { name: 'Min samling', cards: old } };
+    localStorage.setItem('mtg_collections', JSON.stringify(collections));
+}
+if (!collections[activeCollectionId]) {
+    activeCollectionId = Object.keys(collections)[0];
+}
+let collection = collections[activeCollectionId].cards;
+
+const saveCollection = () => {
+    collections[activeCollectionId].cards = collection;
+    localStorage.setItem('mtg_collections', JSON.stringify(collections));
+    localStorage.setItem('mtg_active_col', activeCollectionId);
+};
+
+function switchCollection(id) {
+    if (!collections[id]) return;
+    activeCollectionId = id;
+    collection = collections[id].cards;
+    localStorage.setItem('mtg_active_col', id);
+    document.getElementById('col-search').value = '';
+    document.getElementById('col-search-clear').style.display = 'none';
+    renderCollectionTabs();
+    updateCollectionView();
+}
+
+function createCollection() {
+    const name = prompt('Navn på ny samling:');
+    if (!name || !name.trim()) return;
+    const id = 'col_' + Date.now();
+    collections[id] = { name: name.trim(), cards: [] };
+    saveCollection();
+    switchCollection(id);
+}
+
+function renameCollection(id) {
+    const cur = collections[id]?.name || '';
+    const name = prompt('Nyt navn:', cur);
+    if (!name || !name.trim()) return;
+    collections[id].name = name.trim();
+    saveCollection();
+    renderCollectionTabs();
+}
+
+function deleteCollection(id) {
+    if (Object.keys(collections).length <= 1) return toast('Du skal have mindst én samling.', '#e74c3c');
+    const n = collections[id]?.name || 'samlingen';
+    const cards = (collections[id]?.cards || []).reduce((s,x)=>s+x.qty,0);
+    if (!confirm(`Slet "${n}"?\n${cards} kort vil blive fjernet permanent.`)) return;
+    delete collections[id];
+    if (activeCollectionId === id) {
+        activeCollectionId = Object.keys(collections)[0];
+        collection = collections[activeCollectionId].cards;
+    }
+    saveCollection();
+    renderCollectionTabs();
+    updateCollectionView();
+}
+
+function renderCollectionTabs() {
+    const bar = document.getElementById('col-tabs-bar');
+    const ids = Object.keys(collections);
+
+    // Update "Gem i Samling" dropdown
+    const sel = document.getElementById('add-to-col-select');
+    if (sel) {
+        if (ids.length <= 1) {
+            sel.style.display = 'none';
+        } else {
+            const prev = sel.value && collections[sel.value] ? sel.value : activeCollectionId;
+            sel.innerHTML = ids.map(id =>
+                `<option value="${id}"${id === prev ? ' selected' : ''}>${collections[id].name}</option>`
+            ).join('');
+            sel.style.display = 'block';
+        }
+    }
+
+    if (!bar) return;
+    bar.innerHTML = ids.map(id => {
+        const isActive = id === activeCollectionId;
+        return `<button onclick="switchCollection('${id}')"
+            style="padding:7px 14px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
+                   border:1px solid ${isActive ? 'var(--accent)' : 'var(--border-lit)'};
+                   background:${isActive ? 'rgba(255,180,30,.12)' : 'var(--bg-panel)'};
+                   color:${isActive ? 'var(--accent)' : 'var(--muted)'};">
+            ${collections[id].name}
+            ${isActive && ids.length > 1 ? `<span onclick="event.stopPropagation();deleteCollection('${id}')" style="margin-left:6px;opacity:.5;font-size:11px;">✕</span>` : ''}
+        </button>`;
+    }).join('') +
+    `<button onclick="createCollection()" title="Ny samling"
+        style="padding:7px 12px;border-radius:20px;font-size:16px;cursor:pointer;border:1px dashed var(--border-lit);background:none;color:var(--muted);">+</button>`;
+}
 
 function addToCollection() {
     if (!currentCard) return;
     const amt = parseInt(document.getElementById('add-amount').value) || 1;
     const activePrice = currentFoil && currentCard.priceFoil >= 0 ? currentCard.priceFoil : currentCard.price;
+
+    // Which collection to add to?
+    const sel = document.getElementById('add-to-col-select');
+    const targetId = (sel && sel.style.display !== 'none' && sel.value) ? sel.value : activeCollectionId;
+    const targetCards = collections[targetId]?.cards;
+    if (!targetCards) return;
+    const targetName = collections[targetId]?.name || '';
+
     // Foil and non-foil are separate entries
     const colKey = currentFoil ? currentCard.id + '_foil' : currentCard.id;
-    const ex = collection.find(x => (x._colKey || x.id) === colKey);
+    const ex = targetCards.find(x => (x._colKey || x.id) === colKey);
     if (ex) {
         ex.qty += amt;
     } else {
-        collection.push({
+        targetCards.push({
             id: currentCard.id,
             _colKey: colKey,
             name: currentCard.name,
@@ -3323,7 +3463,8 @@ function addToCollection() {
     saveCollection();
     updateCollectionView();
     vib(40);
-    toast(`${amt}× ${currentCard.name}${currentFoil?' (Foil)':''} gemt i samling!`);
+    const colLabel = targetId !== activeCollectionId ? ` → ${targetName}` : '';
+    toast(`${amt}× ${currentCard.name}${currentFoil?' (Foil)':''}${colLabel} gemt i samling!`);
 }
 
 function changeColQty(id, delta) {
@@ -3335,7 +3476,8 @@ function changeColQty(id, delta) {
 }
 
 function removeFromCollection(id) {
-    collection = collection.filter(x => (x._colKey||x.id) !== id);
+    const idx = collection.findIndex(x => (x._colKey||x.id) === id);
+    if (idx !== -1) collection.splice(idx, 1);
     saveCollection();
     updateCollectionView(document.getElementById('col-search').value);
 }
@@ -3354,7 +3496,7 @@ function confirmClearCollection() {
     if (!collection.length) return toast('Samlingen er allerede tom!', '#e74c3c');
     const n = collection.reduce((s, x) => s + x.qty, 0);
     if (confirm(`⚠️ Er du sikker?\n\nDette sletter alle ${n} kort fra din samling permanent.\n\nTryk OK for at slette, eller Annuller for at beholde den.`)) {
-        collection = [];
+        collection.length = 0;
         saveCollection();
         updateCollectionView();
         toast('Samlingen er ryddet.', '#e74c3c');
@@ -3423,6 +3565,36 @@ function flipDeckPreviewCard() {
             img.style.transform = 'rotateY(0deg)'; img.style.opacity = '1';
         }, 20);
     }, 180);
+}
+
+// ── Opening hand ──────────────────────────────────────────────
+function drawOpeningHand(count = 7) {
+    const deck = getActiveDeck();
+    if (!deck || !deck.cards.length) return toast('Decket er tomt!', '#e74c3c');
+    // Expand cards by qty to build draw pile
+    const pool = [];
+    deck.cards.forEach(c => { for (let i = 0; i < c.qty; i++) pool.push(c); });
+    // Fisher-Yates shuffle
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const hand = pool.slice(0, Math.min(count, pool.length));
+    // Populate modal
+    const mulCount = Math.max(0, count - 1);
+    document.getElementById('hand-modal-subtitle').innerText =
+        `${hand.length} kort trukket${pool.length < count ? ' (decket har kun ' + pool.length + ' kort)' : ''}`;
+    document.getElementById('hand-mulligan-count').innerText = mulCount;
+    document.getElementById('hand-btn-mulligan').style.display = mulCount > 0 ? 'block' : 'none';
+    document.getElementById('hand-btn-mulligan').onclick = () => drawOpeningHand(mulCount);
+    document.getElementById('hand-cards').innerHTML = hand.map(c => `
+        <div style="flex-shrink:0;width:105px;scroll-snap-align:start;">
+            <img src="${c.img||c.thumb||''}" alt="${c.name}"
+                 style="width:105px;border-radius:7px;box-shadow:0 4px 16px rgba(0,0,0,.6);display:block;"
+                 onerror="this.style.background='var(--bg-panel)';this.style.minHeight='146px'">
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:center;line-height:1.3;">${c.name}</div>
+        </div>`).join('');
+    document.getElementById('hand-modal').style.display = 'flex';
 }
 
 function flipColCard() {
@@ -3511,6 +3683,7 @@ async function openColCardDetail(id) {
 }
 
 function updateCollectionView(query = '') {
+    renderCollectionTabs();
     const grid = document.getElementById('col-grid');
     const q = query.toLowerCase().trim();
     const sort = document.getElementById('col-sort')?.value || 'added-desc';
@@ -3937,9 +4110,10 @@ function showBackupInfo() {
 
 function downloadBackup() {
     const backup = {
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
-        collection,
+        collection, // active collection (backward compat)
+        collections, // all collections
         priceList
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'});
@@ -3959,13 +4133,24 @@ function restoreBackup(input) {
     reader.onload = e => {
         try {
             const data = JSON.parse(e.target.result);
-            if (!data.version || !Array.isArray(data.collection)) {
+            if (!data.version || (!Array.isArray(data.collection) && !data.collections)) {
                 throw new Error('Ugyldigt backup-format');
             }
-            const colCount = data.collection.length;
+            const colCount = data.version >= 2 && data.collections
+                ? Object.values(data.collections).reduce((s,c)=>s+c.cards.length,0)
+                : data.collection.length;
             const listCount = (data.priceList || []).length;
             if (!confirm(`Gendan backup?\n\n${colCount} kort i samlingen\n${listCount} kort i prislisten\n\nDette overskriver din nuværende data.`)) return;
-            collection = data.collection;
+            if (data.version >= 2 && data.collections) {
+                // Restore all collections
+                Object.keys(collections).forEach(k => delete collections[k]);
+                Object.assign(collections, data.collections);
+                activeCollectionId = Object.keys(collections)[0];
+                collection = collections[activeCollectionId].cards;
+            } else {
+                collection.length = 0;
+                data.collection.forEach(c => collection.push(c));
+            }
             if (data.priceList) { priceList = data.priceList; saveList(); updateListView(); }
             saveCollection();
             updateCollectionView();
