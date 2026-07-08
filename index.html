@@ -445,9 +445,17 @@
             width: 100%; flex: 1; gap: 6px; min-height: 0;
         }
         .life-val {
-            font-size: clamp(48px, 10vw, 96px);
+            font-size: clamp(64px, 13vw, 120px);
             font-weight: 900; line-height: 1; min-width: 2ch; text-align: center;
             color: #fff; text-shadow: 0 0 20px rgba(255,255,255,.25), 0 2px 8px rgba(0,0,0,.9);
+        }
+
+        /* ── LANDSCAPE: skjul stats/cmd og vis kun liv ── */
+        @media (orientation: landscape) {
+            .stats-row, .cmd-badges-container { display: none !important; }
+            .player-header { min-height: 0; padding: 2px 6px; }
+            .life-val { font-size: clamp(72px, 16vh, 160px); }
+            .life-btn { width: clamp(36px, 7vh, 56px) !important; height: clamp(36px, 7vh, 56px) !important; font-size: clamp(20px, 4vh, 32px) !important; }
         }
         .life-btn {
             width: clamp(28px, 6vw, 42px) !important; height: clamp(28px, 6vw, 42px) !important;
@@ -506,6 +514,46 @@
             30%  { opacity: 1; transform: translate(-50%,-70%) scale(1); }
             100% { opacity: 0; transform: translate(-50%,-140%); }
         }
+
+        /* ── DEATH ANIMATION ── */
+        @keyframes death-flash {
+            0%   { opacity: 0; }
+            15%  { opacity: .7; }
+            40%  { opacity: .4; }
+            70%  { opacity: .6; }
+            100% { opacity: 0; }
+        }
+        @keyframes skull-pop {
+            0%   { transform: translate(-50%,-50%) scale(0) rotate(-15deg); opacity: 0; }
+            40%  { transform: translate(-50%,-50%) scale(1.2) rotate(5deg);  opacity: 1; }
+            70%  { transform: translate(-50%,-50%) scale(1)   rotate(0deg);  opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(1)   rotate(0deg);  opacity: 0; }
+        }
+        @keyframes flame-rise {
+            0%   { transform: translateY(0)   scaleX(1);   opacity: 1; }
+            50%  { transform: translateY(-30%) scaleX(1.1); opacity: .8; }
+            100% { transform: translateY(-70%) scaleX(.8);  opacity: 0; }
+        }
+        .death-overlay {
+            position: absolute; inset: 0; pointer-events: none; z-index: 20;
+            border-radius: inherit; overflow: hidden;
+        }
+        .death-skull {
+            position: absolute; top: 50%; left: 50%;
+            font-size: clamp(48px, 12vw, 80px);
+            transform: translate(-50%,-50%);
+            animation: skull-pop 1.8s ease-out forwards;
+            filter: drop-shadow(0 0 12px #ff3300);
+        }
+        .death-flame {
+            position: absolute; bottom: -4px; font-size: clamp(20px, 5vw, 32px);
+            animation: flame-rise 1.2s ease-out forwards;
+        }
+        #death-screen-flash {
+            position: fixed; inset: 0; background: #cc0000;
+            pointer-events: none; z-index: 9999; opacity: 0;
+        }
+        #death-screen-flash.active { animation: death-flash .9s ease-out forwards; }
 
         /* ── DICE MODAL ── */
         .dice-modal {
@@ -1028,6 +1076,7 @@
     </style>
 </head>
 <body>
+<div id="death-screen-flash"></div>
 
 <div id="toast"></div>
 
@@ -2902,6 +2951,7 @@ function cancelSetup(){
     if(gamePlayers.length>0) document.getElementById('view-play').classList.remove('setup-mode');
 }
 function quickReset(){
+    _deadAlready.clear();
     gamePlayers.forEach(p=>{p.life=startLife;p.poison=0;p.tax=0;p.dead=false;Object.keys(p.cmdDmg).forEach(k=>p.cmdDmg[k]=0);});
     renderBoard();
     cancelSetup();
@@ -2920,7 +2970,44 @@ function initGame(n){
 function showResetConfirm(){ showSetup(1); }
 function confirmReset(){ quickReset(); }
 function resetGame(){ showSetup(1); }
-function checkDeath(p){p.dead=p.life<=0||p.poison>=10||(gameFormat==='commander'&&Object.values(p.cmdDmg).some(v=>v>=21));}
+const _deadAlready = new Set();
+function checkDeath(p) {
+    const wasDead = p.dead;
+    p.dead = p.life<=0 || p.poison>=10 || (gameFormat==='commander' && Object.values(p.cmdDmg).some(v=>v>=21));
+    if (p.dead && !wasDead && !_deadAlready.has(p.id)) {
+        _deadAlready.add(p.id);
+        setTimeout(() => triggerDeathAnimation(p.id), 60);
+    }
+    if (!p.dead) _deadAlready.delete(p.id);
+}
+function triggerDeathAnimation(id) {
+    // Rød flash på hele skærmen
+    const flash = document.getElementById('death-screen-flash');
+    if (flash) { flash.classList.remove('active'); void flash.offsetWidth; flash.classList.add('active'); }
+    // Dødningehoved + flammer på spillerens panel
+    const box = document.querySelector(`[data-pid="${id}"]`);
+    if (!box) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'death-overlay';
+    // Flammer langs bunden
+    const flames = ['🔥','🔥','🔥','🔥','🔥','🔥','🔥','🔥'];
+    flames.forEach((f, i) => {
+        const span = document.createElement('span');
+        span.className = 'death-flame';
+        span.innerText = f;
+        span.style.left = (i * 14) + '%';
+        span.style.animationDelay = (i * 0.07) + 's';
+        overlay.appendChild(span);
+    });
+    // Skull
+    const skull = document.createElement('div');
+    skull.className = 'death-skull';
+    skull.innerText = '💀';
+    overlay.appendChild(skull);
+    box.appendChild(overlay);
+    vib([80, 40, 80, 40, 120]);
+    setTimeout(() => overlay.remove(), 2000);
+}
 
 function startLP(id,amt){lpTimer=setTimeout(()=>{vib([25,15,25]);lpIv=setInterval(()=>doLife(id,amt*5),140);},450);}
 function endLP(){clearTimeout(lpTimer);clearInterval(lpIv);lpTimer=lpIv=null;}
