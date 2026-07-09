@@ -1192,6 +1192,12 @@
                 🔥 EDHREC
             </a>
         </div>
+        <button id="edhrec-rec-btn" onclick="loadEdhrecRecs()" style="display:none;width:100%;margin-top:8px;padding:11px;
+            background:linear-gradient(135deg,#1e1026,#2a1040);border:1px solid #7b4fa6;border-radius:var(--r-sm);
+            color:#d6bdf5;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.03em;">
+            ✨ Hent EDHREC-anbefalinger
+        </button>
+        <div id="edhrec-recs-panel" style="display:none;margin-top:10px;"></div>
         <div id="res-legality" style="display:none;border-top:1px solid var(--border);padding-top:12px;margin-top:12px;"></div>
     </div>
     </div><!-- end #kort-panel -->
@@ -1726,14 +1732,34 @@
 
 <!-- Hand card zoom modal -->
 <div id="hand-zoom-modal" onclick="document.getElementById('hand-zoom-modal').style.display='none'"
-     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:1300;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
-    <img id="hand-zoom-img" src="" style="max-width:100%;max-height:80vh;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.8);">
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:1300;align-items:center;justify-content:center;flex-direction:column;padding:20px;overflow-y:auto;">
+    <img id="hand-zoom-img" src="" style="max-width:min(100%,320px);border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.8);">
     <button id="hand-zoom-flip" onclick="event.stopPropagation();flipHandZoom()"
-        style="display:none;margin-top:14px;padding:10px 24px;border-radius:10px;border:1px solid var(--border-lit);
+        style="display:none;margin-top:12px;padding:9px 22px;border-radius:10px;border:1px solid var(--border-lit);
                background:var(--bg-panel);color:var(--text);font-size:14px;cursor:pointer;">
         <i class="fa-solid fa-rotate"></i> Flip
     </button>
-    <div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,.4);">Tryk hvor som helst for at lukke</div>
+    <!-- Extras: pris + knapper (kun fra EDHREC-preview) -->
+    <div id="hand-zoom-extras" onclick="event.stopPropagation()" style="display:none;margin-top:14px;width:min(100%,320px);">
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;">
+            <span style="font-size:13px;font-weight:700;" id="hand-zoom-name"></span>
+            <span class="price-text" style="font-size:16px;font-weight:800;" id="hand-zoom-price"></span>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button id="hand-zoom-deck-btn"
+                style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(79,124,255,.4);
+                       background:rgba(79,124,255,.1);color:#7fa8ff;font-size:13px;font-weight:700;cursor:pointer;">
+                + Deck
+            </button>
+            <button id="hand-zoom-wish-btn"
+                style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(46,204,113,.35);
+                       background:rgba(46,204,113,.1);color:#2ecc71;font-size:13px;font-weight:700;cursor:pointer;">
+                + Ønskeliste
+            </button>
+        </div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.4);">Tryk uden for kortet for at lukke</div>
 </div>
 
 <!-- Opening hand modal -->
@@ -2236,6 +2262,7 @@ function switchView(name, el) {
         releaseWakeLock();
     }
     if (name === 'collection') { requestPersistentStorage(); refreshCollectionPrices(); }
+    if (name === 'deck' && activeDeckId) { renderDeckEditor(); }
 }
 
 function toggleFsMode(){
@@ -2398,7 +2425,248 @@ function selectVariant(i) {
     const edh = document.getElementById('link-edhrec');
     edh.style.display = currentCard.edhrecLink ? 'flex' : 'none';
     if (currentCard.edhrecLink) edh.href = currentCard.edhrecLink;
+    // EDHREC inline recs — vis knap, skjul panel ved nyt kort
+    document.getElementById('edhrec-rec-btn').style.display = currentCard.edhrecLink ? 'block' : 'none';
+    document.getElementById('edhrec-recs-panel').style.display = 'none';
     renderLegality(currentCard);
+}
+
+// ── EDHREC Integration ────────────────────────────────────────
+function toEdhrecSlug(name) {
+    return name.split('//')[0].trim()
+        .toLowerCase()
+        .replace(/[',\.!]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+}
+
+async function loadEdhrecRecs() {
+    if (!currentCard) return;
+    const panel = document.getElementById('edhrec-recs-panel');
+    const btn   = document.getElementById('edhrec-rec-btn');
+    btn.style.display = 'none';
+    panel.style.display = 'block';
+    panel.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px;">Henter EDHREC-anbefalinger…</div>';
+
+    const slug = toEdhrecSlug(currentCard.name);
+    const tl   = currentCard.typeLine || '';
+    const isCommander = tl.includes('Legendary') && (tl.includes('Creature') || tl.includes('Planeswalker'));
+    const endpoint = isCommander
+        ? `https://json.edhrec.com/pages/commanders/${slug}.json`
+        : `https://json.edhrec.com/pages/cards/${slug}.json`;
+
+    try {
+        // Prøv direkte, derefter via CORS-proxy
+        let data = null;
+        const urls = [
+            endpoint,
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`,
+            `https://corsproxy.io/?${encodeURIComponent(endpoint)}`
+        ];
+        for (const url of urls) {
+            try {
+                const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+                if (!r.ok) continue;
+                data = await r.json();
+                if (data) break;
+            } catch(e) { continue; }
+        }
+        if (!data) throw new Error('Ingen forbindelse');
+        const cardlists = data?.container?.json_dict?.cardlists || [];
+        if (!cardlists.length) throw new Error('Ingen data');
+
+        // Hent priser for alle kort fra Scryfall (batch)
+        panel.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px;">Henter priser…</div>';
+        const allCards = cardlists.flatMap(cl => cl.cardviews || []);
+        const uniqueNames = [...new Set(allCards.map(c => c.name))];
+        const priceMap = {};
+        try {
+            for (let i = 0; i < uniqueNames.length; i += 75) {
+                const batch = uniqueNames.slice(i, i + 75);
+                const r = await fetch('https://api.scryfall.com/cards/collection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifiers: batch.map(n => ({ name: n })) })
+                });
+                const res = await r.json();
+                (res.data || []).forEach(c => {
+                    const p = c.prices;
+                    const price = p?.eur ? +p.eur : (p?.usd ? +p.usd / (rates?.USD||1) : -1);
+                    priceMap[c.name.toLowerCase()] = price;
+                });
+            }
+        } catch(e) { /* priser utilgængelige */ }
+
+        // Prioriterede kategorier
+        const CATS = [
+            { tag: 'highsynergycards', label: '⚡ Høj synergi' },
+            { tag: 'topcards',         label: '🏆 Top kort' },
+            { tag: 'creatures',        label: '🐉 Creatures' },
+            { tag: 'instants',         label: '⚡ Instants' },
+            { tag: 'sorceries',        label: '🌀 Sorceries' },
+            { tag: 'manaartifacts',    label: '💎 Mana' },
+            { tag: 'enchantments',     label: '✨ Enchantments' },
+            { tag: 'utilitylands',     label: '🏔 Lands' },
+        ];
+
+        function cardRow(c) {
+            const pct = c.potential_decks ? Math.round(c.num_decks / c.potential_decks * 100) : 0;
+            const syn = c.synergy ? (c.synergy > 0 ? '+' : '') + Math.round(c.synergy * 100) + '%' : '';
+            const synColor = c.synergy > 0.1 ? '#2ecc71' : c.synergy < 0 ? '#e74c3c' : 'var(--muted)';
+            const safeName = c.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            const price = priceMap[c.name.toLowerCase()];
+            const priceStr = price >= 0 ? fmt(price) : '–';
+            return `<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+                <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="previewEdhrecCard('${safeName}')">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
+                        <div style="font-size:11px;color:var(--muted);margin-top:1px;">
+                            ${pct}% af decks
+                            ${syn ? `<span style="color:${synColor};margin-left:6px;">${syn} synergi</span>` : ''}
+                        </div>
+                    </div>
+                    <span class="price-text" style="font-size:14px;font-weight:800;flex-shrink:0;">${priceStr}</span>
+                </div>
+                <div style="display:flex;gap:6px;margin-top:7px;">
+                    <button onclick="addEdhrecCardToDeck('${safeName}')"
+                        style="flex:1;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:700;
+                               border:1px solid rgba(79,124,255,.4);background:rgba(79,124,255,.1);color:#7fa8ff;cursor:pointer;">
+                        + Deck
+                    </button>
+                    <button onclick="addEdhrecCardToWishlist('${safeName}')"
+                        style="flex:1;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:700;
+                               border:1px solid rgba(46,204,113,.35);background:rgba(46,204,113,.1);color:#2ecc71;cursor:pointer;">
+                        + Ønskeliste
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        let html = '<div style="display:flex;flex-direction:column;gap:14px;">';
+        CATS.forEach(cat => {
+            const cl = cardlists.find(x => x.tag === cat.tag);
+            if (!cl || !cl.cardviews?.length) return;
+            const cards = cl.cardviews.slice(0, 10);
+            html += `<div>
+                <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:#9b6fd4;margin-bottom:6px;">${cat.label}</div>
+                <div style="display:flex;flex-direction:column;gap:5px;">${cards.map(cardRow).join('')}</div>
+            </div>`;
+        });
+        html += '</div>';
+
+        panel.innerHTML = html + `
+            <button onclick="document.getElementById('edhrec-recs-panel').style.display='none';document.getElementById('edhrec-rec-btn').style.display='block';"
+                style="width:100%;margin-top:12px;padding:8px;background:none;border:1px solid var(--border-lit);
+                       border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;">
+                Skjul anbefalinger
+            </button>`;
+    } catch(e) {
+        console.warn('EDHREC fejl:', e);
+        panel.innerHTML = `<div style="font-size:13px;color:var(--muted);text-align:center;padding:12px;">
+            Kunne ikke hente EDHREC-data (${e.message}).<br>
+            <a href="${currentCard.edhrecLink||'https://edhrec.com'}" target="_blank"
+               style="color:#d6bdf5;margin-top:6px;display:inline-block;">Åbn på EDHREC →</a>
+        </div>`;
+        btn.style.display = 'block';
+    }
+}
+
+async function previewEdhrecCard(name) {
+    // Vis modal med billede med det samme, hent data bagefter
+    const imgEl    = document.getElementById('hand-zoom-img');
+    const extras   = document.getElementById('hand-zoom-extras');
+    const flipBtn  = document.getElementById('hand-zoom-flip');
+    const modal    = document.getElementById('hand-zoom-modal');
+
+    imgEl.src = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&format=image&version=normal`;
+    extras.style.display = 'none';
+    flipBtn.style.display = 'none';
+    _handZoomFront = imgEl.src; _handZoomBack = ''; _handZoomFlipped = false;
+    modal.style.display = 'flex';
+
+    try {
+        const r = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
+        if (!r.ok) return;
+        const c = await r.json();
+        const price = c.prices?.eur ? +c.prices.eur : (c.prices?.usd ? +c.prices.usd / (rates?.USD||1) : -1);
+        const img     = c.image_uris?.normal ?? c.card_faces?.[0]?.image_uris?.normal ?? '';
+        const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
+
+        // Opdater billed-URL til korrekt Scryfall-billede
+        _handZoomFront = img; imgEl.src = img;
+        if (imgBack) {
+            _handZoomBack = imgBack;
+            flipBtn.style.display = 'inline-block';
+        }
+
+        // Vis navn + pris + knapper
+        document.getElementById('hand-zoom-name').innerText = c.name;
+        document.getElementById('hand-zoom-price').innerText = price >= 0 ? fmt(price) : '–';
+        extras.style.display = 'block';
+
+        // Kabel knapper
+        document.getElementById('hand-zoom-deck-btn').onclick = () => addEdhrecCardToDeck(c.name);
+        document.getElementById('hand-zoom-wish-btn').onclick = () => {
+            const listKey = c.id;
+            const ex = priceList.find(x => (x._listKey||x.id) === listKey);
+            if (ex) { ex.amount++; }
+            else {
+                priceList.push({ id: c.id, _listKey: listKey, name: c.name,
+                    set: c.set.toUpperCase(), setName: c.set_name || c.set.toUpperCase(),
+                    price, foil: false, amount: 1, img, thumb: c.image_uris?.small ?? img,
+                    imgBack });
+            }
+            saveList(); updateListView();
+            toast(`${c.name} tilføjet til ønskelisten!`);
+        };
+    } catch(e) { /* beholder bare billedet */ }
+}
+
+async function addEdhrecCardToWishlist(name) {
+    try {
+        const r = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
+        if (!r.ok) throw new Error();
+        const c = await r.json();
+        const price = c.prices?.eur ? +c.prices.eur : (c.prices?.usd ? +c.prices.usd / (rates?.USD||1) : -1);
+        const img   = c.image_uris?.normal ?? c.card_faces?.[0]?.image_uris?.normal ?? '';
+        const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
+        const listKey = c.id;
+        const ex = priceList.find(x => (x._listKey||x.id) === listKey);
+        if (ex) { ex.amount++; }
+        else { priceList.push({ id:c.id, _listKey:listKey, name:c.name, set:c.set.toUpperCase(),
+            setName:c.set_name||c.set.toUpperCase(), price, foil:false, amount:1,
+            img, thumb:c.image_uris?.small??img, imgBack }); }
+        saveList(); updateListView();
+        toast(`${c.name} tilføjet til ønskelisten!`);
+    } catch(e) { toast(`Kunne ikke finde ${name}`, '#e74c3c'); }
+}
+
+async function addEdhrecCardToDeck(name) {
+    const deck = getActiveDeck();
+    if (!deck) return toast('Åbn et deck først!', '#e74c3c');
+    toast(`Søger efter ${name}…`);
+    try {
+        const r = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
+        if (!r.ok) throw new Error();
+        const c = await r.json();
+        const price = c.prices?.eur ? +c.prices.eur : (c.prices?.usd ? +c.prices.usd / rates.USD : -1);
+        const img   = c.image_uris?.normal ?? c.card_faces?.[0]?.image_uris?.normal ?? '';
+        const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
+        const deckKey = c.id;
+        const ex = deck.cards.find(x => (x._deckKey||x.id) === deckKey);
+        if (ex) { ex.qty++; }
+        else {
+            deck.cards.push({ id:c.id, _deckKey:deckKey, name:c.name, set:c.set.toUpperCase(),
+                setName:c.set_name||c.set.toUpperCase(), qty:1, price, foil:false,
+                img, imgBack, thumb:c.image_uris?.small??img,
+                cmc:c.cmc||0, colors:c.colors||[], colorIdentity:c.color_identity||[],
+                typeLine:c.type_line||'', manaCost:c.mana_cost||'', legalities:c.legalities||{} });
+        }
+        saveDecks();
+        renderDeckEditor();
+        toast(`✅ ${c.name} tilføjet til ${deck.name}!`);
+    } catch(e) { toast(`Kunne ikke finde ${name}`, '#e74c3c'); }
 }
 
 function renderLegality(card) {
@@ -3553,6 +3821,7 @@ function addToCollection() {
             qty: amt,
             price: activePrice,
             foil: currentFoil,
+            condition: 'NM',
             img: currentCard.img,
             imgBack: currentCard.imgBack || '',
             thumb: currentCard.thumb || '',
@@ -3564,6 +3833,41 @@ function addToCollection() {
     vib(40);
     const colLabel = targetId !== activeCollectionId ? ` → ${targetName}` : '';
     toast(`${amt}× ${currentCard.name}${currentFoil?' (Foil)':''}${colLabel} gemt i samling!`);
+}
+
+const CONDITIONS = [
+    { key:'NM',  label:'NM',  title:'Near Mint',        color:'#2ecc71' },
+    { key:'LP',  label:'LP',  title:'Lightly Played',   color:'#a8d858' },
+    { key:'MP',  label:'MP',  title:'Moderately Played',color:'#f39c12' },
+    { key:'HP',  label:'HP',  title:'Heavily Played',   color:'#e67e22' },
+    { key:'DMG', label:'DMG', title:'Damaged',           color:'#e74c3c' },
+];
+function condStyle(key) {
+    return CONDITIONS.find(c => c.key === key) || CONDITIONS[0];
+}
+function setCondition(colKey, cond) {
+    const item = collection.find(x => (x._colKey||x.id) === colKey);
+    if (!item) return;
+    item.condition = cond;
+    saveCollection();
+    // Opdater badge i grid uden fuld re-render
+    const badge = document.querySelector(`[data-cond-key="${colKey}"]`);
+    if (badge) {
+        const s = condStyle(cond);
+        badge.innerText = s.label;
+        badge.style.background = s.color + '22';
+        badge.style.color = s.color;
+        badge.style.borderColor = s.color + '66';
+    }
+    // Opdater knapper i detail-modal hvis åben
+    document.querySelectorAll('.cond-btn').forEach(btn => {
+        const active = btn.dataset.cond === cond;
+        const s2 = condStyle(btn.dataset.cond);
+        btn.style.background = active ? s2.color + '33' : 'transparent';
+        btn.style.borderColor = active ? s2.color : 'var(--border-lit)';
+        btn.style.color = active ? s2.color : 'var(--muted)';
+        btn.style.fontWeight = active ? '800' : '600';
+    });
 }
 
 function changeColQty(id, delta) {
@@ -3766,9 +4070,26 @@ async function openColCardDetail(id) {
         flipBtn.style.display = 'flex';
     }
     const lineTotal = item.price > 0 ? fmt(item.price * item.qty) : '–';
+    const colKey = item._colKey || item.id;
     body.innerHTML = `
         <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${item.name}${item.foil?'<span class="foil-badge"> ✨ Foil</span>':''}</div>
-        <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;">${item.setName||item.set}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;">${item.setName||item.set}</div>
+        <div style="margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px;">KONDITION</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${CONDITIONS.map(c => {
+                    const active = (item.condition||'NM') === c.key;
+                    return `<button class="cond-btn" data-cond="${c.key}" title="${c.title}"
+                        onclick="setCondition('${colKey}','${c.key}')"
+                        style="padding:5px 10px;border-radius:7px;font-size:12px;font-weight:${active?'800':'600'};cursor:pointer;
+                               border:1px solid ${active?c.color:'var(--border-lit)'};
+                               background:${active?c.color+'33':'transparent'};
+                               color:${active?c.color:'var(--muted)'};">
+                        ${c.label}
+                    </button>`;
+                }).join('')}
+            </div>
+        </div>
         <div style="display:flex;gap:10px;margin-bottom:16px;">
             <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
                 <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Stykpris</div>
@@ -3854,7 +4175,10 @@ function updateCollectionView(query = '') {
             </div>
             <div class="col-card-body">
                 <div class="col-card-name" style="cursor:pointer;" onclick="openColCardDetail('${ck}')">${item.name}${item.foil?'<span class="foil-badge"> ✨</span>':''}</div>
-                <div class="col-card-set">${item.setName||item.set}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
+                    <div class="col-card-set">${item.setName||item.set}</div>
+                    ${(()=>{const s=condStyle(item.condition||'NM');return`<span data-cond-key="${ck}" style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;border:1px solid ${s.color}66;background:${s.color}22;color:${s.color};letter-spacing:.03em;">${s.label}</span>`;})()}
+                </div>
                 <div class="col-card-price">${lineTotal}</div>
                 <div class="col-qty-row">
                     <button class="col-qty-btn" onclick="changeColQty('${ck}',-1)">−</button>
