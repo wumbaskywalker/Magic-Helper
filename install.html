@@ -10,243 +10,389 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #0c0e18;
             color: #e8eaf2;
-            padding: 24px 20px 48px;
-            max-width: 480px;
+            padding: 24px 20px 60px;
+            max-width: 500px;
             margin: 0 auto;
         }
-        .logo {
-            display: block;
-            width: 72px;
-            height: 72px;
-            border-radius: 18px;
-            margin: 0 auto 16px;
-        }
-        h1 {
-            text-align: center;
-            font-size: 22px;
-            font-weight: 700;
-            color: #c9a84c;
-            margin-bottom: 6px;
-        }
-        .subtitle {
-            text-align: center;
-            color: #7a80a0;
-            font-size: 14px;
-            margin-bottom: 32px;
-        }
-        .tab-row {
-            display: flex;
-            border-radius: 12px;
-            background: #12141f;
-            padding: 4px;
-            gap: 4px;
-            margin-bottom: 24px;
-        }
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            border-radius: 9px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .2s;
-            color: #7a80a0;
-        }
-        .tab.active {
-            background: #c9a84c;
-            color: #0c0e18;
-        }
-        .panel { display: none; }
-        .panel.active { display: block; }
 
-        .step {
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
-            margin-bottom: 20px;
+        .logo {
+            display: block; width: 72px; height: 72px;
+            border-radius: 18px; margin: 0 auto 14px;
+            box-shadow: 0 4px 20px rgba(201,168,76,0.3);
         }
-        .step-num {
-            width: 32px;
-            height: 32px;
-            min-width: 32px;
-            border-radius: 50%;
-            background: #c9a84c;
-            color: #0c0e18;
-            font-weight: 700;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .step-content { flex: 1; padding-top: 4px; }
-        .step-content strong { display: block; font-size: 15px; margin-bottom: 3px; }
-        .step-content span { font-size: 14px; color: #a0a6c0; line-height: 1.5; }
-        .step-content .pill {
-            display: inline-block;
-            background: #1e2133;
-            border: 1px solid #252840;
-            border-radius: 6px;
-            padding: 2px 8px;
-            font-size: 13px;
-            color: #e8eaf2;
-            margin-top: 2px;
-        }
-        .icon { font-size: 18px; vertical-align: middle; }
+        h1 { text-align:center; font-size:24px; font-weight:800; color:#c9a84c; margin-bottom:6px; }
+        .subtitle { text-align:center; color:#7a80a0; font-size:14px; margin-bottom:28px; line-height:1.5; }
 
         .url-box {
-            background: #1e2133;
-            border: 1px solid #252840;
+            display:block; background:#1a1d2e; border:1.5px solid #4f7cff;
+            border-radius:12px; padding:14px 16px; text-align:center;
+            font-size:15px; font-weight:600; color:#4f7cff; margin-bottom:28px;
+            text-decoration:none; word-break:break-all;
+        }
+
+        .tab-row { display:flex; border-radius:12px; background:#12141f; padding:4px; gap:4px; margin-bottom:28px; }
+        .tab { flex:1; text-align:center; padding:11px; border-radius:9px; font-size:14px; font-weight:600; cursor:pointer; color:#7a80a0; user-select:none; }
+        .tab.active { background:#c9a84c; color:#0c0e18; }
+        .panel { display:none; } .panel.active { display:block; }
+
+        /* Step card */
+        .step-card { background:#12141f; border:1px solid #1e2133; border-radius:16px; margin-bottom:16px; overflow:hidden; }
+        .step-header { display:flex; gap:14px; align-items:center; padding:18px 18px 12px; }
+        .step-num {
+            width:34px; height:34px; min-width:34px; border-radius:50%;
+            background:#c9a84c; color:#0c0e18; font-weight:800; font-size:16px;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .step-title { font-size:16px; font-weight:700; }
+
+        /* Phone frame + screenshot */
+        .step-img-wrap { display:flex; justify-content:center; padding:0 16px 14px; }
+        .phone-frame {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 2px solid #2a2f50;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+            width: 220px;
+            flex-shrink: 0;
+        }
+        .phone-frame img { display:block; width:100%; height:auto; }
+
+        /* ──────────────────────────────────────────
+           TAP ANIMATION SYSTEM
+           ────────────────────────────────────────── */
+
+        /* Spotlight: darken everything outside the tap zone */
+        .tap-zone {
+            position: absolute;
             border-radius: 10px;
-            padding: 12px 16px;
-            text-align: center;
-            font-size: 15px;
-            color: #4f7cff;
-            margin-bottom: 28px;
-            word-break: break-all;
+            /* The vignette: large box-shadow darkens everything outside */
+            box-shadow: 0 0 0 1200px rgba(0, 0, 0, 0.52);
+            z-index: 2;
+            pointer-events: none;
         }
-        .tip {
-            background: #12141f;
-            border-left: 3px solid #c9a84c;
-            border-radius: 8px;
-            padding: 12px 14px;
-            font-size: 13px;
-            color: #a0a6c0;
-            margin-top: 8px;
-            line-height: 1.5;
+
+        /* Pulsing gold border */
+        .tap-zone::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 13px;
+            border: 2.5px solid #c9a84c;
+            animation: border-glow 1.6s ease-in-out infinite;
         }
-        .divider {
-            border: none;
-            border-top: 1px solid #252840;
-            margin: 24px 0;
+
+        /* Second, larger ring */
+        .tap-zone::after {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            border-radius: 20px;
+            border: 1.5px solid rgba(201,168,76,0.4);
+            animation: border-glow 1.6s ease-in-out infinite 0.4s;
         }
-        .section-label {
+
+        @keyframes border-glow {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 8px rgba(201,168,76,0.5), inset 0 0 6px rgba(201,168,76,0.15);
+            }
+            50% {
+                opacity: 0.5;
+                box-shadow: 0 0 22px rgba(201,168,76,0.9), inset 0 0 14px rgba(201,168,76,0.25);
+            }
+        }
+
+        /* Ripple expanding circles from center of tap target */
+        .tap-ripple {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            overflow: visible;
+            pointer-events: none;
+            z-index: 3;
+        }
+        .tap-ripple::before,
+        .tap-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 2px solid rgba(201,168,76,0.7);
+            transform: translate(-50%, -50%) scale(0);
+            animation: ripple-expand 2s ease-out infinite;
+        }
+        .tap-ripple::after { animation-delay: 1s; }
+
+        @keyframes ripple-expand {
+            0%   { transform: translate(-50%,-50%) scale(0.5); opacity: 0.9; }
+            100% { transform: translate(-50%,-50%) scale(2.4); opacity: 0; }
+        }
+
+        /* Bouncing finger emoji */
+        .tap-finger {
+            position: absolute;
+            font-size: 26px;
+            z-index: 4;
+            animation: finger-tap 1.6s ease-in-out infinite;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.7));
+            pointer-events: none;
+            /* Default position — overridden per step */
+            bottom: -32px;
+            left: 50%;
+            transform: translateX(-50%);
+            transform-origin: bottom center;
+        }
+
+        @keyframes finger-tap {
+            0%   { transform: translateX(-50%) translateY(0)   rotate(-15deg) scale(1); }
+            30%  { transform: translateX(-50%) translateY(-10px) rotate(-15deg) scale(1); }
+            55%  { transform: translateX(-50%) translateY(4px)  rotate(-10deg) scale(0.88); }
+            70%  { transform: translateX(-50%) translateY(0)   rotate(-12deg) scale(1); }
+            100% { transform: translateX(-50%) translateY(0)   rotate(-15deg) scale(1); }
+        }
+
+        /* Label above/below the tap zone */
+        .tap-label {
+            position: absolute;
+            background: #c9a84c;
+            color: #0c0e18;
             font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: #7a80a0;
-            margin-bottom: 16px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 8px;
+            white-space: nowrap;
+            z-index: 5;
+            pointer-events: none;
+            letter-spacing: .04em;
         }
+        .tap-label::after {
+            content: '';
+            position: absolute;
+            left: 50%; bottom: -7px;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #c9a84c;
+        }
+
+        /* Step description */
+        .step-desc { padding: 0 18px 18px; font-size: 14px; color: #a0a6c0; line-height: 1.65; }
+        .step-desc strong { color: #e8eaf2; }
+
+        .pill { display:inline-flex; align-items:center; background:#1e2133; border:1px solid #2a2f50; border-radius:7px; padding:2px 9px; font-size:13px; font-weight:600; color:#e8eaf2; }
+        .pill.gold { background:#2a2208; border-color:#c9a84c; color:#c9a84c; }
+        .pill.blue { background:#0d1630; border-color:#4f7cff; color:#4f7cff; }
+
+        .done-card {
+            background:linear-gradient(135deg,#0d1f0a,#12141f); border:1.5px solid #2ecc71;
+            border-radius:16px; padding:22px 20px; text-align:center; margin-bottom:14px;
+        }
+        .done-card .dc-icon { font-size:36px; margin-bottom:10px; }
+        .done-card strong { display:block; font-size:17px; color:#2ecc71; margin-bottom:5px; }
+        .done-card span { font-size:14px; color:#7a80a0; }
+
+        .tip { background:#0f1120; border-left:3px solid #c9a84c; border-radius:8px; padding:13px 15px; font-size:13px; color:#a0a6c0; margin-bottom:10px; line-height:1.6; }
+        .tip strong { color:#c9a84c; }
+        .section-label { font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:#7a80a0; margin-bottom:16px; }
     </style>
 </head>
 <body>
 
-    <img src="logo.png" alt="Magic Helper" class="logo">
-    <h1>Magic Helper</h1>
-    <p class="subtitle">Installer appen på din telefon — helt gratis</p>
+<img src="data/logo.png" alt="Magic Helper" class="logo">
+<h1>Magic Helper</h1>
+<p class="subtitle">Installer appen på din hjemmeskærm<br>— gratis, ingen konto, virker offline</p>
 
-    <a href="https://wumbaskywalker.github.io/Magic-Helper" class="url-box" style="display:block;text-decoration:none;">👉 wumbaskywalker.github.io/Magic-Helper</a>
+<a href="https://wumbaskywalker.github.io/Magic-Helper" class="url-box">
+    👉 wumbaskywalker.github.io/Magic-Helper
+</a>
 
-    <div class="tab-row">
-        <div class="tab active" onclick="show('iphone')">🍎 iPhone</div>
-        <div class="tab" onclick="show('android')">🤖 Android</div>
-    </div>
+<div class="tab-row">
+    <div class="tab active" onclick="show('iphone',this)">🍎 iPhone</div>
+    <div class="tab" onclick="show('android',this)">🤖 Android</div>
+</div>
 
-    <!-- iPhone -->
-    <div class="panel active" id="panel-iphone">
-        <p class="section-label">Sådan installerer du på iPhone</p>
+<!-- ════════════════ iPHONE ════════════════ -->
+<div class="panel active" id="panel-iphone">
+    <p class="section-label">Trin-for-trin guide til iPhone</p>
 
-        <div class="step">
+    <!-- TRIN 1: Åbn i Safari -->
+    <div class="step-card">
+        <div class="step-header">
             <div class="step-num">1</div>
-            <div class="step-content">
-                <strong>Åbn Safari</strong>
-                <span>Det skal være Safari — ikke Chrome eller en anden browser.</span>
+            <div class="step-title">Åbn siden i Safari</div>
+        </div>
+        <div class="step-img-wrap">
+            <div class="phone-frame">
+                <img src="data/install_step1.webp" alt="Appen i Safari">
             </div>
         </div>
-
-        <div class="step">
-            <div class="step-num">2</div>
-            <div class="step-content">
-                <strong>Gå til siden</strong>
-                <span>Tryk på det blå link øverst på denne side.</span>
-            </div>
-        </div>
-
-        <div class="step">
-            <div class="step-num">3</div>
-            <div class="step-content">
-                <strong>Tryk på Del-knappen</strong>
-                <span>Det er knappen med en <span class="pill">⬆ pil</span> i en firkant — den sidder nederst i midten af skærmen.</span>
-            </div>
-        </div>
-
-        <div class="step">
-            <div class="step-num">4</div>
-            <div class="step-content">
-                <strong>Vælg "Føj til hjemmeskærm"</strong>
-                <span>Scroll lidt ned i menuen og tryk på <span class="pill">＋ Føj til hjemmeskærm</span>.</span>
-            </div>
-        </div>
-
-        <div class="step">
-            <div class="step-num">5</div>
-            <div class="step-content">
-                <strong>Tryk "Tilføj"</strong>
-                <span>Appen dukker nu op på din hjemmeskærm ligesom en rigtig app.</span>
-            </div>
-        </div>
-
-        <div class="tip">
-            💡 Første gang du åbner appen fra hjemmeskærmen, skal du muligvis godkende adgang til kameraet for at kortscanneren virker.
+        <div class="step-desc">
+            Det <strong>skal være Safari</strong> — ikke Chrome eller en anden browser.
+            Tryk på linket øverst på siden, eller skriv adressen direkte i Safari.
         </div>
     </div>
 
-    <!-- Android -->
-    <div class="panel" id="panel-android">
-        <p class="section-label">Sådan installerer du på Android</p>
-
-        <div class="step">
-            <div class="step-num">1</div>
-            <div class="step-content">
-                <strong>Åbn Chrome</strong>
-                <span>Det skal være Google Chrome.</span>
-            </div>
-        </div>
-
-        <div class="step">
+    <!-- TRIN 2: Tap ⋯ knappen -->
+    <div class="step-card">
+        <div class="step-header">
             <div class="step-num">2</div>
-            <div class="step-content">
-                <strong>Gå til siden</strong>
-                <span>Tryk på det blå link øverst på denne side.</span>
+            <div class="step-title">Tryk på "⋯" i bunden</div>
+        </div>
+        <div class="step-img-wrap">
+            <div class="phone-frame">
+                <img src="data/install_step1.webp" alt="Tryk på Del-knappen">
+
+                <!--
+                    "⋯" button in Safari bottom bar.
+                    In 601×1306 image: x≈487–555, y≈1205–1258
+                    As %: left=81%, top=92.3%, width=11.3%, height=4%
+                -->
+                <div class="tap-zone"
+                     style="left:79%;top:91.5%;width:13%;height:5%;">
+                    <div class="tap-ripple"></div>
+                    <div class="tap-finger" style="bottom:-30px;left:50%;">👆</div>
+                    <span class="tap-label" style="bottom:calc(100% + 14px);left:50%;transform:translateX(-50%);">
+                        Tryk her
+                    </span>
+                </div>
             </div>
         </div>
-
-        <div class="step">
-            <div class="step-num">3</div>
-            <div class="step-content">
-                <strong>Tryk på de tre prikker</strong>
-                <span>Find <span class="pill">⋮</span> øverst til højre i Chrome.</span>
-            </div>
-        </div>
-
-        <div class="step">
-            <div class="step-num">4</div>
-            <div class="step-content">
-                <strong>Vælg "Tilføj til startskærm"</strong>
-                <span>Eller der kan stå <span class="pill">Installer app</span> — tryk på det.</span>
-            </div>
-        </div>
-
-        <div class="step">
-            <div class="step-num">5</div>
-            <div class="step-content">
-                <strong>Bekræft</strong>
-                <span>Tryk "Tilføj" eller "Installer" i boksen der dukker op.</span>
-            </div>
-        </div>
-
-        <div class="tip">
-            💡 På mange Android-telefoner vises der automatisk et banner i bunden af Chrome med "Installer Magic Helper" — tryk bare på det!
+        <div class="step-desc">
+            Kig i bunden af Safari — til højre for adresselinjen er der en <strong>⋯ knap</strong> (tre prikker).
+            Den åbner en menu med delemuligheder.
         </div>
     </div>
 
-    <script>
-        function show(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + tab).classList.add('active');
-            event.target.classList.add('active');
-        }
-    </script>
+    <!-- TRIN 3: Tap "Se mere" -->
+    <div class="step-card">
+        <div class="step-header">
+            <div class="step-num">3</div>
+            <div class="step-title">Tryk "Se mere" ∨</div>
+        </div>
+        <div class="step-img-wrap">
+            <div class="phone-frame">
+                <img src="data/install_step3_clean.webp" alt="Share sheet — tryk Se mere">
+
+                <!--
+                    "Se mere" (∨) icon = rightmost in the bottom icon row.
+                    In 601×1306 image: x≈453–598, y≈1148–1270
+                    As %: left=75.4%, top=87.9%, width=24.3%, height=9.3%
+                -->
+                <div class="tap-zone"
+                     style="left:74%;top:87%;width:25%;height:10%;border-radius:14px;">
+                    <div class="tap-ripple"></div>
+                    <div class="tap-finger" style="bottom:-30px;left:50%;">👆</div>
+                    <span class="tap-label" style="bottom:calc(100% + 14px);left:50%;transform:translateX(-50%);">
+                        Tryk her
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="step-desc">
+            En delingsmenu åbner sig. Tryk på <span class="pill gold">∨ Se mere</span> (det
+            yderste ikon i rækken) for at udvide listen og se alle muligheder.
+        </div>
+    </div>
+
+    <!-- TRIN 4: Tap "Føj til hjemmeskærm" -->
+    <div class="step-card">
+        <div class="step-header">
+            <div class="step-num">4</div>
+            <div class="step-title">Tryk "Føj til hjemmeskærm"</div>
+        </div>
+        <div class="step-img-wrap">
+            <div class="phone-frame">
+                <img src="data/install_step2.webp" alt="Føj til hjemmeskærm">
+
+                <!--
+                    "Føj til hjemmeskærm" row in the expanded share sheet list.
+                    In 601×1306 image: x≈4–597, y≈1176–1240
+                    As %: left=0.7%, top=90.0%, width=98.5%, height=4.9%
+                -->
+                <div class="tap-zone"
+                     style="left:1%;top:89.5%;width:98%;height:5.5%;border-radius:8px;">
+                    <div class="tap-ripple"></div>
+                    <div class="tap-finger" style="bottom:-30px;left:50%;">👆</div>
+                    <span class="tap-label" style="bottom:calc(100% + 14px);left:50%;transform:translateX(-50%);">
+                        Tryk her
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="step-desc">
+            Nu vises en lang liste. <strong>Scroll lidt ned</strong> og tryk på
+            <span class="pill gold">⊕ Føj til hjemmeskærm</span> — den er fremhævet på billedet.
+        </div>
+    </div>
+
+    <!-- TRIN 5: Tilføj -->
+    <div class="step-card">
+        <div class="step-header">
+            <div class="step-num">5</div>
+            <div class="step-title">Tryk "Tilføj" øverst til højre</div>
+        </div>
+        <div class="step-desc" style="padding-top:4px;">
+            En lille bekræftelsesdialog vises med Magic Helper-ikonet.
+            Tryk <span class="pill blue">Tilføj</span> øverst til højre — og du er færdig!
+        </div>
+    </div>
+
+    <div class="done-card">
+        <div class="dc-icon">🎉</div>
+        <strong>Magic Helper sidder nu på din hjemmeskærm!</strong>
+        <span>Åbn den herfra fremover — virker som en rigtig app, også offline.</span>
+    </div>
+
+    <div class="tip">
+        <strong>Virker det ikke?</strong><br>
+        Sørg for at du bruger Safari. Åbnede du linket i en anden browser, kopier adressen og åbn den i Safari manuelt.
+    </div>
+    <div class="tip">
+        <strong>📷 Kortscanneren virker ikke første gang?</strong><br>
+        Første gang beder appen om kameraadgang — tryk "Tillad".
+    </div>
+</div>
+
+<!-- ════════════════ ANDROID ════════════════ -->
+<div class="panel" id="panel-android">
+    <p class="section-label">Trin-for-trin guide til Android</p>
+
+    <div class="step-card">
+        <div class="step-header"><div class="step-num">1</div><div class="step-title">Åbn siden i Chrome</div></div>
+        <div class="step-desc" style="padding-top:4px;">Det skal være Google Chrome. Tryk på linket øverst eller skriv adressen i Chrome.</div>
+    </div>
+    <div class="step-card">
+        <div class="step-header"><div class="step-num">2</div><div class="step-title">Tryk på de tre prikker øverst til højre</div></div>
+        <div class="step-desc" style="padding-top:4px;">Find <span class="pill">⋮</span> øverst til højre i Chrome og tryk på den.</div>
+    </div>
+    <div class="step-card">
+        <div class="step-header"><div class="step-num">3</div><div class="step-title">Vælg "Tilføj til startskærm"</div></div>
+        <div class="step-desc" style="padding-top:4px;">Tryk <span class="pill gold">Tilføj til startskærm</span> — det kan også hedde <span class="pill gold">Installer app</span>.</div>
+    </div>
+    <div class="step-card">
+        <div class="step-header"><div class="step-num">4</div><div class="step-title">Tryk "Tilføj" i boksen der dukker op</div></div>
+        <div class="step-desc" style="padding-top:4px;">Bekræft installationen — appen dukker op på din startskærm.</div>
+    </div>
+
+    <div class="done-card">
+        <div class="dc-icon">🎉</div>
+        <strong>Færdig — appen sidder på din startskærm!</strong>
+        <span>Virker som en rigtig app, også offline.</span>
+    </div>
+    <div class="tip">
+        <strong>💡 Ser du et banner i bunden af Chrome?</strong><br>
+        Mange Android-telefoner viser automatisk "Installer Magic Helper" — tryk det og spring til trin 4!
+    </div>
+</div>
+
+<script>
+    function show(tab, el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-' + tab).classList.add('active');
+        el.classList.add('active');
+    }
+</script>
 </body>
 </html>
