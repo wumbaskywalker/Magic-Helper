@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" href="logo.png?v=14">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
     <style>
         :root {
             --bg-body:    #0c0e18;
@@ -5584,129 +5584,145 @@ if ('serviceWorker' in navigator) {
 }
 
 // ═══════════════════════════════════════════════
-//  MULTIPLAYER (PeerJS)
+//  MULTIPLAYER (MQTT via HiveMQ public broker)
 // ═══════════════════════════════════════════════
-let mpPeer = null;           // vores egen Peer
-let mpConns = [];            // host: alle klientforbindelser
-let mpHostConn = null;       // client: forbindelsen til host
-let mpMode = 'local';        // 'local' | 'host' | 'client'
-let _mpReceiving = false;    // forhindrer broadcast-loop
+let _mpClient   = null;
+let _mpCode     = '';
+let mpMode      = 'local';      // 'local' | 'host' | 'client'
+let _mpReceiving = false;
+const _mpClientId = 'mtgh-' + Math.random().toString(36).substr(2, 10);
 
-function mpRoomCode(peerId) { return peerId.split('-')[1] || peerId; }
+// ── Modal UI ──────────────────────────────────
+function openMpModal()  { document.getElementById('mp-modal').style.display = 'block'; }
+function closeMpModal() { document.getElementById('mp-modal').style.display = 'none'; }
 
-// ── Modal UI ─────────────────────────────────
-function openMpModal()  { document.getElementById('mp-modal').style.display='block'; }
-function closeMpModal() { document.getElementById('mp-modal').style.display='none'; }
-function mpShowIdle()   { ['idle','join','host','client'].forEach(p => document.getElementById('mp-panel-'+p).style.display = p==='idle'?'block':'none'); }
-function mpShowJoin()   { ['idle','join','host','client'].forEach(p => document.getElementById('mp-panel-'+p).style.display = p==='join'?'block':'none'); }
-function mpShowHost()   { ['idle','join','host','client'].forEach(p => document.getElementById('mp-panel-'+p).style.display = p==='host'?'block':'none'); }
-function mpShowClient() { ['idle','join','host','client'].forEach(p => document.getElementById('mp-panel-'+p).style.display = p==='client'?'block':'none'); }
+function _mpShowPanel(name) {
+    ['idle','join','host','client'].forEach(p =>
+        document.getElementById('mp-panel-' + p).style.display = p === name ? 'block' : 'none');
+}
+function mpShowIdle()   { _mpShowPanel('idle'); }
+function mpShowJoin()   { _mpShowPanel('join'); }
+function mpShowHost()   { _mpShowPanel('host'); }
+function mpShowClient() { _mpShowPanel('client'); }
 
 function mpUpdateBtn() {
     const btn = document.getElementById('mp-btn');
     if (!btn) return;
-    if (mpMode === 'local') { btn.textContent = '🔗 Forbind'; btn.style.borderColor=''; btn.style.color=''; }
-    else { btn.textContent = '🟢 Forbundet'; btn.style.borderColor='#2e6e2e'; btn.style.color='#5dcc7a'; }
+    if (mpMode === 'local') {
+        btn.textContent = '🔗 Forbind';
+        btn.style.borderColor = ''; btn.style.color = '';
+    } else {
+        btn.textContent = '🟢 Forbundet';
+        btn.style.borderColor = '#2e6e2e'; btn.style.color = '#5dcc7a';
+    }
 }
 
-function mpUpdateHostStatus() {
-    const n = mpConns.length;
-    document.getElementById('mp-host-status').textContent = n === 0
-        ? 'Venter på spillere…'
-        : `✓ ${n} spiller${n>1?'e':''} forbundet`;
+// ── Intern forbindelsesfunktion ───────────────
+function _mpConnect(code, role) {
+    _mpCode = code;
+
+    // Vis forbinder-status
+    if (role === 'host') {
+        document.getElementById('mp-host-status').textContent = 'Forbinder…';
+        mpShowHost();
+    } else {
+        const joinBtn = document.querySelector('#mp-panel-join .app-btn');
+        if (joinBtn) { joinBtn.textContent = 'Forbinder…'; joinBtn.disabled = true; }
+    }
+
+    _mpClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
+        clientId: _mpClientId,
+        connectTimeout: 10000,
+        keepalive: 30,
+        clean: true,
+    });
+
+    const topic = 'mtghelper/' + code + '/state';
+
+    _mpClient.on('connect', () => {
+        _mpClient.subscribe(topic);
+        mpMode = role;
+        if (role === 'host') {
+            document.getElementById('mp-room-code').textContent = code;
+            document.getElementById('mp-host-status').textContent = 'Venter på spillere…';
+            mpBroadcast();   // send startstate
+        } else {
+            document.getElementById('mp-client-status').textContent = 'Session: ' + code;
+            mpShowClient();
+        }
+        mpUpdateBtn();
+    });
+
+    _mpClient.on('message', (_t, msg) => {
+        try {
+            const data = JSON.parse(msg.toString());
+            if (data._sender !== _mpClientId) mpApplyState(data);
+        } catch(e) {}
+    });
+
+    _mpClient.on('error', () => {
+        toast('Forbindelsesfejl — prøv igen');
+        mpDisconnect();
+    });
+
+    _mpClient.on('close', () => {
+        if (mpMode !== 'local') {
+            toast('Forbindelsen afbrudt');
+            mpDisconnect();
+        }
+    });
+
+    // Timeout
+    setTimeout(() => {
+        if (_mpClient && !_mpClient.connected) {
+            toast('Timeout — kunne ikke forbinde');
+            mpDisconnect();
+        }
+    }, 12000);
 }
 
-// ── Start som host ────────────────────────────
+// ── Public API ────────────────────────────────
 function mpStartHost() {
-    const code = Math.random().toString(36).substr(2,6).toUpperCase();
-    mpPeer = new Peer('mtgh-' + code);
-    mpPeer.on('open', () => {
-        mpMode = 'host'; mpConns = [];
-        document.getElementById('mp-room-code').textContent = code;
-        mpShowHost(); mpUpdateBtn();
-    });
-    mpPeer.on('connection', conn => {
-        conn.on('open', () => {
-            mpConns.push(conn);
-            mpUpdateHostStatus();
-            // Send nuværende state til ny spiller
-            conn.send({ type:'state', players: JSON.parse(JSON.stringify(gamePlayers)), format: gameFormat, startLife });
-        });
-        conn.on('data', data => {
-            if (data.type === 'state') {
-                mpApplyState(data);
-                // Relay til alle andre klienter
-                mpConns.filter(c => c !== conn).forEach(c => { try { c.send(data); } catch(e){} });
-            }
-        });
-        conn.on('close', () => {
-            mpConns = mpConns.filter(c => c !== conn);
-            mpUpdateHostStatus();
-        });
-        conn.on('error', () => {
-            mpConns = mpConns.filter(c => c !== conn);
-            mpUpdateHostStatus();
-        });
-    });
-    mpPeer.on('error', e => { toast('Forbindelsesfejl: ' + e.type); mpDisconnect(); });
+    const code = Math.random().toString(36).substr(2, 6).toUpperCase();
+    _mpConnect(code, 'host');
 }
 
-// ── Deltag som client ─────────────────────────
 function mpJoin() {
     const code = document.getElementById('mp-join-input').value.trim().toUpperCase();
     if (code.length < 4) { toast('Indtast en gyldig kode'); return; }
-    mpPeer = new Peer();
-    mpPeer.on('open', () => {
-        mpHostConn = mpPeer.connect('mtgh-' + code, { reliable: true });
-        mpHostConn.on('open', () => {
-            mpMode = 'client';
-            document.getElementById('mp-client-status').textContent = 'Session: ' + code;
-            mpShowClient(); mpUpdateBtn();
-        });
-        mpHostConn.on('data', data => {
-            if (data.type === 'state') mpApplyState(data);
-        });
-        mpHostConn.on('close', () => { toast('Forbindelsen til host blev afbrudt'); mpDisconnect(); });
-        mpHostConn.on('error', () => { toast('Kunne ikke forbinde — tjek koden'); mpDisconnect(); });
-    });
-    mpPeer.on('error', e => { toast('Fejl: ' + e.type); mpDisconnect(); });
+    _mpConnect(code, 'client');
 }
 
-// ── Afbryd session ────────────────────────────
 function mpDisconnect() {
-    if (mpPeer) { try { mpPeer.destroy(); } catch(e){} mpPeer = null; }
-    mpConns = []; mpHostConn = null; mpMode = 'local';
+    if (_mpClient) { try { _mpClient.end(true); } catch(e){} _mpClient = null; }
+    mpMode = 'local'; _mpCode = '';
+    // Reset join-knap
+    const joinBtn = document.querySelector('#mp-panel-join .app-btn');
+    if (joinBtn) { joinBtn.textContent = 'Forbind'; joinBtn.disabled = false; }
     mpShowIdle(); mpUpdateBtn();
 }
 
-// ── Broadcast state til alle peers ───────────
+// ── Broadcast & modtag ────────────────────────
 function mpBroadcast() {
-    if (mpMode === 'local' || _mpReceiving) return;
-    const data = { type:'state', players: JSON.parse(JSON.stringify(gamePlayers)), format: gameFormat, startLife };
-    if (mpMode === 'host') {
-        mpConns.forEach(c => { try { c.send(data); } catch(e){} });
-    } else if (mpMode === 'client' && mpHostConn) {
-        try { mpHostConn.send(data); } catch(e){}
-    }
+    if (mpMode === 'local' || _mpReceiving || !_mpClient?.connected) return;
+    const data = { players: JSON.parse(JSON.stringify(gamePlayers)), _sender: _mpClientId };
+    try { _mpClient.publish('mtghelper/' + _mpCode + '/state', JSON.stringify(data), { qos: 0 }); } catch(e) {}
 }
 
-// ── Modtag og anvend state fra peer ──────────
 function mpApplyState(data) {
+    if (!data.players) return;
     _mpReceiving = true;
-    if (data.players) {
-        data.players.forEach((p, i) => {
-            if (gamePlayers[i]) {
-                gamePlayers[i].life    = p.life;
-                gamePlayers[i].poison  = p.poison;
-                gamePlayers[i].tax     = p.tax;
-                gamePlayers[i].dead    = p.dead;
-                gamePlayers[i].cmdDmg  = p.cmdDmg || {};
-                gamePlayers[i].name    = p.name;
-                gamePlayers[i].color   = p.color;
-            }
-        });
-        renderBoard();
-    }
+    data.players.forEach((p, i) => {
+        if (!gamePlayers[i]) return;
+        gamePlayers[i].life   = p.life;
+        gamePlayers[i].poison = p.poison;
+        gamePlayers[i].tax    = p.tax;
+        gamePlayers[i].dead   = p.dead;
+        gamePlayers[i].cmdDmg = p.cmdDmg || {};
+        gamePlayers[i].name   = p.name;
+        gamePlayers[i].color  = p.color;
+    });
+    renderBoard();
     _mpReceiving = false;
 }
 
