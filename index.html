@@ -531,6 +531,11 @@
         .life-accum.pos { color: #2ecc71; background: rgba(46,204,113,.18); border: 1px solid rgba(46,204,113,.3); }
         .life-accum.neg { color: #e74c3c; background: rgba(231,76,60,.18); border: 1px solid rgba(231,76,60,.3); }
 
+        /* ── MULTIPLAYER KNAP ── */
+        #mp-btn.connected { border-color: #2e6e2e !important; color: #5dcc7a !important; }
+        #view-play.setup-mode #mp-btn { display: none; }
+        /* Tilbehør popover er position:absolute ift. #view-play (fixed er positioneret ancestor) */
+
         /* ── SET BROWSER MODAL ── */
         #set-browser-overlay {
             display: none; position: fixed; inset: 0; z-index: 9999;
@@ -948,7 +953,7 @@
 
         /* ── GAME BUTTONS ── */
         .play-btns { display: flex; gap: 7px; margin-top: 7px; flex-shrink: 0; }
-        .play-btns button { margin: 0 !important; }
+        .play-btns button { margin: 0 !important; white-space: nowrap; overflow: hidden; }
 
         /* ── NAV ── */
         nav {
@@ -1933,12 +1938,23 @@
     </div>
 
     <div id="game-board" class="play-area players-4"></div>
+
+    <!-- Tilbehør popover -->
+    <div id="tilbehoer-pop" style="display:none;position:absolute;bottom:56px;left:0;
+         background:#12141f;border:1px solid #2a2f50;border-radius:12px;padding:8px;
+         display:none;flex-direction:column;gap:6px;min-width:160px;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,.6);">
+        <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="rollDice(20);hideTilbehoer()">🎲 Slå terning</button>
+        <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="flipCoin();hideTilbehoer()">🪙 Kast mønt</button>
+        <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="pickRandomPlayer();hideTilbehoer()">🎯 Vælg spiller</button>
+    </div>
+
     <div class="play-btns" id="play-btns-bar">
-        <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="rollDice(20)">🎲 Terning</button>
-        <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="flipCoin()">🪙 Mønt</button>
-        <button class="app-btn btn-gold" style="flex:1;font-size:13px;" onclick="whoStarts()"><svg width="12" height="12" viewBox="0 0 13 13" style="vertical-align:-1px;margin-right:3px"><line x1="1.5" y1="11.5" x2="11.5" y2="1.5" stroke="#0c0e18" stroke-width="2" stroke-linecap="round"/><line x1="2.8" y1="7.6" x2="6.6" y2="11.3" stroke="#0c0e18" stroke-width="2.2" stroke-linecap="round"/><circle cx="1.8" cy="11.2" r="1.6" fill="#0c0e18"/></svg>Starter?</button>
+        <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="toggleTilbehoer(event)">🎲 Tilbehør</button>
+        <button id="who-starts-btn" class="app-btn btn-gold" style="flex:1;font-size:13px;" onclick="whoStarts()"><svg width="12" height="12" viewBox="0 0 13 13" style="vertical-align:-1px;margin-right:3px"><line x1="1.5" y1="11.5" x2="11.5" y2="1.5" stroke="#0c0e18" stroke-width="2" stroke-linecap="round"/><line x1="2.8" y1="7.6" x2="6.6" y2="11.3" stroke="#0c0e18" stroke-width="2.2" stroke-linecap="round"/><circle cx="1.8" cy="11.2" r="1.6" fill="#0c0e18"/></svg>Hvem starter?</button>
         <button class="app-btn btn-red"  style="flex:1;font-size:13px;" onclick="showResetConfirm()">↺ Genstart</button>
-        <button id="mp-btn" class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="openMpModal()">🔗 Forbind</button>
+        <button id="mp-btn" class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="openMpModal()">
+            <span id="mp-btn-icon">🔗</span><span id="mp-btn-label"> Forbind</span>
+        </button>
     </div>
 
     <!-- Fullscreen toggle button -->
@@ -2024,6 +2040,22 @@
 
     <!-- Multi-dice grid (shown instead of single die when count > 1) -->
     <div id="multi-results" style="display:none; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center; max-width:320px; margin-bottom:16px;"></div>
+
+    <!-- Player picker slot machine -->
+    <div id="player-pick-wrap" style="display:none;flex-direction:column;align-items:center;gap:18px;width:100%;max-width:300px;">
+        <div id="player-slot-track" style="
+            width:260px;height:90px;overflow:hidden;border-radius:16px;
+            border:2px solid var(--border-lit);background:rgba(0,0,0,.5);
+            position:relative;display:flex;align-items:center;justify-content:center;">
+            <!-- fade edges -->
+            <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(12,14,24,.85) 0%,transparent 30%,transparent 70%,rgba(12,14,24,.85) 100%);z-index:2;pointer-events:none;border-radius:14px;"></div>
+            <div id="player-slot-name" style="font-size:32px;font-weight:900;color:#fff;letter-spacing:1px;text-align:center;transition:color .3s;z-index:1;text-shadow:0 0 24px currentColor;padding:0 16px;"></div>
+        </div>
+        <div id="player-slot-result" style="display:none;text-align:center;">
+            <div id="player-slot-winner-name" style="font-size:44px;font-weight:900;letter-spacing:2px;text-shadow:0 0 32px currentColor;"></div>
+            <div style="font-size:13px;color:#888;margin-top:6px;">er valgt!</div>
+        </div>
+    </div>
 
     <!-- Starter picker — sword arena -->
     <div class="starter-wrap" id="starter-wrap">
@@ -3401,10 +3433,12 @@ function renderBoard(){
 
         // Roterede spillere: cmd-damage i DOM FØR stats → visuelt set er stats øverst
         // Ikke-roterede: stats i DOM FØRST → visuelt øverst
+        const isMyPlayer = mpMode === 'local' || mpMyPlayer === (p.id - 1);
+        const lifeBtnStyle = isMyPlayer ? '' : 'opacity:.25;pointer-events:none;';
         const lifeHTML = `<div class="life-controls">
-                <button class="life-btn" onpointerdown="startLP(${p.id},-1);adjLife(${p.id},-1)" onpointerup="endLP()" onpointerleave="endLP()">−</button>
+                <button class="life-btn" style="${lifeBtnStyle}" onpointerdown="startLP(${p.id},-1);adjLife(${p.id},-1)" onpointerup="endLP()" onpointerleave="endLP()">−</button>
                 <div class="life-val">${p.life}</div>
-                <button class="life-btn" onpointerdown="startLP(${p.id},1);adjLife(${p.id},1)" onpointerup="endLP()" onpointerleave="endLP()">+</button>
+                <button class="life-btn" style="${lifeBtnStyle}" onpointerdown="startLP(${p.id},1);adjLife(${p.id},1)" onpointerup="endLP()" onpointerleave="endLP()">+</button>
             </div>`;
 
         const headerHTML = `<div class="player-header">
@@ -3550,7 +3584,7 @@ function flipCoin(){
     const resEl=document.getElementById('coin-result-text');
     document.getElementById('random-label').innerText='Møntkast';
     const btn=document.getElementById('random-action-btn');
-    btn.innerText='🪙 Flip igen'; btn.onclick=flipCoin;
+    btn.innerText='🪙 Flip igen'; btn.onclick=()=>flipCoin();
     resEl.style.display='none';
 
     // Determine result first so we can land on the right face
@@ -3576,7 +3610,11 @@ function flipCoin(){
 // ═══════════════════════════════════════════════
 //  WHO STARTS
 // ═══════════════════════════════════════════════
-function whoStarts(){
+function whoStartsRemote(winnerIdx) {
+    // Åbn modalen og vis animationen med den fastsatte vinder
+    whoStarts(_override = winnerIdx);
+}
+function whoStarts(_override){
     const modal=document.getElementById('random-modal');
     modal.style.display='flex';
     document.getElementById('die-scene-wrap').style.display  ='none';
@@ -3587,7 +3625,7 @@ function whoStarts(){
     document.getElementById('starter-wrap').style.display    ='flex';
     document.getElementById('random-label').innerText       ='Hvem starter?';
     const btn=document.getElementById('random-action-btn');
-    btn.innerText='⚡ Vælg igen'; btn.onclick=whoStarts;
+    btn.innerText='⚡ Vælg igen'; btn.onclick=()=>whoStarts();
 
     const label   = document.getElementById('starter-label');
     const rotator = document.getElementById('sword-rotator');
@@ -3618,8 +3656,9 @@ function whoStarts(){
         playersEl.appendChild(badge);
     });
 
-    // Pick winner & calculate sword end angle
-    const winnerIdx = cryptoRand(currentPC)-1; // 0-based
+    // Pick winner & broadcast så alle ser samme resultat
+    const winnerIdx = (_override !== undefined) ? _override : cryptoRand(currentPC)-1;
+    if (_override === undefined) mpSendEvent({ type:'whoStarts', winnerIdx });
     const winnerDeg = (winnerIdx/currentPC)*360;
     const totalDeg  = 5*360 + winnerDeg; // 5 full spins + landing angle
     rotator.style.setProperty('--sword-end', totalDeg+'deg');
@@ -5584,12 +5623,96 @@ if ('serviceWorker' in navigator) {
 }
 
 // ═══════════════════════════════════════════════
+//  TILBEHØR POPOVER
+// ═══════════════════════════════════════════════
+function toggleTilbehoer(e) {
+    e?.stopPropagation();
+    const pop = document.getElementById('tilbehoer-pop');
+    pop.style.display = pop.style.display === 'flex' ? 'none' : 'flex';
+}
+function hideTilbehoer() {
+    document.getElementById('tilbehoer-pop').style.display = 'none';
+}
+document.addEventListener('click', () => hideTilbehoer());
+
+function pickRandomPlayer(_overrideIdx) {
+    if (!gamePlayers || gamePlayers.length === 0) return;
+    const pool = gamePlayers.filter(p => !p.dead);
+    if (pool.length === 0) return;
+
+    const picked = _overrideIdx !== undefined
+        ? gamePlayers[_overrideIdx]
+        : pool[Math.floor(Math.random() * pool.length)];
+    if (!picked) return;
+
+    if (_overrideIdx === undefined) {
+        mpSendEvent({ type: 'randomPlayer', idx: gamePlayers.indexOf(picked) });
+    }
+
+    // Open modal, hide other sections
+    const modal = document.getElementById('random-modal');
+    modal.style.display = 'flex';
+    document.getElementById('die-scene-wrap').style.display   = 'none';
+    document.getElementById('coin-wrap').style.display        = 'none';
+    document.getElementById('dice-selector').style.display    = 'none';
+    document.getElementById('dice-count-row').style.display   = 'none';
+    document.getElementById('multi-results').style.display    = 'none';
+    document.getElementById('starter-wrap').style.display     = 'none';
+    document.getElementById('random-label').innerText         = '🎯 Vælg spiller';
+    const wrap = document.getElementById('player-pick-wrap');
+    wrap.style.display = 'flex';
+    document.getElementById('player-slot-result').style.display = 'none';
+
+    const btn = document.getElementById('random-action-btn');
+    btn.innerText = '🎯 Vælg igen'; btn.onclick = () => pickRandomPlayer();
+
+    // Slot machine spin
+    const nameEl = document.getElementById('player-slot-name');
+    const allNames = gamePlayers.map(p => p.name || ('Spiller ' + p.id));
+    let frame = 0, delay = 50, total = 0, target = 1400; // ms total spin
+    let elapsed = 0;
+
+    function tick() {
+        const p = gamePlayers[frame % gamePlayers.length];
+        nameEl.textContent = p.name || ('Spiller ' + p.id);
+        nameEl.style.color = p.color || '#fff';
+        frame++;
+        elapsed += delay;
+        // Ease out: increase delay as we approach target
+        const progress = elapsed / target;
+        delay = Math.min(50 + Math.pow(progress, 2.5) * 350, 400);
+        if (elapsed < target) {
+            setTimeout(tick, delay);
+        } else {
+            // Land on winner
+            nameEl.textContent = picked.name || ('Spiller ' + picked.id);
+            nameEl.style.color = picked.color || '#e8c96b';
+            // Flash
+            const flash = document.getElementById('modal-lightning-flash');
+            flash.classList.remove('flashing');
+            void flash.offsetWidth;
+            flash.classList.add('flashing');
+            vib && vib([20, 10, 20]);
+            // Show result panel
+            setTimeout(() => {
+                document.getElementById('player-slot-result').style.display = 'block';
+                const winEl = document.getElementById('player-slot-winner-name');
+                winEl.textContent = picked.name || ('Spiller ' + picked.id);
+                winEl.style.color = picked.color || '#e8c96b';
+            }, 300);
+        }
+    }
+    tick();
+}
+
+// ═══════════════════════════════════════════════
 //  MULTIPLAYER (MQTT via HiveMQ public broker)
 // ═══════════════════════════════════════════════
 let _mpClient   = null;
 let _mpCode     = '';
 let mpMode      = 'local';      // 'local' | 'host' | 'client'
 let _mpReceiving = false;
+let mpMyPlayer  = -1;           // 0-baseret index — hvilken spiller styrer denne enhed
 const _mpClientId = 'mtgh-' + Math.random().toString(36).substr(2, 10);
 
 // ── Modal UI ──────────────────────────────────
@@ -5609,11 +5732,21 @@ function mpUpdateBtn() {
     const btn = document.getElementById('mp-btn');
     if (!btn) return;
     if (mpMode === 'local') {
-        btn.textContent = '🔗 Forbind';
-        btn.style.borderColor = ''; btn.style.color = '';
+        document.getElementById('mp-btn-icon').textContent = '🔗';
+        document.getElementById('mp-btn-label').textContent = ' Forbind';
+        btn.classList.remove('connected');
     } else {
-        btn.textContent = '🟢 Forbundet';
-        btn.style.borderColor = '#2e6e2e'; btn.style.color = '#5dcc7a';
+        document.getElementById('mp-btn-icon').textContent = '🟢';
+        document.getElementById('mp-btn-label').textContent = ' Forbundet';
+        btn.classList.add('connected');
+    }
+    // Only host can press "Hvem starter?" in multiplayer
+    const wsBtn = document.getElementById('who-starts-btn');
+    if (wsBtn) {
+        const isHost = mpMode === 'local' || mpMode === 'host';
+        wsBtn.disabled = !isHost;
+        wsBtn.style.opacity = isHost ? '' : '0.35';
+        wsBtn.style.cursor = isHost ? '' : 'not-allowed';
     }
 }
 
@@ -5643,12 +5776,14 @@ function _mpConnect(code, role) {
         _mpClient.subscribe(topic);
         mpMode = role;
         if (role === 'host') {
+            mpMyPlayer = 0;  // host er altid spiller 1
             document.getElementById('mp-room-code').textContent = code;
             document.getElementById('mp-host-status').textContent = 'Venter på spillere…';
             mpBroadcast();   // send startstate
         } else {
             document.getElementById('mp-client-status').textContent = 'Session: ' + code;
             mpShowClient();
+            // mpMyPlayer sættes når spillerpicker vises (ved modtagelse af gameConfig)
         }
         mpUpdateBtn();
     });
@@ -5695,23 +5830,132 @@ function mpJoin() {
 
 function mpDisconnect() {
     if (_mpClient) { try { _mpClient.end(true); } catch(e){} _mpClient = null; }
-    mpMode = 'local'; _mpCode = '';
+    mpMode = 'local'; _mpCode = ''; mpMyPlayer = -1;
     // Reset join-knap
     const joinBtn = document.querySelector('#mp-panel-join .app-btn');
     if (joinBtn) { joinBtn.textContent = 'Forbind'; joinBtn.disabled = false; }
     mpShowIdle(); mpUpdateBtn();
+    renderBoard(); // opdater knapper
+}
+
+function mpShowPlayerPicker(playerCount) {
+    const existing = document.getElementById('mp-player-picker');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'mp-player-picker';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(12,14,24,.97);z-index:9999;overflow-y:auto;padding:32px 20px;display:flex;align-items:center;justify-content:center;';
+    const btns = Array.from({length: playerCount}, (_, i) =>
+        `<button onclick="mpPickSlot(${i})" data-slot="${i}" style="flex:1;padding:16px 6px;border-radius:12px;border:2px solid #2a2f50;background:#12141f;color:#e8eaf2;font-size:15px;font-weight:800;cursor:pointer;transition:border-color .15s;">Spiller ${i+1}</button>`
+    ).join('');
+    overlay.innerHTML = `<div style="max-width:380px;width:100%;">
+        <div style="font-size:20px;font-weight:800;margin-bottom:6px;text-align:center;">Hvem er du?</div>
+        <div style="font-size:13px;color:#7a80a0;margin-bottom:20px;text-align:center;">Vælg din plads og skriv dit navn</div>
+
+        <div style="display:flex;gap:8px;margin-bottom:24px;">${btns}</div>
+
+        <div style="margin-bottom:14px;">
+            <label style="font-size:12px;color:#7a80a0;font-weight:700;letter-spacing:.06em;display:block;margin-bottom:6px;">DIT NAVN</label>
+            <input id="mp-pick-name" type="text" maxlength="20" placeholder="Spiller"
+                style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #2a2f50;background:#12141f;color:#e8eaf2;font-size:16px;font-weight:700;">
+        </div>
+
+        <div style="margin-bottom:28px;">
+            <label style="font-size:12px;color:#7a80a0;font-weight:700;letter-spacing:.06em;display:block;margin-bottom:10px;">DIN FARVE</label>
+            <div id="mp-color-btns" style="display:flex;gap:10px;flex-wrap:wrap;">
+                ${['#dc3545','#007bff','#28a745','#fd7e14','#6f42c1','#20c997','#e83e8c','#ffc107'].map(c =>
+                    `<button onclick="mpPickColor('${c}')" data-color="${c}" style="width:40px;height:40px;border-radius:50%;background:${c};border:3px solid transparent;cursor:pointer;transition:transform .15s,border-color .15s;"></button>`
+                ).join('')}
+            </div>
+        </div>
+
+        <button onclick="mpConfirmPick()" style="width:100%;padding:14px;border-radius:12px;background:#c9a84c;border:none;color:#0c0e18;font-size:16px;font-weight:800;cursor:pointer;">
+            Bekræft og gå ind i spillet →
+        </button>
+    </div>`;
+    document.body.appendChild(overlay);
+    // Vælg første ledige slot og første farve som standard
+    mpPickSlot(0);
+    mpPickColor(defaultColors[0]);
+}
+
+let _mpPickedSlot = 0;
+let _mpPickedColor = '#dc3545';
+
+function mpPickSlot(idx) {
+    _mpPickedSlot = idx;
+    document.querySelectorAll('#mp-player-picker [data-slot]').forEach(b => {
+        b.style.borderColor = +b.dataset.slot === idx ? '#c9a84c' : '#2a2f50';
+        b.style.color       = +b.dataset.slot === idx ? '#c9a84c' : '#e8eaf2';
+    });
+}
+
+function mpPickColor(hex) {
+    _mpPickedColor = hex;
+    document.querySelectorAll('#mp-color-btns [data-color]').forEach(b => {
+        b.style.borderColor = b.dataset.color === hex ? '#fff' : 'transparent';
+        b.style.transform   = b.dataset.color === hex ? 'scale(1.2)' : 'scale(1)';
+    });
+}
+
+function mpConfirmPick() {
+    mpMyPlayer = _mpPickedSlot;
+    const name  = document.getElementById('mp-pick-name')?.value.trim() || `Spiller ${mpMyPlayer + 1}`;
+    const color = _mpPickedColor;
+    const picker = document.getElementById('mp-player-picker');
+    if (picker) picker.remove();
+    // Sæt navn og farve på den valgte spiller
+    if (gamePlayers[mpMyPlayer]) {
+        gamePlayers[mpMyPlayer].name  = name;
+        gamePlayers[mpMyPlayer].color = color;
+    }
+    renderBoard();
+    mpBroadcast();
+    toast(`Du spiller som ${name}`);
+}
+
+// ── Send enkelt-event (ikke state) ───────────
+function mpSendEvent(event) {
+    if (mpMode === 'local' || !_mpClient?.connected) return;
+    try {
+        _mpClient.publish('mtghelper/' + _mpCode + '/state',
+            JSON.stringify({ ...event, _sender: _mpClientId }), { qos: 0 });
+    } catch(e) {}
 }
 
 // ── Broadcast & modtag ────────────────────────
 function mpBroadcast() {
     if (mpMode === 'local' || _mpReceiving || !_mpClient?.connected) return;
-    const data = { players: JSON.parse(JSON.stringify(gamePlayers)), _sender: _mpClientId };
+    const data = {
+        players: JSON.parse(JSON.stringify(gamePlayers)),
+        gameConfig: { playerCount: currentPC, format: gameFormat, startLife },
+        _sender: _mpClientId
+    };
     try { _mpClient.publish('mtghelper/' + _mpCode + '/state', JSON.stringify(data), { qos: 0 }); } catch(e) {}
 }
 
 function mpApplyState(data) {
+    // Håndter enkelt-events
+    if (data.type === 'whoStarts') {
+        whoStartsRemote(data.winnerIdx);
+        return;
+    }
+    if (data.type === 'randomPlayer') {
+        pickRandomPlayer(data.idx);
+        return;
+    }
     if (!data.players) return;
     _mpReceiving = true;
+
+    // Klient har ikke startet spil endnu → auto-start med host's konfiguration
+    if (data.gameConfig && (gamePlayers.length === 0 || document.getElementById('view-play')?.classList.contains('setup-mode'))) {
+        const { playerCount, format, startLife: sl } = data.gameConfig;
+        gameFormat = format; startLife = sl;
+        initGame(playerCount);
+        document.getElementById('view-play')?.classList.remove('setup-mode');
+        // Vis spillerpicker
+        setTimeout(() => mpShowPlayerPicker(playerCount), 200);
+    }
+
     data.players.forEach((p, i) => {
         if (!gamePlayers[i]) return;
         gamePlayers[i].life   = p.life;
@@ -5894,6 +6138,22 @@ function showAccum(id, amt, type) {
                 <div id="mp-room-code" style="font-size:48px;font-weight:900;letter-spacing:10px;color:#c9a84c;font-family:monospace;"></div>
                 <div style="font-size:12px;color:var(--muted);margin-top:8px;">Del denne kode med de andre spillere</div>
             </div>
+
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:6px;">DIT NAVN (Spiller 1)</label>
+                <input id="mp-host-name" type="text" maxlength="20" placeholder="Spiller 1"
+                    style="width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--border-lit);background:var(--bg-input);color:var(--text);font-size:15px;font-weight:700;"
+                    oninput="if(gamePlayers[0]){gamePlayers[0].name=this.value||'Spiller 1';renderBoard();mpBroadcast();}">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:8px;">DIN FARVE</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    ${['#dc3545','#007bff','#28a745','#fd7e14','#6f42c1','#20c997','#e83e8c','#ffc107'].map(c =>
+                        `<button onclick="if(gamePlayers[0]){gamePlayers[0].color='${c}';renderBoard();mpBroadcast();}" style="width:36px;height:36px;border-radius:50%;background:${c};border:3px solid transparent;cursor:pointer;"></button>`
+                    ).join('')}
+                </div>
+            </div>
+
             <div id="mp-host-status" style="text-align:center;padding:12px;border-radius:10px;background:var(--bg-panel);border:1px solid var(--border);margin-bottom:20px;font-size:14px;color:var(--muted);">
                 Venter på spillere…
             </div>
