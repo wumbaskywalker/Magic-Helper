@@ -517,12 +517,14 @@
 
         /* ── ACCUMULATING LIFE COUNTER ── */
         .life-accum {
-            position: absolute; top: 10px; right: 10px;
-            font-size: clamp(16px, 3.5vw, 24px); font-weight: 900;
+            position: absolute; top: 12%; left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(18px, 4vw, 28px); font-weight: 900;
             pointer-events: none; z-index: 11;
-            padding: 3px 10px; border-radius: 20px;
+            padding: 4px 14px; border-radius: 20px;
             opacity: 0; transition: opacity .2s;
             text-shadow: 0 2px 6px rgba(0,0,0,.7);
+            white-space: nowrap;
         }
         .life-accum.visible { opacity: 1; }
         .life-accum.pos { color: #2ecc71; background: rgba(46,204,113,.18); border: 1px solid rgba(46,204,113,.3); }
@@ -3329,16 +3331,15 @@ function endLP(){clearTimeout(lpTimer);clearInterval(lpIv);lpTimer=lpIv=null;}
 
 function doLife(id,amt){
     const p=gamePlayers[id-1]; p.life+=amt; checkDeath(p);
-    lifeAccum[id] = (lifeAccum[id] || 0) + amt;
     const box=document.querySelector(`[data-pid="${id}"]`);
     if(box){const el=document.createElement('div');el.className='life-delta';el.innerText=(amt>0?'+':'')+amt;el.style.color=amt>0?'#2ecc71':'#e74c3c';box.appendChild(el);setTimeout(()=>el.remove(),750);}
     vib(15); renderBoard();
-    showLifeAccum(id);
+    showAccum(id, amt, 'life');
 }
 function adjLife(id,amt){doLife(id,amt);}
-function adjPoison(id,amt){const p=gamePlayers[id-1];p.poison=Math.max(0,p.poison+amt);checkDeath(p);renderBoard();}
+function adjPoison(id,amt){const p=gamePlayers[id-1];p.poison=Math.max(0,p.poison+amt);checkDeath(p);renderBoard();showAccum(id,amt,'poison');}
 function adjTax(id,amt){const p=gamePlayers[id-1];p.tax=Math.max(0,p.tax+amt);renderBoard();}
-function adjCmd(tid,sid,amt){const p=gamePlayers[tid-1];p.cmdDmg[sid]=Math.max(0,p.cmdDmg[sid]+amt);p.life-=amt;checkDeath(p);renderBoard();}
+function adjCmd(tid,sid,amt){const p=gamePlayers[tid-1];p.cmdDmg[sid]=Math.max(0,p.cmdDmg[sid]+amt);p.life-=amt;checkDeath(p);renderBoard();showAccum(tid,amt,'cmd');}
 function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.name=v;renderBoard();}
 function setColor(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.color=v;renderBoard();}
 
@@ -5582,10 +5583,10 @@ if ('serviceWorker' in navigator) {
 // ═══════════════════════════════════════════════
 //  SET BROWSER
 // ═══════════════════════════════════════════════
-let _sbCode = '', _sbNextPage = null;
+let _sbCode = '', _sbNextPage = null, _sbCards = [], _sbPopupCard = null;
 
 async function openSetBrowser(code, name) {
-    _sbCode = code; _sbNextPage = null;
+    _sbCode = code; _sbNextPage = null; _sbCards = [];
     const grid = document.getElementById('sb-grid');
     grid.innerHTML = '';
     document.getElementById('sb-title').innerText = name;
@@ -5596,6 +5597,7 @@ async function openSetBrowser(code, name) {
     await _sbLoad();
 }
 function closeSetBrowser() {
+    sbClosePopup();
     document.getElementById('set-browser-overlay').style.display = 'none';
     document.body.style.overflow = '';
 }
@@ -5606,11 +5608,21 @@ async function _sbLoad() {
         if (data.object === 'error') { document.getElementById('sb-count').innerText = 'Ingen kort fundet'; return; }
         const grid = document.getElementById('sb-grid');
         data.data.forEach(c => {
-            const thumb = c.image_uris?.small ?? c.card_faces?.[0]?.image_uris?.small ?? '';
+            const thumb = c.image_uris?.small  ?? c.card_faces?.[0]?.image_uris?.small  ?? '';
+            const img   = c.image_uris?.normal ?? c.card_faces?.[0]?.image_uris?.normal ?? thumb;
+            const p = c.prices || {};
+            let price = -1, priceFoil = -1;
+            if (p.eur)       price     = +p.eur;
+            else if (p.usd)  price     = +p.usd / (rates?.USD || 1.1);
+            if (p.eur_foil)       priceFoil = +p.eur_foil;
+            else if (p.usd_foil)  priceFoil = +p.usd_foil / (rates?.USD || 1.1);
+            if (price < 0 && priceFoil >= 0) price = priceFoil;
+            const idx = _sbCards.length;
+            _sbCards.push({ name: c.name, set: c.set.toUpperCase(), setName: c.set_name || c.set.toUpperCase(), thumb, img, price, priceFoil, id: c.id });
             const el = document.createElement('div');
             el.className = 'set-card-thumb';
             el.innerHTML = `<img src="${thumb}" alt="" loading="lazy"><div class="set-card-name">${c.name}</div>`;
-            el.onclick = () => { closeSetBrowser(); searchCard(c.name); };
+            el.onclick = () => sbShowCard(idx);
             grid.appendChild(el);
         });
         _sbNextPage = data.has_more ? data.next_page : null;
@@ -5619,24 +5631,56 @@ async function _sbLoad() {
     } catch(e) { document.getElementById('sb-count').innerText = 'Fejl ved hentning'; }
 }
 
-// ═══════════════════════════════════════════════
-//  ACCUMULATING LIFE COUNTER
-// ═══════════════════════════════════════════════
-const lifeAccum = {}, lifeAccumT = {};
+function sbShowCard(idx) {
+    const c = _sbCards[idx];
+    if (!c) return;
+    _sbPopupCard = c;
+    document.getElementById('sb-popup-img').src = c.img || c.thumb;
+    document.getElementById('sb-popup-name').innerText = c.name;
+    document.getElementById('sb-popup-set').innerText = c.setName;
+    document.getElementById('sb-popup-price').innerText = c.price >= 0 ? fmt(c.price) : 'Ingen pris';
+    document.getElementById('sb-popup-foil').innerText = c.priceFoil >= 0 ? '✨ Foil: ' + fmt(c.priceFoil) : '';
+    document.getElementById('sb-card-popup').style.display = 'flex';
+}
+function sbClosePopup() {
+    document.getElementById('sb-card-popup').style.display = 'none';
+    _sbPopupCard = null;
+}
+function sbGoSearch() {
+    if (!_sbPopupCard) return;
+    const name = _sbPopupCard.name;
+    sbClosePopup(); closeSetBrowser();
+    searchCard(name);
+}
 
-function showLifeAccum(id) {
+// ═══════════════════════════════════════════════
+//  ACCUMULATING COUNTERS (liv, gift, commander)
+// ═══════════════════════════════════════════════
+const accumData = {}, accumTimers = {};
+
+// type: 'life' | 'poison' | 'cmd'
+function showAccum(id, amt, type) {
+    const key = type + '_' + id;
+    accumData[key] = (accumData[key] || 0) + amt;
     const box = document.querySelector(`[data-pid="${id}"]`);
     if (!box) return;
-    let badge = box.querySelector('.life-accum');
-    if (!badge) { badge = document.createElement('div'); badge.className = 'life-accum'; box.appendChild(badge); }
-    const total = lifeAccum[id] || 0;
-    badge.className = 'life-accum visible ' + (total >= 0 ? 'pos' : 'neg');
-    badge.innerText = (total > 0 ? '+' : '') + total;
-    clearTimeout(lifeAccumT[id]);
-    lifeAccumT[id] = setTimeout(() => {
-        lifeAccum[id] = 0;
-        const b = document.querySelector(`[data-pid="${id}"] .life-accum`);
-        if (b) b.classList.remove('visible');
+    let badge = box.querySelector(`.life-accum[data-atype="${type}"]`);
+    if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'life-accum';
+        badge.dataset.atype = type;
+        box.appendChild(badge);
+    }
+    const total = accumData[key];
+    const icon = type==='poison' ? '☠ ' : type==='cmd' ? '⚔ ' : '';
+    badge.className = `life-accum visible ${total >= 0 ? 'pos' : 'neg'}`;
+    badge.dataset.atype = type;
+    badge.innerText = icon + (total > 0 ? '+' : '') + total;
+    clearTimeout(accumTimers[key]);
+    accumTimers[key] = setTimeout(() => {
+        accumData[key] = 0;
+        const freshBox = document.querySelector(`[data-pid="${id}"]`);
+        if (freshBox) { const b = freshBox.querySelector(`.life-accum[data-atype="${type}"]`); if (b) b.classList.remove('visible'); }
     }, 1500);
 }
 </script>
@@ -5653,6 +5697,30 @@ function showLifeAccum(id) {
     <div class="set-browser-grid" id="sb-grid"></div>
     <div id="sb-more" style="display:none;text-align:center;padding:16px;">
         <button class="app-btn" onclick="_sbLoad()">Hent flere…</button>
+    </div>
+</div>
+
+<!-- Set browser kort-popup -->
+<div id="sb-card-popup" onclick="if(event.target===this)sbClosePopup()"
+     style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);
+            align-items:flex-end;justify-content:center;padding:20px;">
+    <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:16px;
+                padding:20px;width:100%;max-width:420px;">
+        <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;">
+            <img id="sb-popup-img" src="" style="width:90px;border-radius:10px;flex-shrink:0;">
+            <div style="flex:1;min-width:0;">
+                <div id="sb-popup-name" style="font-weight:800;font-size:17px;margin-bottom:4px;"></div>
+                <div id="sb-popup-set" style="font-size:11px;color:var(--accent);font-weight:800;margin-bottom:10px;"></div>
+                <div id="sb-popup-price" style="font-size:24px;color:var(--gold);font-weight:700;"></div>
+                <div id="sb-popup-foil" style="font-size:13px;color:var(--muted);margin-top:3px;"></div>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="app-btn btn-dark" style="flex:1;margin:0;" onclick="sbClosePopup()">Luk</button>
+            <button class="app-btn" style="flex:2;margin:0;" onclick="sbGoSearch()">
+                <i class="fa-solid fa-magnifying-glass"></i> Se alle udgaver
+            </button>
+        </div>
     </div>
 </div>
 </body>
