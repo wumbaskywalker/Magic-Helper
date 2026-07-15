@@ -1172,7 +1172,8 @@
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;
             align-items:center;justify-content:center;padding:24px;">
     <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:20px;
-                max-width:340px;width:100%;padding:28px 24px;position:relative;">
+                max-width:340px;width:100%;padding:28px 24px;position:relative;
+                max-height:90vh;overflow-y:auto;">
         <!-- Luk-knap -->
         <button onclick="closeInfoModal()"
                 style="position:absolute;top:14px;right:14px;background:none;border:none;
@@ -1193,20 +1194,11 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-<div><span style="color:var(--gold);font-weight:700;">v1.9</span> — Vis hvem der kastede terning/mønt/random i multiplayer</div>
+                <div><span style="color:var(--gold);font-weight:700;">v1.9</span> — Vis hvem der kastede terning/mønt/random i multiplayer</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.8</span> — Genstart synkroniseres til alle spillere</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.7</span> — Din spillerkort vises altid nederst på skærmen i multiplayer</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.6</span> — Luk terning/mønt/random-modal lukker også på alle andres skærme</div>
-                <div><span style="color:var(--gold);font-weight:700;">v1.5</span> — Nyt join-flow: gæster vælger plads, navn og farve direkte i modalen og er automatisk inde i spillet; QR-kode fjernet</div>
-                <div><span style="color:var(--gold);font-weight:700;">v1.4</span> — QR-scan via foto; host-tæller forbedret; "DU" badge på eget kort</div>
-                <div><span style="color:var(--gold);font-weight:700;">v1.3</span> — QR-kode til at joine: host viser kode, gæster scanner med kamera</div>
-                <div><span style="color:var(--gold);font-weight:700;">v1.2</span> — Host ser antal tilsluttede spillere; gæster kan kun justere eget liv, poison, tax og commander damage</div>
-                <div><span style="color:var(--gold);font-weight:700;">v1.1</span> — Info-modal med versionsnummer og changelog</div>
-                <div><span style="color:var(--gold);font-weight:700;">v1.0</span> — Multiplayer via MQTT: sync af liv, poison, commander damage, terning, mønt og vælg random spiller til alle spillere</div>
-                <div><span style="color:var(--gold);font-weight:700;">v0.9</span> — Tilbehør-menu med terning, mønt, vælg random spiller og hvem starter</div>
-                <div><span style="color:var(--gold);font-weight:700;">v0.8</span> — Sæt-browser: klik på sæt-navn og se alle kort med priser</div>
-                <div><span style="color:var(--gold);font-weight:700;">v0.7</span> — Akkumulerende tæller for liv, poison og commander damage</div>
-                <div><span style="color:var(--gold);font-weight:700;">v0.6</span> — Fuldskærm-tilstand og forbedret bundlinje</div>
+                <div><span style="color:var(--gold);font-weight:700;">v1.5</span> — Nyt join-flow: gæster vælger plads, navn og farve direkte i modalen og er automatisk inde i spillet</div>
             </div>
         </div>
 
