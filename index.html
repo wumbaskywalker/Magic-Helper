@@ -3508,7 +3508,7 @@ function createSmallDie(sides, sz){
     return el;
 }
 
-function rollDice(sides){
+function rollDice(sides, _overrideRolls, _overrideCount){
     const modal=document.getElementById('random-modal');
     modal.style.display='flex';
     document.getElementById('coin-wrap').style.display      ='none';
@@ -3521,11 +3521,16 @@ function rollDice(sides){
     btn.innerText='🎲 Slå igen'; btn.onclick=()=>rollDice(sides);
     document.querySelectorAll('.dice-select-btn').forEach(b=>b.classList.toggle('active',b.innerText===`D${sides}`));
 
-    const rolls=[];
-    for(let i=0;i<diceCount;i++) rolls.push(cryptoRand(sides));
+    // Brug overrideRolls hvis vi modtager fra en anden spiller, ellers generér nye
+    const count = _overrideCount !== undefined ? _overrideCount : diceCount;
+    const rolls = _overrideRolls || Array.from({length: count}, () => cryptoRand(sides));
+
+    // Sync til alle hvis vi selv slog
+    if (!_overrideRolls) mpSendEvent({ type:'rollDice', sides, rolls, count });
+
     vib([20,30,60]); sndDice();
 
-    if(diceCount===1){
+    if(count===1){
         // ── Single die: existing large display ──
         document.getElementById('die-scene-wrap').style.display='block';
         document.getElementById('multi-results').style.display='none';
@@ -3550,7 +3555,7 @@ function rollDice(sides){
         document.getElementById('die-scene-wrap').style.display='none';
         const grid=document.getElementById('multi-results');
         grid.innerHTML=''; grid.style.display='flex';
-        const sz = diceCount<=2 ? 130 : diceCount<=4 ? 110 : diceCount<=6 ? 90 : 76;
+        const sz = count<=2 ? 130 : count<=4 ? 110 : count<=6 ? 90 : 76;
         rolls.forEach((result,i)=>{
             const dieEl=createSmallDie(sides,sz);
             dieEl.style.opacity='0';
@@ -3558,9 +3563,7 @@ function rollDice(sides){
             dieEl.style.transition=`opacity .2s ${i*60}ms, transform .2s ${i*60}ms`;
             grid.appendChild(dieEl);
             const numEl=dieEl.querySelector('.mini-num');
-            // Stagger fade-in
             setTimeout(()=>{ dieEl.style.opacity='1'; dieEl.style.transform='scale(1)'; },10+i*60);
-            // Number ticker per die
             let tick=0;
             const iv=setInterval(()=>{
                 numEl.innerText=Math.floor(Math.random()*sides)+1;
@@ -3573,7 +3576,7 @@ function rollDice(sides){
 // ═══════════════════════════════════════════════
 //  COIN
 // ═══════════════════════════════════════════════
-function flipCoin(){
+function flipCoin(_overrideIsPlat){
     const modal=document.getElementById('random-modal');
     modal.style.display='flex';
     document.getElementById('die-scene-wrap').style.display  ='none';
@@ -3590,8 +3593,9 @@ function flipCoin(){
     btn.innerText='🪙 Flip igen'; btn.onclick=()=>flipCoin();
     resEl.style.display='none';
 
-    // Determine result first so we can land on the right face
-    const isPlat = cryptoRand(2)===1; // Plat = front (0deg), Krone = back (180deg)
+    // Brug override hvis modtaget fra en anden spiller, ellers generér nyt
+    const isPlat = _overrideIsPlat !== undefined ? _overrideIsPlat : (cryptoRand(2)===1);
+    if (_overrideIsPlat === undefined) mpSendEvent({ type:'flipCoin', isPlat });
     // End rotation: multiple full spins + land on front(0°) or back(180°)
     const extraSpins = 3 * 360; // 3 full extra rotations for drama
     const endAngle = extraSpins + (isPlat ? 0 : 180);
@@ -5787,7 +5791,8 @@ function _mpConnect(code, role) {
         } else {
             document.getElementById('mp-client-status').textContent = 'Session: ' + code;
             mpShowClient();
-            // mpMyPlayer sættes når spillerpicker vises (ved modtagelse af gameConfig)
+            // Bed hosten om at sende sin nuværende state
+            setTimeout(() => mpSendEvent({ type: 'requestState' }), 400);
         }
         mpUpdateBtn();
     });
@@ -5939,12 +5944,24 @@ function mpBroadcast() {
 
 function mpApplyState(data) {
     // Håndter enkelt-events
+    if (data.type === 'requestState') {
+        if (mpMode === 'host') mpBroadcast();
+        return;
+    }
     if (data.type === 'whoStarts') {
         whoStartsRemote(data.winnerIdx);
         return;
     }
     if (data.type === 'randomPlayer') {
         pickRandomPlayer(data.idx);
+        return;
+    }
+    if (data.type === 'rollDice') {
+        rollDice(data.sides, data.rolls, data.count);
+        return;
+    }
+    if (data.type === 'flipCoin') {
+        flipCoin(data.isPlat);
         return;
     }
     if (!data.players) return;
@@ -5956,8 +5973,8 @@ function mpApplyState(data) {
         gameFormat = format; startLife = sl;
         initGame(playerCount);
         document.getElementById('view-play')?.classList.remove('setup-mode');
-        // Vis spillerpicker
-        setTimeout(() => mpShowPlayerPicker(playerCount), 200);
+        // Vis spillerpicker kun første gang (ikke igen ved efterfølgende state-opdateringer)
+        if (mpMyPlayer === -1) setTimeout(() => mpShowPlayerPicker(playerCount), 200);
     }
 
     data.players.forEach((p, i) => {
