@@ -1138,12 +1138,12 @@
     <span class="header-title">⚔️ Magic Helper</span>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
         <div style="display:flex;align-items:center;gap:6px;">
-            <button id="update-btn" onclick="triggerUpdate(this)" title="Hent seneste version"
+            <button onclick="openInfoModal()" title="Om Magic Helper"
                 style="background:var(--bg-input);border:1px solid var(--border-lit);border-radius:8px;
                        color:var(--muted);font-size:11px;font-weight:600;padding:6px 10px;
                        cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;
                        letter-spacing:.02em;">
-                <i id="update-icon" class="fa-solid fa-rotate-right" style="font-size:12px;"></i> Opdater app
+                <i class="fa-solid fa-circle-info" style="font-size:12px;"></i> Info
             </button>
             <select id="currency-select" onchange="changeCurrency(this.value)" style="margin:0;">
                 <option value="EUR">€ EUR</option>
@@ -1154,6 +1154,56 @@
         <div id="rate-warning">⚠ standardkurs</div>
     </div>
 </header>
+
+<!-- ══ INFO MODAL ══ -->
+<div id="info-modal" onclick="if(event.target===this)closeInfoModal()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;
+            align-items:center;justify-content:center;padding:24px;">
+    <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:20px;
+                max-width:340px;width:100%;padding:28px 24px;position:relative;">
+        <!-- Luk-knap -->
+        <button onclick="closeInfoModal()"
+                style="position:absolute;top:14px;right:14px;background:none;border:none;
+                       color:var(--muted);font-size:18px;cursor:pointer;line-height:1;">✕</button>
+
+        <!-- Logo + navn -->
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:36px;margin-bottom:6px;">⚔️</div>
+            <div style="font-size:22px;font-weight:900;color:var(--text);">Magic Helper</div>
+            <div id="info-version" style="font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.06em;">VERSION 1.0</div>
+        </div>
+
+        <p style="font-size:13px;color:var(--muted);text-align:center;line-height:1.6;margin:0 0 20px;">
+            En gratis life-tracker til Magic: The Gathering med multiplayer, kortsamling, sæt-browser og meget mere.
+        </p>
+
+        <!-- Changelog -->
+        <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
+            <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v1.1</span> — Info-modal med versionsnummer og changelog</div>
+                <div><span style="color:var(--gold);font-weight:700;">v1.0</span> — Multiplayer via MQTT: sync af liv, poison, commander damage, terning, mønt og vælg random spiller til alle spillere</div>
+                <div><span style="color:var(--gold);font-weight:700;">v0.9</span> — Tilbehør-menu med terning, mønt, vælg random spiller og hvem starter</div>
+                <div><span style="color:var(--gold);font-weight:700;">v0.8</span> — Sæt-browser: klik på sæt-navn og se alle kort med priser</div>
+                <div><span style="color:var(--gold);font-weight:700;">v0.7</span> — Akkumulerende tæller for liv, poison og commander damage</div>
+                <div><span style="color:var(--gold);font-weight:700;">v0.6</span> — Fuldskærm-tilstand og forbedret bundlinje</div>
+            </div>
+        </div>
+
+        <!-- Kaffe -->
+        <div style="text-align:center;">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Hvis du nyder appen, må du meget gerne ☕</div>
+            <a href="https://buymeacoffee.com/magichelper" target="_blank" rel="noopener"
+               style="display:inline-flex;align-items:center;gap:8px;
+                      background:linear-gradient(135deg,#f7a600,#ffcc00);
+                      color:#1a1200;font-weight:800;font-size:14px;
+                      padding:12px 22px;border-radius:12px;text-decoration:none;
+                      box-shadow:0 4px 18px rgba(247,166,0,.35);">
+                ☕ Køb udvikleren en kaffe
+            </a>
+        </div>
+    </div>
+</div>
 
 <!-- ══ SEARCH ══ -->
 <main id="view-search" class="view-section active">
@@ -3125,11 +3175,15 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-function triggerUpdate(btn){
-    const icon = document.getElementById('update-icon');
-    icon.classList.add('spinning');
-    btn.disabled = true;
-    setTimeout(()=>{ window.location.href = location.pathname+'?v='+Date.now(); }, 500);
+const APP_VERSION = '1.1';
+
+function openInfoModal() {
+    document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
+    const m = document.getElementById('info-modal');
+    m.style.display = 'flex';
+}
+function closeInfoModal() {
+    document.getElementById('info-modal').style.display = 'none';
 }
 
 function exportToKelz0r(){
