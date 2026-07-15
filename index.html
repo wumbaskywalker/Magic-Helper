@@ -6152,13 +6152,18 @@ function mpApplyState(data) {
     if (!data.players) return;
     _mpReceiving = true;
 
-    // Klient har ikke startet spil endnu → auto-start med host's konfiguration
-    if (data.gameConfig && (gamePlayers.length === 0 || document.getElementById('view-play')?.classList.contains('setup-mode'))) {
+    // Auto-start med host's konfiguration (altid for klienter — selv hvis lokalt spil kørte)
+    if (data.gameConfig) {
         const { playerCount, format, startLife: sl } = data.gameConfig;
-        gameFormat = format; startLife = sl;
-        initGame(playerCount);
-        document.getElementById('view-play')?.classList.remove('setup-mode');
-        // Vis spillerpicker kun første gang (ikke igen ved efterfølgende state-opdateringer)
+        // Reinitialiser hvis konfigurationen ikke matcher det nuværende spil
+        if (gamePlayers.length !== playerCount || currentPC !== playerCount ||
+            gameFormat !== format ||
+            document.getElementById('view-play')?.classList.contains('setup-mode')) {
+            gameFormat = format; startLife = sl;
+            initGame(playerCount);
+            document.getElementById('view-play')?.classList.remove('setup-mode');
+        }
+        // Vis opsætningspanel for klienter der endnu ikke har valgt plads
         if (mpMyPlayer === -1) mpPopulateClientSetup(playerCount);
     }
 
@@ -6365,9 +6370,10 @@ function showAccum(id, amt, type) {
                 </div>
             </div>
 
-            <div id="mp-host-status" style="text-align:center;padding:12px;border-radius:10px;background:var(--bg-panel);border:1px solid var(--border);margin-bottom:20px;font-size:14px;color:var(--muted);">
+            <div id="mp-host-status" style="text-align:center;padding:12px;border-radius:10px;background:var(--bg-panel);border:1px solid var(--border);margin-bottom:16px;font-size:14px;color:var(--muted);">
                 Venter på spillere…
             </div>
+            <button class="app-btn" style="width:100%;margin-bottom:10px;font-size:15px;" onclick="closeMpModal()">Spil! →</button>
             <button class="app-btn btn-red" style="width:100%;" onclick="mpDisconnect()">Afslut session</button>
         </div>
 
