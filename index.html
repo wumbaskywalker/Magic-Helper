@@ -1185,6 +1185,8 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v1.9</span> — Vis hvem der kastede terning/mønt/random i multiplayer</div>
+                <div><span style="color:var(--gold);font-weight:700;">v1.8</span> — Genstart synkroniseres til alle spillere</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.7</span> — Din spillerkort vises altid nederst på skærmen i multiplayer</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.6</span> — Luk terning/mønt/random-modal lukker også på alle andres skærme</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.5</span> — Nyt join-flow: gæster vælger plads, navn og farve direkte i modalen og er automatisk inde i spillet; QR-kode fjernet</div>
@@ -2036,6 +2038,7 @@
 <div id="random-modal" class="dice-modal" onclick="if(event.target===this)closeRandomModal()">
     <div id="modal-lightning-flash"></div>
     <div class="dice-label" id="random-label">Terningkast</div>
+    <div id="random-initiator" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;margin-top:-6px;margin-bottom:6px;min-height:16px;text-align:center;"></div>
 
     <!-- Die type selector -->
     <div class="dice-select-row" id="dice-selector">
@@ -3192,7 +3195,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.9';
 
 function openInfoModal() {
     document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
@@ -3371,6 +3374,7 @@ function pickLife(n){
     startLife=n;
     initGame(currentPC);
     document.getElementById('view-play').classList.remove('setup-mode');
+    mpBroadcast();
 }
 function cancelSetup(){
     if(gamePlayers.length>0) document.getElementById('view-play').classList.remove('setup-mode');
@@ -3380,6 +3384,7 @@ function quickReset(){
     gamePlayers.forEach(p=>{p.life=startLife;p.poison=0;p.tax=0;p.dead=false;Object.keys(p.cmdDmg).forEach(k=>p.cmdDmg[k]=0);});
     renderBoard();
     cancelSetup();
+    mpBroadcast();
 }
 function initGame(n){
     currentPC=n;
@@ -3598,7 +3603,18 @@ function closeRandomModal() {
     mpSendEvent({ type: 'closeRandom' });
 }
 
-function rollDice(sides, _overrideRolls, _overrideCount){
+function _mpInitiatorName() {
+    if (mpMode === 'local') return '';
+    if (mpMyPlayer >= 0 && gamePlayers[mpMyPlayer]) return gamePlayers[mpMyPlayer].name;
+    return '';
+}
+function setRandomInitiator(name) {
+    const el = document.getElementById('random-initiator');
+    if (!el) return;
+    el.textContent = (name && mpMode !== 'local') ? 'af ' + name : '';
+}
+
+function rollDice(sides, _overrideRolls, _overrideCount, _initiatorName){
     const modal=document.getElementById('random-modal');
     modal.style.display='flex';
     document.getElementById('coin-wrap').style.display      ='none';
@@ -3616,7 +3632,13 @@ function rollDice(sides, _overrideRolls, _overrideCount){
     const rolls = _overrideRolls || Array.from({length: count}, () => cryptoRand(sides));
 
     // Sync til alle hvis vi selv slog
-    if (!_overrideRolls) mpSendEvent({ type:'rollDice', sides, rolls, count });
+    if (!_overrideRolls) {
+        const iName = _mpInitiatorName();
+        mpSendEvent({ type:'rollDice', sides, rolls, count, initiatorName: iName });
+        setRandomInitiator(iName);
+    } else {
+        setRandomInitiator(_initiatorName || '');
+    }
 
     vib([20,30,60]); sndDice();
 
@@ -3666,7 +3688,7 @@ function rollDice(sides, _overrideRolls, _overrideCount){
 // ═══════════════════════════════════════════════
 //  COIN
 // ═══════════════════════════════════════════════
-function flipCoin(_overrideIsPlat){
+function flipCoin(_overrideIsPlat, _initiatorName){
     const modal=document.getElementById('random-modal');
     modal.style.display='flex';
     document.getElementById('die-scene-wrap').style.display  ='none';
@@ -3685,7 +3707,13 @@ function flipCoin(_overrideIsPlat){
 
     // Brug override hvis modtaget fra en anden spiller, ellers generér nyt
     const isPlat = _overrideIsPlat !== undefined ? _overrideIsPlat : (cryptoRand(2)===1);
-    if (_overrideIsPlat === undefined) mpSendEvent({ type:'flipCoin', isPlat });
+    if (_overrideIsPlat === undefined) {
+        const iName = _mpInitiatorName();
+        mpSendEvent({ type:'flipCoin', isPlat, initiatorName: iName });
+        setRandomInitiator(iName);
+    } else {
+        setRandomInitiator(_initiatorName || '');
+    }
     // End rotation: multiple full spins + land on front(0°) or back(180°)
     const extraSpins = 3 * 360; // 3 full extra rotations for drama
     const endAngle = extraSpins + (isPlat ? 0 : 180);
@@ -3707,11 +3735,11 @@ function flipCoin(_overrideIsPlat){
 // ═══════════════════════════════════════════════
 //  WHO STARTS
 // ═══════════════════════════════════════════════
-function whoStartsRemote(winnerIdx) {
+function whoStartsRemote(winnerIdx, initiatorName) {
     // Åbn modalen og vis animationen med den fastsatte vinder
-    whoStarts(_override = winnerIdx);
+    whoStarts(winnerIdx, initiatorName);
 }
-function whoStarts(_override){
+function whoStarts(_override, _initiatorName){
     const modal=document.getElementById('random-modal');
     modal.style.display='flex';
     document.getElementById('die-scene-wrap').style.display  ='none';
@@ -3756,7 +3784,13 @@ function whoStarts(_override){
 
     // Pick winner & broadcast så alle ser samme resultat
     const winnerIdx = (_override !== undefined) ? _override : cryptoRand(currentPC)-1;
-    if (_override === undefined) mpSendEvent({ type:'whoStarts', winnerIdx });
+    if (_override === undefined) {
+        const iName = _mpInitiatorName();
+        mpSendEvent({ type:'whoStarts', winnerIdx, initiatorName: iName });
+        setRandomInitiator(iName);
+    } else {
+        setRandomInitiator(_initiatorName || '');
+    }
     const winnerDeg = (winnerIdx/currentPC)*360;
     const totalDeg  = 5*360 + winnerDeg; // 5 full spins + landing angle
     rotator.style.setProperty('--sword-end', totalDeg+'deg');
@@ -5733,7 +5767,7 @@ function hideTilbehoer() {
 }
 document.addEventListener('click', () => hideTilbehoer());
 
-function pickRandomPlayer(_overrideIdx) {
+function pickRandomPlayer(_overrideIdx, _initiatorName) {
     if (!gamePlayers || gamePlayers.length === 0) return;
     const pool = gamePlayers.filter(p => !p.dead);
     if (pool.length === 0) return;
@@ -5744,7 +5778,11 @@ function pickRandomPlayer(_overrideIdx) {
     if (!picked) return;
 
     if (_overrideIdx === undefined) {
-        mpSendEvent({ type: 'randomPlayer', idx: gamePlayers.indexOf(picked) });
+        const iName = _mpInitiatorName();
+        mpSendEvent({ type: 'randomPlayer', idx: gamePlayers.indexOf(picked), initiatorName: iName });
+        setRandomInitiator(iName);
+    } else {
+        setRandomInitiator(_initiatorName || '');
     }
 
     // Open modal, hide other sections
@@ -6151,19 +6189,19 @@ function mpApplyState(data) {
         return;
     }
     if (data.type === 'whoStarts') {
-        whoStartsRemote(data.winnerIdx);
+        whoStartsRemote(data.winnerIdx, data.initiatorName);
         return;
     }
     if (data.type === 'randomPlayer') {
-        pickRandomPlayer(data.idx);
+        pickRandomPlayer(data.idx, data.initiatorName);
         return;
     }
     if (data.type === 'rollDice') {
-        rollDice(data.sides, data.rolls, data.count);
+        rollDice(data.sides, data.rolls, data.count, data.initiatorName);
         return;
     }
     if (data.type === 'flipCoin') {
-        flipCoin(data.isPlat);
+        flipCoin(data.isPlat, data.initiatorName);
         return;
     }
     if (data.type === 'closeRandom') {
