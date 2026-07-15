@@ -12,8 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
     <style>
         :root {
             --bg-body:    #0c0e18;
@@ -1187,7 +1185,8 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v1.4</span> — QR-scan via foto (virker uden HTTPS); host-tæller forbedret; gæster defaulter til Spiller 2 i picker; "DU" badge på eget kort</div>
+                <div><span style="color:var(--gold);font-weight:700;">v1.5</span> — Nyt join-flow: gæster vælger plads, navn og farve direkte i modalen og er automatisk inde i spillet; QR-kode fjernet</div>
+                <div><span style="color:var(--gold);font-weight:700;">v1.4</span> — QR-scan via foto; host-tæller forbedret; "DU" badge på eget kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.3</span> — QR-kode til at joine: host viser kode, gæster scanner med kamera</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.2</span> — Host ser antal tilsluttede spillere; gæster kan kun justere eget liv, poison, tax og commander damage</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.1</span> — Info-modal med versionsnummer og changelog</div>
@@ -3191,7 +3190,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 
 function openInfoModal() {
     document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
@@ -5802,13 +5801,16 @@ function openMpModal()  { document.getElementById('mp-modal').style.display = 'b
 function closeMpModal() { document.getElementById('mp-modal').style.display = 'none'; }
 
 function _mpShowPanel(name) {
-    ['idle','join','host','client'].forEach(p =>
-        document.getElementById('mp-panel-' + p).style.display = p === name ? 'block' : 'none');
+    ['idle','join','host','client','client-setup'].forEach(p => {
+        const el = document.getElementById('mp-panel-' + p);
+        if (el) el.style.display = p === name ? 'block' : 'none';
+    });
 }
-function mpShowIdle()   { _mpShowPanel('idle'); }
-function mpShowJoin()   { _mpShowPanel('join'); }
-function mpShowHost()   { _mpShowPanel('host'); }
-function mpShowClient() { _mpShowPanel('client'); }
+function mpShowIdle()        { _mpShowPanel('idle'); }
+function mpShowJoin()        { _mpShowPanel('join'); }
+function mpShowHost()        { _mpShowPanel('host'); }
+function mpShowClient()      { _mpShowPanel('client'); }
+function mpShowClientSetup() { _mpShowPanel('client-setup'); }
 
 function mpUpdateBtn() {
     const btn = document.getElementById('mp-btn');
@@ -5868,11 +5870,11 @@ function _mpConnect(code, role) {
             document.getElementById('mp-room-code').textContent = code;
             _mpJoinedClients.clear();
             mpUpdateHostJoinStatus();
-            mpGenerateQR(code);
             mpBroadcast();   // send startstate
         } else {
-            document.getElementById('mp-client-status').textContent = 'Session: ' + code;
-            mpShowClient();
+            // Vis loading-tekst i join-knap mens vi venter på spildata fra host
+            const joinBtn = document.getElementById('mp-join-btn');
+            if (joinBtn) { joinBtn.textContent = 'Forbundet — henter spildata…'; joinBtn.disabled = true; }
             // Bed hosten om at sende sin nuværende state
             setTimeout(() => mpSendEvent({ type: 'requestState' }), 400);
         }
@@ -5929,13 +5931,8 @@ function mpDisconnect() {
     if (_mpClient) { try { _mpClient.end(true); } catch(e){} _mpClient = null; }
     mpMode = 'local'; _mpCode = ''; mpMyPlayer = -1;
     // Reset join-knap
-    const joinBtn = document.querySelector('#mp-panel-join .app-btn');
+    const joinBtn = document.getElementById('mp-join-btn');
     if (joinBtn) { joinBtn.textContent = 'Forbind'; joinBtn.disabled = false; }
-    // Ryd QR-kode
-    const qrEl = document.getElementById('mp-qr-code');
-    if (qrEl) qrEl.innerHTML = '';
-    const qrWrap = document.getElementById('mp-qr-wrap');
-    if (qrWrap) qrWrap.style.display = 'none';
     mpShowIdle(); mpUpdateBtn();
     renderBoard(); // opdater knapper
 }
@@ -6041,54 +6038,79 @@ function mpBroadcast() {
 
 const _mpJoinedClients = new Set();
 
-// ── QR-kode generering ────────────────────────
-function mpGenerateQR(code) {
-    const wrap = document.getElementById('mp-qr-wrap');
-    const el   = document.getElementById('mp-qr-code');
-    el.innerHTML = '';
-    if (typeof QRCode !== 'undefined') {
-        new QRCode(el, {
-            text: code,
-            width: 160, height: 160,
-            colorDark: '#000', colorLight: '#fff',
-            correctLevel: QRCode.CorrectLevel.M
-        });
-        wrap.style.display = 'block';
+// ── Klient opsætningspanel ────────────────────
+const _mpSetupColors = ['#dc3545','#007bff','#28a745','#fd7e14','#6f42c1','#20c997','#e83e8c','#ffc107'];
+
+function mpPopulateClientSetup(playerCount) {
+    document.getElementById('mp-setup-session').textContent = 'Session: ' + _mpCode;
+
+    // Pladsknapper
+    const slotsEl = document.getElementById('mp-setup-slots');
+    slotsEl.innerHTML = '';
+    for (let i = 0; i < playerCount; i++) {
+        const isHostSlot = i === 0;
+        const btn = document.createElement('button');
+        btn.dataset.slot = i;
+        btn.style.cssText = `flex:1;min-width:60px;padding:10px 4px;border-radius:10px;border:2px solid #2a2f50;background:#12141f;color:${isHostSlot?'#7a80a0':'#e8eaf2'};font-size:12px;font-weight:800;cursor:pointer;line-height:1.3;`;
+        btn.innerHTML = `Spiller ${i+1}${isHostSlot ? '<br><span style="font-size:9px;opacity:.55;font-weight:600;">Host</span>' : ''}`;
+        btn.onclick = () => mpSetupPickSlot(i);
+        slotsEl.appendChild(btn);
     }
+
+    // Farveknapper
+    const colorsEl = document.getElementById('mp-setup-colors');
+    colorsEl.innerHTML = '';
+    _mpSetupColors.forEach(c => {
+        const btn = document.createElement('button');
+        btn.dataset.color = c;
+        btn.style.cssText = `width:36px;height:36px;border-radius:50%;background:${c};border:3px solid transparent;cursor:pointer;transition:transform .12s,border-color .12s;`;
+        btn.onclick = () => mpSetupPickColor(c);
+        colorsEl.appendChild(btn);
+    });
+
+    // Default: slot 1 (host er slot 0), anden farve
+    const defaultSlot = Math.min(1, playerCount - 1);
+    mpSetupPickSlot(defaultSlot);
+    mpSetupPickColor(_mpSetupColors[defaultSlot] || _mpSetupColors[0]);
+
+    // Vis setup-panel i modalen
+    mpShowClientSetup();
 }
 
-// ── QR-kode scanning (via foto — virker uden HTTPS) ──
-function mpHandleScanImage(input) {
-    if (!input.files || !input.files[0]) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width; canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            if (typeof jsQR !== 'undefined') {
-                const qr = jsQR(imageData.data, imageData.width, imageData.height);
-                if (qr) {
-                    const raw = qr.data.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    if (raw.length >= 4 && raw.length <= 8) {
-                        document.getElementById('mp-join-input').value = raw;
-                        mpJoin();
-                        return;
-                    }
-                }
-            }
-            toast('QR-kode ikke genkendt — prøv igen');
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(input.files[0]);
-    input.value = ''; // Reset så samme fil kan scannes igen
+function mpSetupPickSlot(idx) {
+    _mpPickedSlot = idx;
+    document.querySelectorAll('#mp-setup-slots [data-slot]').forEach(b => {
+        const sel = +b.dataset.slot === idx;
+        b.style.borderColor = sel ? '#c9a84c' : '#2a2f50';
+        b.style.color = sel ? '#c9a84c' : (b.dataset.slot === '0' ? '#7a80a0' : '#e8eaf2');
+    });
 }
 
-function mpStopScan() { /* bevaret for bagudkompatibilitet */ }
+function mpSetupPickColor(hex) {
+    _mpPickedColor = hex;
+    document.querySelectorAll('#mp-setup-colors [data-color]').forEach(b => {
+        const sel = b.dataset.color === hex;
+        b.style.borderColor = sel ? '#fff' : 'transparent';
+        b.style.transform = sel ? 'scale(1.2)' : 'scale(1)';
+    });
+}
+
+function mpConfirmSetup() {
+    const nameInput = document.getElementById('mp-setup-name');
+    const name = nameInput?.value.trim() || `Spiller ${_mpPickedSlot + 1}`;
+    mpMyPlayer = _mpPickedSlot;
+    if (gamePlayers[mpMyPlayer]) {
+        gamePlayers[mpMyPlayer].name  = name;
+        gamePlayers[mpMyPlayer].color = _mpPickedColor;
+    }
+    // Opdater "forbundet" panel til fremtidig modal-åbning
+    document.getElementById('mp-client-status').textContent = `Du spiller som ${name} (Spiller ${mpMyPlayer + 1})`;
+    _mpShowPanel('client');
+    closeMpModal();
+    renderBoard();
+    mpBroadcast();
+    toast(`Du spiller som ${name}`);
+}
 
 function mpUpdateHostJoinStatus() {
     const el = document.getElementById('mp-host-status');
@@ -6137,7 +6159,7 @@ function mpApplyState(data) {
         initGame(playerCount);
         document.getElementById('view-play')?.classList.remove('setup-mode');
         // Vis spillerpicker kun første gang (ikke igen ved efterfølgende state-opdateringer)
-        if (mpMyPlayer === -1) setTimeout(() => mpShowPlayerPicker(playerCount), 200);
+        if (mpMyPlayer === -1) mpPopulateClientSetup(playerCount);
     }
 
     data.players.forEach((p, i) => {
@@ -6311,9 +6333,7 @@ function showAccum(id, amt, type) {
                        padding:14px;margin-bottom:16px;border-radius:12px;border:2px solid var(--border-lit);
                        background:var(--bg-input);color:var(--text);"
                 oninput="this.value=this.value.toUpperCase()">
-            <button class="app-btn" style="width:100%;margin-bottom:10px;" onclick="mpJoin()">Forbind</button>
-            <input id="mp-scan-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="mpHandleScanImage(this)">
-            <button class="app-btn btn-dark" style="width:100%;margin-bottom:10px;" onclick="document.getElementById('mp-scan-input').click()">📷 Scan QR-kode</button>
+            <button id="mp-join-btn" class="app-btn" style="width:100%;margin-bottom:10px;" onclick="mpJoin()">Forbind</button>
             <button class="app-btn btn-dark" style="width:100%;" onclick="mpShowIdle()">← Tilbage</button>
         </div>
 
@@ -6322,10 +6342,7 @@ function showAccum(id, amt, type) {
             <div style="text-align:center;margin-bottom:20px;">
                 <div style="font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.08em;margin-bottom:8px;">DIN RUMKODE</div>
                 <div id="mp-room-code" style="font-size:48px;font-weight:900;letter-spacing:10px;color:#c9a84c;font-family:monospace;"></div>
-                <div id="mp-qr-wrap" style="display:none;margin:16px auto 4px;">
-                    <div id="mp-qr-code" style="display:inline-block;background:#fff;padding:10px;border-radius:12px;"></div>
-                </div>
-                <div style="font-size:12px;color:var(--muted);margin-top:8px;">Del koden eller lad spillere scanne QR</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:8px;">Del denne kode med de andre spillere</div>
             </div>
 
             <div style="margin-bottom:12px;">
@@ -6354,7 +6371,34 @@ function showAccum(id, amt, type) {
             <button class="app-btn btn-red" style="width:100%;" onclick="mpDisconnect()">Afslut session</button>
         </div>
 
-        <!-- Panel: client (forbundet) -->
+        <!-- Panel: client opsætning (vælg plads, navn, farve) -->
+        <div id="mp-panel-client-setup" style="display:none;">
+            <div style="text-align:center;padding:12px;border-radius:10px;background:rgba(93,204,122,.08);border:1px solid #2e5c2e;margin-bottom:20px;">
+                <div style="font-size:14px;font-weight:700;color:#5dcc7a;">✓ Forbundet til spillet!</div>
+                <div id="mp-setup-session" style="font-size:12px;color:var(--muted);margin-top:3px;"></div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:8px;">DIN PLADS</label>
+                <div id="mp-setup-slots" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:6px;">DIT NAVN</label>
+                <input id="mp-setup-name" type="text" maxlength="20" placeholder="Spiller"
+                    style="width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--border-lit);background:var(--bg-input);color:var(--text);font-size:15px;font-weight:700;box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:22px;">
+                <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:8px;">DIN FARVE</label>
+                <div id="mp-setup-colors" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+            </div>
+
+            <button class="app-btn" style="width:100%;margin-bottom:10px;font-size:15px;" onclick="mpConfirmSetup()">Gå ind i spillet →</button>
+            <button class="app-btn btn-dark" style="width:100%;" onclick="mpDisconnect()">Afslut forbindelse</button>
+        </div>
+
+        <!-- Panel: client (allerede i spil — vises ved genaabning af modal) -->
         <div id="mp-panel-client" style="display:none;">
             <div style="text-align:center;padding:20px;border-radius:12px;background:var(--bg-panel);border:1px solid #2e5c2e;margin-bottom:20px;">
                 <div style="font-size:32px;margin-bottom:8px;">✓</div>
