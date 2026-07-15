@@ -503,6 +503,16 @@
         }
         .mini-btn:active { background: rgba(255,255,255,.28) !important; }
 
+        .mp-host-pc-btn, .mp-host-fmt-btn, .mp-host-sl-btn {
+            flex:1; padding:10px 6px; font-size:15px; font-weight:800;
+            border-radius:10px; border:1.5px solid var(--border-lit);
+            background:var(--bg-input); color:var(--muted); cursor:pointer;
+            transition:background .12s,border-color .12s,color .12s;
+        }
+        .mp-host-pc-btn.active, .mp-host-fmt-btn.active, .mp-host-sl-btn.active {
+            background:var(--accent); border-color:var(--accent); color:#0c0e18;
+        }
+
         .stats-row {
             display: flex; flex-wrap: nowrap; justify-content: center;
             gap: 4px; margin-bottom: 4px; width: 100%; flex-shrink: 0;
@@ -3560,7 +3570,7 @@ function renderBoard(){
                 <button class="life-btn" style="${lifeBtnStyle}" onpointerdown="startLP(${p.id},1);adjLife(${p.id},1)" onpointerup="endLP()" onpointerleave="endLP()">+</button>
             </div>`;
 
-        const meTag = _isMe ? `<span style="font-size:9px;font-weight:800;letter-spacing:.06em;color:#c9a84c;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 5px;flex-shrink:0;">DU</span>` : '';
+        const meTag = _isMe ? `<span style="font-size:9px;font-weight:800;letter-spacing:.06em;color:#c9a84c;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 5px;flex-shrink:0;">DIG</span>` : '';
         const headerHTML = `<div class="player-header">
                 ${meTag}<input class="player-name-input" value="${p.name}" ${isMyPlayer?'':'readonly style="pointer-events:none;opacity:.5;"'} onchange="setName(${p.id},this.value)">
                 <input type="color" class="player-color-input" value="${p.color}" ${isMyPlayer?'':'disabled style="pointer-events:none;opacity:.5;"'} onchange="setColor(${p.id},this.value)">
@@ -5903,7 +5913,7 @@ function _mpShowPanel(name) {
 }
 function mpShowIdle()        { _mpShowPanel('idle'); }
 function mpShowJoin()        { _mpShowPanel('join'); }
-function mpShowHost()        { _mpShowPanel('host'); }
+function mpShowHost()        { _mpShowPanel('host'); _mpHostRefreshSelectors(); }
 function mpShowClient()      { _mpShowPanel('client'); }
 function mpShowClientSetup() { _mpShowPanel('client-setup'); }
 
@@ -5935,6 +5945,47 @@ function mpHostColor(hex) {
         b.style.borderColor = b.dataset.hc === hex ? '#fff' : 'transparent');
 }
 
+function mpHostSetPlayers(n) {
+    // Bevar navn og farve fra spiller 1
+    const name  = gamePlayers[0]?.name  || (document.getElementById('mp-host-name')?.value  || 'Spiller 1');
+    const color = gamePlayers[0]?.color || '#dc3545';
+    startLife = gameFormat === 'commander' ? 40 : 20;
+    initGame(n);
+    if (gamePlayers[0]) { gamePlayers[0].name = name; gamePlayers[0].color = color; }
+    renderBoard(); mpBroadcast();
+    document.querySelectorAll('.mp-host-pc-btn').forEach(b =>
+        b.classList.toggle('active', +b.dataset.pc === n));
+}
+
+function mpHostSetFormat(f) {
+    gameFormat = f;
+    startLife = f === 'commander' ? 40 : 20;
+    gamePlayers.forEach(p => { p.life = startLife; p.poison = 0; p.tax = 0;
+        Object.keys(p.cmdDmg).forEach(k => p.cmdDmg[k] = 0); });
+    renderBoard(); mpBroadcast();
+    document.querySelectorAll('.mp-host-fmt-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.fmt === f));
+    document.querySelectorAll('.mp-host-sl-btn').forEach(b =>
+        b.classList.toggle('active', +b.dataset.sl === startLife));
+}
+
+function mpHostSetLife(n) {
+    startLife = n;
+    gamePlayers.forEach(p => { p.life = n; });
+    renderBoard(); mpBroadcast();
+    document.querySelectorAll('.mp-host-sl-btn').forEach(b =>
+        b.classList.toggle('active', +b.dataset.sl === n));
+}
+
+function _mpHostRefreshSelectors() {
+    document.querySelectorAll('.mp-host-pc-btn').forEach(b =>
+        b.classList.toggle('active', +b.dataset.pc === currentPC));
+    document.querySelectorAll('.mp-host-fmt-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.fmt === gameFormat));
+    document.querySelectorAll('.mp-host-sl-btn').forEach(b =>
+        b.classList.toggle('active', +b.dataset.sl === startLife));
+}
+
 // ── Intern forbindelsesfunktion ───────────────
 function _mpConnect(code, role) {
     _mpCode = code;
@@ -5953,25 +6004,33 @@ function _mpConnect(code, role) {
         connectTimeout: 10000,
         keepalive: 30,
         clean: true,
+        reconnectPeriod: 3000,
     });
 
     const topic = 'mtghelper/' + code + '/state';
 
     _mpClient.on('connect', () => {
         _mpClient.subscribe(topic);
-        mpMode = role;
-        if (role === 'host') {
-            mpMyPlayer = 0;  // host er altid spiller 1
-            document.getElementById('mp-room-code').textContent = code;
-            _mpJoinedClients.clear();
-            mpUpdateHostJoinStatus();
-            mpBroadcast();   // send startstate
+        const isReconnect = (mpMode === role);
+        if (!isReconnect) {
+            // Første forbindelse
+            mpMode = role;
+            if (role === 'host') {
+                mpMyPlayer = 0;
+                document.getElementById('mp-room-code').textContent = code;
+                _mpJoinedClients.clear();
+                mpUpdateHostJoinStatus();
+                mpBroadcast();
+            } else {
+                const joinBtn = document.getElementById('mp-join-btn');
+                if (joinBtn) { joinBtn.textContent = 'Forbundet — henter spildata…'; joinBtn.disabled = true; }
+                setTimeout(() => mpSendEvent({ type: 'requestState' }), 400);
+            }
         } else {
-            // Vis loading-tekst i join-knap mens vi venter på spildata fra host
-            const joinBtn = document.getElementById('mp-join-btn');
-            if (joinBtn) { joinBtn.textContent = 'Forbundet — henter spildata…'; joinBtn.disabled = true; }
-            // Bed hosten om at sende sin nuværende state
-            setTimeout(() => mpSendEvent({ type: 'requestState' }), 400);
+            // Genforbundet — bevar plads og synkroniser state
+            toast('Forbundet igen ✓');
+            if (role === 'host') mpBroadcast();
+            else setTimeout(() => mpSendEvent({ type: 'requestState' }), 400);
         }
         mpUpdateBtn();
     });
@@ -5996,8 +6055,8 @@ function _mpConnect(code, role) {
 
     _mpClient.on('close', () => {
         if (mpMode !== 'local') {
-            toast('Forbindelsen afbrudt');
-            mpDisconnect();
+            toast('Forbindelsen afbrudt — forsøger igen…');
+            // Kalder ikke mpDisconnect — MQTT.js genforbinder automatisk
         }
     });
 
@@ -6266,6 +6325,7 @@ function mpApplyState(data) {
         if (mpMyPlayer === -1) mpPopulateClientSetup(playerCount);
     }
 
+    const pendingAccums = [];
     data.players.forEach((p, i) => {
         if (!gamePlayers[i]) return;
         const old = gamePlayers[i];
@@ -6289,14 +6349,14 @@ function mpApplyState(data) {
         gamePlayers[i].name   = p.name;
         gamePlayers[i].color  = p.color;
 
-        // Vis akkumulatorer for ændringer (samme som lokalt)
-        if (poisonDiff !== 0) showAccum(pid, poisonDiff, 'poison');
-        if (taxDiff    !== 0) showAccum(pid, taxDiff,    'tax');
-        if (cmdDiff    !== 0) showAccum(pid, cmdDiff,    'cmd');
-        // Liv: vis kun hvis livs-ændringen ikke skyldes cmd damage
-        if (lifeDiff   !== 0 && cmdDiff === 0) showAccum(pid, lifeDiff, 'life');
+        // Samle akkumulatorer — vises EFTER renderBoard så DOM eksisterer
+        if (poisonDiff !== 0) pendingAccums.push([pid, poisonDiff, 'poison']);
+        if (taxDiff    !== 0) pendingAccums.push([pid, taxDiff,    'tax']);
+        if (cmdDiff    !== 0) pendingAccums.push([pid, cmdDiff,    'cmd']);
+        if (lifeDiff   !== 0 && cmdDiff === 0) pendingAccums.push([pid, lifeDiff, 'life']);
     });
     renderBoard();
+    pendingAccums.forEach(([pid, amt, type]) => showAccum(pid, amt, type));
     _mpReceiving = false;
 }
 
@@ -6467,6 +6527,33 @@ function showAccum(id, amt, type) {
                 <div style="font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.08em;margin-bottom:8px;">DIN RUMKODE</div>
                 <div id="mp-room-code" style="font-size:48px;font-weight:900;letter-spacing:10px;color:#c9a84c;font-family:monospace;"></div>
                 <div style="font-size:12px;color:var(--muted);margin-top:8px;">Del denne kode med de andre spillere</div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:8px;">ANTAL SPILLERE</label>
+                <div id="mp-host-pc-row" style="display:flex;gap:8px;">
+                    <button class="mp-host-pc-btn" data-pc="2" onclick="mpHostSetPlayers(2)">2</button>
+                    <button class="mp-host-pc-btn" data-pc="3" onclick="mpHostSetPlayers(3)">3</button>
+                    <button class="mp-host-pc-btn" data-pc="4" onclick="mpHostSetPlayers(4)">4</button>
+                    <button class="mp-host-pc-btn" data-pc="5" onclick="mpHostSetPlayers(5)">5</button>
+                    <button class="mp-host-pc-btn" data-pc="6" onclick="mpHostSetPlayers(6)">6</button>
+                </div>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:8px;">FORMAT</label>
+                <div style="display:flex;gap:8px;">
+                    <button class="mp-host-fmt-btn" data-fmt="commander" onclick="mpHostSetFormat('commander')" style="flex:1;">⚔️ Commander</button>
+                    <button class="mp-host-fmt-btn" data-fmt="standard"  onclick="mpHostSetFormat('standard')"  style="flex:1;">🏆 Standard</button>
+                </div>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:8px;">STARTLIV</label>
+                <div style="display:flex;gap:8px;">
+                    <button class="mp-host-sl-btn" data-sl="20"  onclick="mpHostSetLife(20)"  style="flex:1;">20</button>
+                    <button class="mp-host-sl-btn" data-sl="30"  onclick="mpHostSetLife(30)"  style="flex:1;">30</button>
+                    <button class="mp-host-sl-btn" data-sl="40"  onclick="mpHostSetLife(40)"  style="flex:1;">40</button>
+                    <button class="mp-host-sl-btn" data-sl="60"  onclick="mpHostSetLife(60)"  style="flex:1;">60</button>
+                </div>
             </div>
 
             <div style="margin-bottom:12px;">
