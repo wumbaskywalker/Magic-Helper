@@ -1106,8 +1106,7 @@
             backdrop-filter: blur(8px);
             transition: color var(--tr), bottom var(--tr), background var(--tr);
         }
-        #view-play.active ~ #fs-btn,
-        #view-play.active #fs-btn { display: flex; } /* shown via JS */
+        body.fs-mode #fs-btn { display: flex; } /* kun synlig som exit-knap i fuldskærm */
         /* Fullscreen mode: hide chrome, board fills screen */
         body.fs-mode nav            { display: none !important; }
         body.fs-mode #play-btns-bar { display: none !important; }
@@ -1945,15 +1944,18 @@
          display:none;flex-direction:column;gap:6px;min-width:160px;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,.6);">
         <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="rollDice(20);hideTilbehoer()">🎲 Slå terning</button>
         <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="flipCoin();hideTilbehoer()">🪙 Kast mønt</button>
-        <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="pickRandomPlayer();hideTilbehoer()">🎯 Vælg spiller</button>
+        <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="pickRandomPlayer();hideTilbehoer()">🎯 Vælg random spiller</button>
+        <button id="tilb-who-starts-btn" class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="whoStarts();hideTilbehoer()">⚔ Hvem starter?</button>
     </div>
 
     <div class="play-btns" id="play-btns-bar">
         <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="toggleTilbehoer(event)">🎲 Tilbehør</button>
-        <button id="who-starts-btn" class="app-btn btn-gold" style="flex:1;font-size:13px;" onclick="whoStarts()"><svg width="12" height="12" viewBox="0 0 13 13" style="vertical-align:-1px;margin-right:3px"><line x1="1.5" y1="11.5" x2="11.5" y2="1.5" stroke="#0c0e18" stroke-width="2" stroke-linecap="round"/><line x1="2.8" y1="7.6" x2="6.6" y2="11.3" stroke="#0c0e18" stroke-width="2.2" stroke-linecap="round"/><circle cx="1.8" cy="11.2" r="1.6" fill="#0c0e18"/></svg>Hvem starter?</button>
         <button class="app-btn btn-red"  style="flex:1;font-size:13px;" onclick="showResetConfirm()">↺ Genstart</button>
         <button id="mp-btn" class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="openMpModal()">
             <span id="mp-btn-icon">🔗</span><span id="mp-btn-label"> Forbind</span>
+        </button>
+        <button id="fs-bar-btn" class="app-btn btn-dark" style="flex:1;font-size:11px;" onclick="toggleFsMode()">
+            <i class="fa-solid fa-expand"></i> Fuldskærm
         </button>
     </div>
 
@@ -2336,8 +2338,7 @@ function switchView(name, el) {
     setTimeout(()=>el.classList.remove('shimmer'), 550);
     name === 'scan' ? startCamera() : pauseCamera();
     document.getElementById('app-header').style.display = name === 'play' ? 'none' : 'flex';
-    const fsBtn = document.getElementById('fs-btn');
-    fsBtn.style.display = name === 'play' ? 'flex' : 'none';
+    // #fs-btn er nu kun synlig i fs-mode via CSS — ikke mere JS-styret her
     if (name === 'play') {
         requestWakeLock();
         if (gamePlayers.length === 0) showSetup(1);
@@ -2353,17 +2354,17 @@ function toggleFsMode(){
 }
 function enterFsMode(){
     document.body.classList.add('fs-mode');
+    // Update floating exit button
     const btn = document.getElementById('fs-btn');
     btn.innerHTML = '<i class="fa-solid fa-compress"></i>';
     btn.title = 'Afslut fuld skærm';
-    // Try native fullscreen (Android/desktop); silently ignored on iOS
     document.documentElement.requestFullscreen?.().catch(()=>{});
 }
 function exitFsMode(){
     document.body.classList.remove('fs-mode');
-    const btn = document.getElementById('fs-btn');
-    btn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-    btn.title = 'Fuld skærm';
+    // Update bar button
+    const barBtn = document.getElementById('fs-bar-btn');
+    if (barBtn) barBtn.innerHTML = '<i class="fa-solid fa-expand"></i> Fuldskærm';
     if (document.fullscreenElement) document.exitFullscreen?.().catch(()=>{});
 }
 // Sync if native fullscreen exits via Escape
@@ -3512,6 +3513,7 @@ function rollDice(sides){
     modal.style.display='flex';
     document.getElementById('coin-wrap').style.display      ='none';
     document.getElementById('starter-wrap').style.display   ='none';
+    document.getElementById('player-pick-wrap').style.display='none';
     document.getElementById('dice-selector').style.display  ='flex';
     document.getElementById('dice-count-row').style.display ='flex';
     document.getElementById('random-label').innerText='Terningkast';
@@ -3580,6 +3582,7 @@ function flipCoin(){
     document.getElementById('multi-results').style.display  ='none';
     document.getElementById('coin-wrap').style.display      ='flex';
     document.getElementById('starter-wrap').style.display   ='none';
+    document.getElementById('player-pick-wrap').style.display='none';
     const coin3d=document.getElementById('coin-3d');
     const resEl=document.getElementById('coin-result-text');
     document.getElementById('random-label').innerText='Møntkast';
@@ -3623,6 +3626,7 @@ function whoStarts(_override){
     document.getElementById('dice-count-row').style.display  ='none';
     document.getElementById('multi-results').style.display   ='none';
     document.getElementById('starter-wrap').style.display    ='flex';
+    document.getElementById('player-pick-wrap').style.display='none';
     document.getElementById('random-label').innerText       ='Hvem starter?';
     const btn=document.getElementById('random-action-btn');
     btn.innerText='⚡ Vælg igen'; btn.onclick=()=>whoStarts();
@@ -5741,7 +5745,7 @@ function mpUpdateBtn() {
         btn.classList.add('connected');
     }
     // Only host can press "Hvem starter?" in multiplayer
-    const wsBtn = document.getElementById('who-starts-btn');
+    const wsBtn = document.getElementById('tilb-who-starts-btn');
     if (wsBtn) {
         const isHost = mpMode === 'local' || mpMode === 'host';
         wsBtn.disabled = !isHost;
