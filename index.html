@@ -425,9 +425,13 @@
         .player-header {
             width: 100%; padding: 4px 6px 5px;
             display: flex; justify-content: space-between;
-            align-items: center; gap: 6px; flex-shrink: 0;
+            align-items: center; gap: 4px; flex-shrink: 0;
             background: rgba(0,0,0,.35); backdrop-filter: blur(4px);
             border-radius: 8px;
+        }
+        .player-box.is-me {
+            border-width: 2px !important;
+            box-shadow: inset 0 0 30px rgba(0,0,0,.6), 0 0 14px rgba(201,168,76,.35) !important;
         }
         .player-name-input {
             background: transparent !important; border: none !important; color: #fff !important;
@@ -1183,6 +1187,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v1.4</span> — QR-scan via foto (virker uden HTTPS); host-tæller forbedret; gæster defaulter til Spiller 2 i picker; "DU" badge på eget kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.3</span> — QR-kode til at joine: host viser kode, gæster scanner med kamera</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.2</span> — Host ser antal tilsluttede spillere; gæster kan kun justere eget liv, poison, tax og commander damage</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.1</span> — Info-modal med versionsnummer og changelog</div>
@@ -3186,7 +3191,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 
 function openInfoModal() {
     document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
@@ -3455,7 +3460,8 @@ function renderBoard(){
                           (currentPC>=4 && idx<=1);
 
         const box=document.createElement('div');
-        box.className='player-box'+(p.dead?' dead':''); box.dataset.pid=p.id;
+        const _isMe = mpMode !== 'local' && mpMyPlayer === (p.id - 1);
+        box.className='player-box'+(p.dead?' dead':'')+(_isMe?' is-me':''); box.dataset.pid=p.id;
         box.style.backgroundColor=p.color;
         box.style.backgroundImage='linear-gradient(160deg,rgba(12,14,24,.78) 0%,rgba(4,6,14,.95) 100%)';
         box.style.borderColor=p.dead?'var(--red)':p.color;
@@ -3509,8 +3515,9 @@ function renderBoard(){
                 <button class="life-btn" style="${lifeBtnStyle}" onpointerdown="startLP(${p.id},1);adjLife(${p.id},1)" onpointerup="endLP()" onpointerleave="endLP()">+</button>
             </div>`;
 
+        const meTag = _isMe ? `<span style="font-size:9px;font-weight:800;letter-spacing:.06em;color:#c9a84c;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 5px;flex-shrink:0;">DU</span>` : '';
         const headerHTML = `<div class="player-header">
-                <input class="player-name-input" value="${p.name}" ${isMyPlayer?'':'readonly style="pointer-events:none;opacity:.5;"'} onchange="setName(${p.id},this.value)">
+                ${meTag}<input class="player-name-input" value="${p.name}" ${isMyPlayer?'':'readonly style="pointer-events:none;opacity:.5;"'} onchange="setName(${p.id},this.value)">
                 <input type="color" class="player-color-input" value="${p.color}" ${isMyPlayer?'':'disabled style="pointer-events:none;opacity:.5;"'} onchange="setColor(${p.id},this.value)">
             </div>`;
 
@@ -5875,7 +5882,13 @@ function _mpConnect(code, role) {
     _mpClient.on('message', (_t, msg) => {
         try {
             const data = JSON.parse(msg.toString());
-            if (data._sender !== _mpClientId) mpApplyState(data);
+            if (data._sender === _mpClientId) return; // ignorer egne beskeder
+            // Host tæller unikke klienter der har sendt beskeder
+            if (mpMode === 'host' && data._sender) {
+                _mpJoinedClients.add(data._sender);
+                mpUpdateHostJoinStatus();
+            }
+            mpApplyState(data);
         } catch(e) {}
     });
 
@@ -5923,7 +5936,6 @@ function mpDisconnect() {
     if (qrEl) qrEl.innerHTML = '';
     const qrWrap = document.getElementById('mp-qr-wrap');
     if (qrWrap) qrWrap.style.display = 'none';
-    mpStopScan();
     mpShowIdle(); mpUpdateBtn();
     renderBoard(); // opdater knapper
 }
@@ -5934,9 +5946,13 @@ function mpShowPlayerPicker(playerCount) {
     const overlay = document.createElement('div');
     overlay.id = 'mp-player-picker';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(12,14,24,.97);z-index:9999;overflow-y:auto;padding:32px 20px;display:flex;align-items:center;justify-content:center;';
-    const btns = Array.from({length: playerCount}, (_, i) =>
-        `<button onclick="mpPickSlot(${i})" data-slot="${i}" style="flex:1;padding:16px 6px;border-radius:12px;border:2px solid #2a2f50;background:#12141f;color:#e8eaf2;font-size:15px;font-weight:800;cursor:pointer;transition:border-color .15s;">Spiller ${i+1}</button>`
-    ).join('');
+    const btns = Array.from({length: playerCount}, (_, i) => {
+        const isHost = i === 0;
+        return `<button onclick="mpPickSlot(${i})" data-slot="${i}"
+            style="flex:1;padding:12px 4px;border-radius:12px;border:2px solid #2a2f50;background:#12141f;color:${isHost?'#7a80a0':'#e8eaf2'};font-size:13px;font-weight:800;cursor:pointer;transition:border-color .15s;position:relative;">
+            Spiller ${i+1}${isHost?'<br><span style="font-size:9px;opacity:.6;">Host</span>':''}
+        </button>`;
+    }).join('');
     overlay.innerHTML = `<div style="max-width:380px;width:100%;">
         <div style="font-size:20px;font-weight:800;margin-bottom:6px;text-align:center;">Hvem er du?</div>
         <div style="font-size:13px;color:#7a80a0;margin-bottom:20px;text-align:center;">Vælg din plads og skriv dit navn</div>
@@ -5963,9 +5979,9 @@ function mpShowPlayerPicker(playerCount) {
         </button>
     </div>`;
     document.body.appendChild(overlay);
-    // Vælg første ledige slot og første farve som standard
-    mpPickSlot(0);
-    mpPickColor(defaultColors[0]);
+    // Default til slot 1 (slot 0 er altid hosten)
+    mpPickSlot(Math.min(1, playerCount - 1));
+    mpPickColor(defaultColors[1] || defaultColors[0]);
 }
 
 let _mpPickedSlot = 0;
@@ -6041,62 +6057,38 @@ function mpGenerateQR(code) {
     }
 }
 
-// ── QR-kode scanning ─────────────────────────
-let _mpScanStream = null;
-let _mpScanAF    = null;
-
-async function mpStartScan() {
-    const overlay = document.getElementById('mp-scan-overlay');
-    overlay.style.display = 'flex';
-    document.getElementById('mp-scan-status').textContent = 'Starter kamera…';
-    try {
-        _mpScanStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' } }
-        });
-        const video = document.getElementById('mp-scan-video');
-        video.srcObject = _mpScanStream;
-        await video.play();
-        document.getElementById('mp-scan-status').textContent = 'Peg kameraet mod QR-koden';
-        _mpScanLoop();
-    } catch(e) {
-        document.getElementById('mp-scan-status').textContent = 'Kamera ikke tilgængeligt — brug koden manuelt';
-    }
-}
-
-function _mpScanLoop() {
-    const video  = document.getElementById('mp-scan-video');
-    const canvas = document.getElementById('mp-scan-canvas');
-    if (!video || !canvas || video.readyState < video.HAVE_ENOUGH_DATA) {
-        _mpScanAF = requestAnimationFrame(_mpScanLoop);
-        return;
-    }
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    if (typeof jsQR !== 'undefined') {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const qr = jsQR(imageData.data, imageData.width, imageData.height);
-        if (qr) {
-            const raw = qr.data.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-            // Accepter rå 4-8 tegns kode
-            if (raw.length >= 4 && raw.length <= 8) {
-                mpStopScan();
-                document.getElementById('mp-join-input').value = raw;
-                document.getElementById('mp-scan-status').textContent = '';
-                mpJoin();
-                return;
+// ── QR-kode scanning (via foto — virker uden HTTPS) ──
+function mpHandleScanImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width; canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            if (typeof jsQR !== 'undefined') {
+                const qr = jsQR(imageData.data, imageData.width, imageData.height);
+                if (qr) {
+                    const raw = qr.data.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    if (raw.length >= 4 && raw.length <= 8) {
+                        document.getElementById('mp-join-input').value = raw;
+                        mpJoin();
+                        return;
+                    }
+                }
             }
-        }
-    }
-    _mpScanAF = requestAnimationFrame(_mpScanLoop);
+            toast('QR-kode ikke genkendt — prøv igen');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+    input.value = ''; // Reset så samme fil kan scannes igen
 }
 
-function mpStopScan() {
-    if (_mpScanAF) { cancelAnimationFrame(_mpScanAF); _mpScanAF = null; }
-    if (_mpScanStream) { _mpScanStream.getTracks().forEach(t => t.stop()); _mpScanStream = null; }
-    document.getElementById('mp-scan-overlay').style.display = 'none';
-}
+function mpStopScan() { /* bevaret for bagudkompatibilitet */ }
 
 function mpUpdateHostJoinStatus() {
     const el = document.getElementById('mp-host-status');
@@ -6320,7 +6312,8 @@ function showAccum(id, amt, type) {
                        background:var(--bg-input);color:var(--text);"
                 oninput="this.value=this.value.toUpperCase()">
             <button class="app-btn" style="width:100%;margin-bottom:10px;" onclick="mpJoin()">Forbind</button>
-            <button class="app-btn btn-dark" style="width:100%;margin-bottom:10px;" onclick="mpStartScan()">📷 Scan QR-kode</button>
+            <input id="mp-scan-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="mpHandleScanImage(this)">
+            <button class="app-btn btn-dark" style="width:100%;margin-bottom:10px;" onclick="document.getElementById('mp-scan-input').click()">📷 Scan QR-kode</button>
             <button class="app-btn btn-dark" style="width:100%;" onclick="mpShowIdle()">← Tilbage</button>
         </div>
 
@@ -6371,24 +6364,6 @@ function showAccum(id, amt, type) {
             <button class="app-btn btn-red" style="width:100%;" onclick="mpDisconnect()">Forlad session</button>
         </div>
     </div>
-</div>
-
-<!-- QR scanner overlay -->
-<div id="mp-scan-overlay" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.98);z-index:10001;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
-    <div style="font-size:18px;font-weight:800;margin-bottom:20px;">📷 Scan QR-kode</div>
-    <div style="position:relative;width:260px;height:260px;border-radius:16px;overflow:hidden;">
-        <video id="mp-scan-video" style="width:100%;height:100%;object-fit:cover;" playsinline muted></video>
-        <canvas id="mp-scan-canvas" style="display:none;"></canvas>
-        <!-- Sigtekors -->
-        <div style="position:absolute;inset:0;pointer-events:none;">
-            <div style="position:absolute;top:20px;left:20px;width:36px;height:36px;border-top:3px solid var(--accent);border-left:3px solid var(--accent);border-radius:4px 0 0 0;"></div>
-            <div style="position:absolute;top:20px;right:20px;width:36px;height:36px;border-top:3px solid var(--accent);border-right:3px solid var(--accent);border-radius:0 4px 0 0;"></div>
-            <div style="position:absolute;bottom:20px;left:20px;width:36px;height:36px;border-bottom:3px solid var(--accent);border-left:3px solid var(--accent);border-radius:0 0 0 4px;"></div>
-            <div style="position:absolute;bottom:20px;right:20px;width:36px;height:36px;border-bottom:3px solid var(--accent);border-right:3px solid var(--accent);border-radius:0 0 4px 0;"></div>
-        </div>
-    </div>
-    <div id="mp-scan-status" style="margin-top:16px;font-size:14px;color:var(--muted);">Peg kameraet mod QR-koden</div>
-    <button class="app-btn btn-dark" style="margin-top:20px;width:200px;" onclick="mpStopScan()">✕ Annuller</button>
 </div>
 
 <!-- Set browser kort-popup -->
