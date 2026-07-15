@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
     <style>
         :root {
             --bg-body:    #0c0e18;
@@ -1181,6 +1183,8 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v1.3</span> — QR-kode til at joine: host viser kode, gæster scanner med kamera</div>
+                <div><span style="color:var(--gold);font-weight:700;">v1.2</span> — Host ser antal tilsluttede spillere; gæster kan kun justere eget liv, poison, tax og commander damage</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.1</span> — Info-modal med versionsnummer og changelog</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.0</span> — Multiplayer via MQTT: sync af liv, poison, commander damage, terning, mønt og vælg random spiller til alle spillere</div>
                 <div><span style="color:var(--gold);font-weight:700;">v0.9</span> — Tilbehør-menu med terning, mønt, vælg random spiller og hvem starter</div>
@@ -1188,6 +1192,13 @@
                 <div><span style="color:var(--gold);font-weight:700;">v0.7</span> — Akkumulerende tæller for liv, poison og commander damage</div>
                 <div><span style="color:var(--gold);font-weight:700;">v0.6</span> — Fuldskærm-tilstand og forbedret bundlinje</div>
             </div>
+        </div>
+
+        <!-- Disclaimer -->
+        <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
+            <p style="font-size:11px;color:#555e7a;line-height:1.6;margin:0;text-align:center;">
+                Magic Helper er et hobbyprojekt udviklet med kærlighed til spillet og stillet gratis til rådighed for alle. Kortpriser hentes fra tredjepart og kan være unøjagtige — brug dem som vejledning. Udvikleren påtager sig intet ansvar for fejl i priser eller tab af data.
+            </p>
         </div>
 
         <!-- Kaffe -->
@@ -3175,7 +3186,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.3';
 
 function openInfoModal() {
     document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
@@ -3450,6 +3461,9 @@ function renderBoard(){
         box.style.borderColor=p.dead?'var(--red)':p.color;
         box.style.boxShadow=p.dead?'none':`inset 0 0 30px rgba(0,0,0,.6), 0 0 10px ${p.color}44`;
 
+        const isMyPlayer = mpMode === 'local' || mpMyPlayer === (p.id - 1);
+        const ctrlStyle = isMyPlayer ? '' : 'opacity:.25;pointer-events:none;';
+
         let cmd='';
         if(gameFormat==='commander'&&currentPC>1){
             gamePlayers.forEach(o=>{
@@ -3458,9 +3472,9 @@ function renderBoard(){
                 cmd+=`<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.4);border-left:3px solid ${o.color};border-radius:6px;padding:2px 6px;width:100%;box-sizing:border-box;gap:4px;">
                     <span style="color:rgba(255,255,255,.65);font-size:clamp(9px,1.8vw,10px);font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em;">⚔ ${o.name}</span>
                     <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
-                        <button class="mini-btn" onpointerdown="adjCmd(${p.id},${o.id},-1)">−</button>
+                        <button class="mini-btn" style="${ctrlStyle}" onpointerdown="adjCmd(${p.id},${o.id},-1)">−</button>
                         <span style="font-weight:900;min-width:20px;text-align:center;font-size:clamp(11px,2.3vw,14px);color:${dmg>0?'#ff7c7c':'rgba(255,255,255,.5)'};">${dmg}</span>
-                        <button class="mini-btn" onpointerdown="adjCmd(${p.id},${o.id},1)">+</button>
+                        <button class="mini-btn" style="${ctrlStyle}" onpointerdown="adjCmd(${p.id},${o.id},1)">+</button>
                     </div>
                 </div>`;
             });
@@ -3470,17 +3484,17 @@ function renderBoard(){
                 <div class="stat-badge" style="flex-direction:column;height:auto;padding:4px 10px;gap:2px;">
                     <span style="font-size:9px;color:rgba(255,255,255,.45);font-weight:700;letter-spacing:.05em;text-transform:uppercase;">☠️ Poison</span>
                     <div style="display:flex;align-items:center;gap:4px;">
-                        <button class="mini-btn" onpointerdown="adjPoison(${p.id},-1)">−</button>
+                        <button class="mini-btn" style="${ctrlStyle}" onpointerdown="adjPoison(${p.id},-1)">−</button>
                         <span class="stat-val" style="color:#1abc9c;font-size:14px;">${p.poison}</span>
-                        <button class="mini-btn" onpointerdown="adjPoison(${p.id},1)">+</button>
+                        <button class="mini-btn" style="${ctrlStyle}" onpointerdown="adjPoison(${p.id},1)">+</button>
                     </div>
                 </div>
                 ${gameFormat==='commander'?`<div class="stat-badge" style="flex-direction:column;height:auto;padding:4px 10px;gap:2px;">
                     <span style="font-size:9px;color:rgba(255,255,255,.45);font-weight:700;letter-spacing:.05em;text-transform:uppercase;">👑 Tax</span>
                     <div style="display:flex;align-items:center;gap:4px;">
-                        <button class="mini-btn" onpointerdown="adjTax(${p.id},-1)">−</button>
+                        <button class="mini-btn" style="${ctrlStyle}" onpointerdown="adjTax(${p.id},-1)">−</button>
                         <span class="stat-val" style="color:#f39c12;font-size:14px;">${p.tax}</span>
-                        <button class="mini-btn" onpointerdown="adjTax(${p.id},1)">+</button>
+                        <button class="mini-btn" style="${ctrlStyle}" onpointerdown="adjTax(${p.id},1)">+</button>
                     </div>
                 </div>`:''}
             </div>`;
@@ -3488,8 +3502,7 @@ function renderBoard(){
 
         // Roterede spillere: cmd-damage i DOM FØR stats → visuelt set er stats øverst
         // Ikke-roterede: stats i DOM FØRST → visuelt øverst
-        const isMyPlayer = mpMode === 'local' || mpMyPlayer === (p.id - 1);
-        const lifeBtnStyle = isMyPlayer ? '' : 'opacity:.25;pointer-events:none;';
+        const lifeBtnStyle = ctrlStyle;
         const lifeHTML = `<div class="life-controls">
                 <button class="life-btn" style="${lifeBtnStyle}" onpointerdown="startLP(${p.id},-1);adjLife(${p.id},-1)" onpointerup="endLP()" onpointerleave="endLP()">−</button>
                 <div class="life-val">${p.life}</div>
@@ -3497,8 +3510,8 @@ function renderBoard(){
             </div>`;
 
         const headerHTML = `<div class="player-header">
-                <input class="player-name-input" value="${p.name}" onchange="setName(${p.id},this.value)">
-                <input type="color" class="player-color-input" value="${p.color}" onchange="setColor(${p.id},this.value)">
+                <input class="player-name-input" value="${p.name}" ${isMyPlayer?'':'readonly style="pointer-events:none;opacity:.5;"'} onchange="setName(${p.id},this.value)">
+                <input type="color" class="player-color-input" value="${p.color}" ${isMyPlayer?'':'disabled style="pointer-events:none;opacity:.5;"'} onchange="setColor(${p.id},this.value)">
             </div>`;
 
         // Samme DOM-rækkefølge for ALLE spillere: header → life → stats → cmd
@@ -5812,6 +5825,12 @@ function mpUpdateBtn() {
     }
 }
 
+function mpHostColor(hex) {
+    if (gamePlayers[0]) { gamePlayers[0].color = hex; renderBoard(); mpBroadcast(); }
+    document.querySelectorAll('[data-hc]').forEach(b =>
+        b.style.borderColor = b.dataset.hc === hex ? '#fff' : 'transparent');
+}
+
 // ── Intern forbindelsesfunktion ───────────────
 function _mpConnect(code, role) {
     _mpCode = code;
@@ -5840,7 +5859,9 @@ function _mpConnect(code, role) {
         if (role === 'host') {
             mpMyPlayer = 0;  // host er altid spiller 1
             document.getElementById('mp-room-code').textContent = code;
-            document.getElementById('mp-host-status').textContent = 'Venter på spillere…';
+            _mpJoinedClients.clear();
+            mpUpdateHostJoinStatus();
+            mpGenerateQR(code);
             mpBroadcast();   // send startstate
         } else {
             document.getElementById('mp-client-status').textContent = 'Session: ' + code;
@@ -5897,6 +5918,12 @@ function mpDisconnect() {
     // Reset join-knap
     const joinBtn = document.querySelector('#mp-panel-join .app-btn');
     if (joinBtn) { joinBtn.textContent = 'Forbind'; joinBtn.disabled = false; }
+    // Ryd QR-kode
+    const qrEl = document.getElementById('mp-qr-code');
+    if (qrEl) qrEl.innerHTML = '';
+    const qrWrap = document.getElementById('mp-qr-wrap');
+    if (qrWrap) qrWrap.style.display = 'none';
+    mpStopScan();
     mpShowIdle(); mpUpdateBtn();
     renderBoard(); // opdater knapper
 }
@@ -5996,10 +6023,100 @@ function mpBroadcast() {
     try { _mpClient.publish('mtghelper/' + _mpCode + '/state', JSON.stringify(data), { qos: 0 }); } catch(e) {}
 }
 
+const _mpJoinedClients = new Set();
+
+// ── QR-kode generering ────────────────────────
+function mpGenerateQR(code) {
+    const wrap = document.getElementById('mp-qr-wrap');
+    const el   = document.getElementById('mp-qr-code');
+    el.innerHTML = '';
+    if (typeof QRCode !== 'undefined') {
+        new QRCode(el, {
+            text: code,
+            width: 160, height: 160,
+            colorDark: '#000', colorLight: '#fff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+        wrap.style.display = 'block';
+    }
+}
+
+// ── QR-kode scanning ─────────────────────────
+let _mpScanStream = null;
+let _mpScanAF    = null;
+
+async function mpStartScan() {
+    const overlay = document.getElementById('mp-scan-overlay');
+    overlay.style.display = 'flex';
+    document.getElementById('mp-scan-status').textContent = 'Starter kamera…';
+    try {
+        _mpScanStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } }
+        });
+        const video = document.getElementById('mp-scan-video');
+        video.srcObject = _mpScanStream;
+        await video.play();
+        document.getElementById('mp-scan-status').textContent = 'Peg kameraet mod QR-koden';
+        _mpScanLoop();
+    } catch(e) {
+        document.getElementById('mp-scan-status').textContent = 'Kamera ikke tilgængeligt — brug koden manuelt';
+    }
+}
+
+function _mpScanLoop() {
+    const video  = document.getElementById('mp-scan-video');
+    const canvas = document.getElementById('mp-scan-canvas');
+    if (!video || !canvas || video.readyState < video.HAVE_ENOUGH_DATA) {
+        _mpScanAF = requestAnimationFrame(_mpScanLoop);
+        return;
+    }
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (typeof jsQR !== 'undefined') {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const qr = jsQR(imageData.data, imageData.width, imageData.height);
+        if (qr) {
+            const raw = qr.data.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            // Accepter rå 4-8 tegns kode
+            if (raw.length >= 4 && raw.length <= 8) {
+                mpStopScan();
+                document.getElementById('mp-join-input').value = raw;
+                document.getElementById('mp-scan-status').textContent = '';
+                mpJoin();
+                return;
+            }
+        }
+    }
+    _mpScanAF = requestAnimationFrame(_mpScanLoop);
+}
+
+function mpStopScan() {
+    if (_mpScanAF) { cancelAnimationFrame(_mpScanAF); _mpScanAF = null; }
+    if (_mpScanStream) { _mpScanStream.getTracks().forEach(t => t.stop()); _mpScanStream = null; }
+    document.getElementById('mp-scan-overlay').style.display = 'none';
+}
+
+function mpUpdateHostJoinStatus() {
+    const el = document.getElementById('mp-host-status');
+    if (!el) return;
+    const n = _mpJoinedClients.size;
+    el.textContent = n === 0
+        ? 'Venter på spillere…'
+        : `${n} spiller${n !== 1 ? 'e' : ''} har joinet`;
+}
+
 function mpApplyState(data) {
     // Håndter enkelt-events
     if (data.type === 'requestState') {
-        if (mpMode === 'host') mpBroadcast();
+        if (mpMode === 'host') {
+            if (data._sender && data._sender !== _mpClientId) {
+                _mpJoinedClients.add(data._sender);
+                mpUpdateHostJoinStatus();
+            }
+            mpBroadcast();
+        }
         return;
     }
     if (data.type === 'whoStarts') {
@@ -6203,6 +6320,7 @@ function showAccum(id, amt, type) {
                        background:var(--bg-input);color:var(--text);"
                 oninput="this.value=this.value.toUpperCase()">
             <button class="app-btn" style="width:100%;margin-bottom:10px;" onclick="mpJoin()">Forbind</button>
+            <button class="app-btn btn-dark" style="width:100%;margin-bottom:10px;" onclick="mpStartScan()">📷 Scan QR-kode</button>
             <button class="app-btn btn-dark" style="width:100%;" onclick="mpShowIdle()">← Tilbage</button>
         </div>
 
@@ -6211,7 +6329,10 @@ function showAccum(id, amt, type) {
             <div style="text-align:center;margin-bottom:20px;">
                 <div style="font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.08em;margin-bottom:8px;">DIN RUMKODE</div>
                 <div id="mp-room-code" style="font-size:48px;font-weight:900;letter-spacing:10px;color:#c9a84c;font-family:monospace;"></div>
-                <div style="font-size:12px;color:var(--muted);margin-top:8px;">Del denne kode med de andre spillere</div>
+                <div id="mp-qr-wrap" style="display:none;margin:16px auto 4px;">
+                    <div id="mp-qr-code" style="display:inline-block;background:#fff;padding:10px;border-radius:12px;"></div>
+                </div>
+                <div style="font-size:12px;color:var(--muted);margin-top:8px;">Del koden eller lad spillere scanne QR</div>
             </div>
 
             <div style="margin-bottom:12px;">
@@ -6223,9 +6344,14 @@ function showAccum(id, amt, type) {
             <div style="margin-bottom:20px;">
                 <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:8px;">DIN FARVE</label>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    ${['#dc3545','#007bff','#28a745','#fd7e14','#6f42c1','#20c997','#e83e8c','#ffc107'].map(c =>
-                        `<button onclick="if(gamePlayers[0]){gamePlayers[0].color='${c}';renderBoard();mpBroadcast();}" style="width:36px;height:36px;border-radius:50%;background:${c};border:3px solid transparent;cursor:pointer;"></button>`
-                    ).join('')}
+                    <button onclick="mpHostColor('#dc3545')" data-hc="#dc3545" style="width:36px;height:36px;border-radius:50%;background:#dc3545;border:3px solid transparent;cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#007bff')" data-hc="#007bff" style="width:36px;height:36px;border-radius:50%;background:#007bff;border:3px solid transparent;cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#28a745')" data-hc="#28a745" style="width:36px;height:36px;border-radius:50%;background:#28a745;border:3px solid transparent;cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#fd7e14')" data-hc="#fd7e14" style="width:36px;height:36px;border-radius:50%;background:#fd7e14;border:3px solid transparent;cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#6f42c1')" data-hc="#6f42c1" style="width:36px;height:36px;border-radius:50%;background:#6f42c1;border:3px solid transparent;cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#20c997')" data-hc="#20c997" style="width:36px;height:36px;border-radius:50%;background:#20c997;border:3px solid transparent;cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#e83e8c')" data-hc="#e83e8c" style="width:36px;height:36px;border-radius:50%;background:#e83e8c;border:3px solid transparent;cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#ffc107')" data-hc="#ffc107" style="width:36px;height:36px;border-radius:50%;background:#ffc107;border:3px solid transparent;cursor:pointer;"></button>
                 </div>
             </div>
 
@@ -6245,6 +6371,24 @@ function showAccum(id, amt, type) {
             <button class="app-btn btn-red" style="width:100%;" onclick="mpDisconnect()">Forlad session</button>
         </div>
     </div>
+</div>
+
+<!-- QR scanner overlay -->
+<div id="mp-scan-overlay" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.98);z-index:10001;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+    <div style="font-size:18px;font-weight:800;margin-bottom:20px;">📷 Scan QR-kode</div>
+    <div style="position:relative;width:260px;height:260px;border-radius:16px;overflow:hidden;">
+        <video id="mp-scan-video" style="width:100%;height:100%;object-fit:cover;" playsinline muted></video>
+        <canvas id="mp-scan-canvas" style="display:none;"></canvas>
+        <!-- Sigtekors -->
+        <div style="position:absolute;inset:0;pointer-events:none;">
+            <div style="position:absolute;top:20px;left:20px;width:36px;height:36px;border-top:3px solid var(--accent);border-left:3px solid var(--accent);border-radius:4px 0 0 0;"></div>
+            <div style="position:absolute;top:20px;right:20px;width:36px;height:36px;border-top:3px solid var(--accent);border-right:3px solid var(--accent);border-radius:0 4px 0 0;"></div>
+            <div style="position:absolute;bottom:20px;left:20px;width:36px;height:36px;border-bottom:3px solid var(--accent);border-left:3px solid var(--accent);border-radius:0 0 0 4px;"></div>
+            <div style="position:absolute;bottom:20px;right:20px;width:36px;height:36px;border-bottom:3px solid var(--accent);border-right:3px solid var(--accent);border-radius:0 0 4px 0;"></div>
+        </div>
+    </div>
+    <div id="mp-scan-status" style="margin-top:16px;font-size:14px;color:var(--muted);">Peg kameraet mod QR-koden</div>
+    <button class="app-btn btn-dark" style="margin-top:20px;width:200px;" onclick="mpStopScan()">✕ Annuller</button>
 </div>
 
 <!-- Set browser kort-popup -->
