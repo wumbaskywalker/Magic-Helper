@@ -410,6 +410,13 @@
         .players-3 .player-box:first-child       { transform: rotate(180deg); }
         .players-4 .player-box:nth-child(-n+2)   { transform: rotate(180deg); }
 
+        /* Multiplayer: aktuelle spiller altid nederst og fuld bredde */
+        .play-area.players-3.mp-playing .player-box:first-child  { grid-column: span 1 !important; }
+        .play-area.players-3.mp-playing .player-box:nth-child(2) { transform: rotate(180deg); }
+        .play-area.players-3.mp-playing .player-box:last-child   { grid-column: span 2 !important; transform: none !important; }
+        .play-area.players-5.mp-playing .player-box:first-child  { grid-column: span 1 !important; }
+        .play-area.players-5.mp-playing .player-box:last-child   { grid-column: span 2 !important; }
+
 
         .player-box {
             position: relative; border-radius: 16px;
@@ -439,7 +446,7 @@
             letter-spacing: .03em; text-transform: uppercase;
         }
         .player-color-input {
-            width: 18px !important; height: 18px !important;
+            width: 26px !important; height: 26px !important;
             border: 2px solid rgba(255,255,255,.3) !important; padding: 0 !important;
             background: transparent !important; border-radius: 50% !important;
             cursor: pointer !important; overflow: hidden; flex-shrink: 0;
@@ -1194,6 +1201,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v2.0</span> — 3-spiller multiplayer: dit kort altid nederst og fuld bredde; større farvevælger</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.9</span> — Vis hvem der kastede terning/mønt/random i multiplayer</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.8</span> — Genstart synkroniseres til alle spillere</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.7</span> — Din spillerkort vises altid nederst på skærmen i multiplayer</div>
@@ -3195,7 +3203,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '1.9';
+const APP_VERSION = '2.0';
 
 function openInfoModal() {
     document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
@@ -3452,18 +3460,21 @@ function doLife(id,amt){
 }
 function adjLife(id,amt){doLife(id,amt);}
 function adjPoison(id,amt){const p=gamePlayers[id-1];p.poison=Math.max(0,p.poison+amt);checkDeath(p);renderBoard();showAccum(id,amt,'poison');mpBroadcast();}
-function adjTax(id,amt){const p=gamePlayers[id-1];p.tax=Math.max(0,p.tax+amt);renderBoard();mpBroadcast();}
+function adjTax(id,amt){const p=gamePlayers[id-1];p.tax=Math.max(0,p.tax+amt);renderBoard();showAccum(id,amt,'tax');mpBroadcast();}
 function adjCmd(tid,sid,amt){const p=gamePlayers[tid-1];p.cmdDmg[sid]=Math.max(0,p.cmdDmg[sid]+amt);p.life-=amt;checkDeath(p);renderBoard();showAccum(tid,amt,'cmd');mpBroadcast();}
 function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.name=v;renderBoard();mpBroadcast();}
 function setColor(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.color=v;renderBoard();mpBroadcast();}
 
 function renderBoard(){
     const board=document.getElementById('game-board');
-    board.className='play-area players-'+currentPC; board.innerHTML='';
 
     // I multiplayer: vis altid den aktuelle spillers kort nederst på skærmen
+    const isMpPlaying = mpMode !== 'local' && mpMyPlayer >= 0 && mpMyPlayer < gamePlayers.length;
+    board.className='play-area players-'+currentPC+(isMpPlaying?' mp-playing':'');
+    board.innerHTML='';
+
     let displayPlayers = [...gamePlayers];
-    if (mpMode !== 'local' && mpMyPlayer >= 0 && mpMyPlayer < displayPlayers.length) {
+    if (isMpPlaying) {
         const mine = displayPlayers.splice(mpMyPlayer, 1)[0];
         displayPlayers.push(mine);
     }
@@ -3471,9 +3482,10 @@ function renderBoard(){
     displayPlayers.forEach((p, idx)=>{
         // Spillere der er roteret 180° — for dem skal DOM-rækkefølgen vendes
         // så poison/tax altid er visuelt OVER commander damage
-        const isRotated = (currentPC===2 && idx===0) ||
-                          (currentPC===3 && idx===0) ||
-                          (currentPC>=4 && idx<=1);
+        // I MP 3-spiller: begge modstandere (idx 0+1) er roterede, aktuelle spiller (idx 2) ikke
+        const isRotated = (isMpPlaying && currentPC === 3)
+            ? idx <= 1
+            : (currentPC===2 && idx===0) || (currentPC===3 && idx===0) || (currentPC>=4 && idx<=1);
 
         const box=document.createElement('div');
         const _isMe = mpMode !== 'local' && mpMyPlayer === (p.id - 1);
@@ -6228,6 +6240,19 @@ function mpApplyState(data) {
 
     data.players.forEach((p, i) => {
         if (!gamePlayers[i]) return;
+        const old = gamePlayers[i];
+        const pid = old.id;
+
+        // Beregn diffs FØR vi overskriver
+        const lifeDiff   = p.life   - old.life;
+        const poisonDiff = p.poison - old.poison;
+        const taxDiff    = p.tax    - old.tax;
+        let cmdDiff = 0;
+        if (p.cmdDmg) Object.keys(p.cmdDmg).forEach(sid => {
+            cmdDiff += (p.cmdDmg[sid] || 0) - (old.cmdDmg?.[sid] || 0);
+        });
+
+        // Opdater state
         gamePlayers[i].life   = p.life;
         gamePlayers[i].poison = p.poison;
         gamePlayers[i].tax    = p.tax;
@@ -6235,6 +6260,13 @@ function mpApplyState(data) {
         gamePlayers[i].cmdDmg = p.cmdDmg || {};
         gamePlayers[i].name   = p.name;
         gamePlayers[i].color  = p.color;
+
+        // Vis akkumulatorer for ændringer (samme som lokalt)
+        if (poisonDiff !== 0) showAccum(pid, poisonDiff, 'poison');
+        if (taxDiff    !== 0) showAccum(pid, taxDiff,    'tax');
+        if (cmdDiff    !== 0) showAccum(pid, cmdDiff,    'cmd');
+        // Liv: vis kun hvis livs-ændringen ikke skyldes cmd damage
+        if (lifeDiff   !== 0 && cmdDiff === 0) showAccum(pid, lifeDiff, 'life');
     });
     renderBoard();
     _mpReceiving = false;
@@ -6340,7 +6372,7 @@ function showAccum(id, amt, type) {
         box.appendChild(badge);
     }
     const total = accumData[key];
-    const icon = type==='poison' ? '☠ ' : type==='cmd' ? '⚔ ' : '';
+    const icon = type==='poison' ? '☠ ' : type==='cmd' ? '⚔ ' : type==='tax' ? '👑 ' : '';
     badge.className = `life-accum visible ${total >= 0 ? 'pos' : 'neg'}`;
     badge.dataset.atype = type;
     badge.innerText = icon + (total > 0 ? '+' : '') + total;
