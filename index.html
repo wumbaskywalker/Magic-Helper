@@ -1201,7 +1201,8 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v2.0</span> — 3-spiller multiplayer: dit kort altid nederst og fuld bredde; større farvevælger</div>
+                <div><span style="color:var(--gold);font-weight:700;">v2.1</span> — Vælg Lokalt eller Online når du starter spillet</div>
+                <div><span style="color:var(--gold);font-weight:700;">v2.0</span> — 3- og 5-spiller multiplayer: dit kort altid nederst og fuld bredde</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.9</span> — Vis hvem der kastede terning/mønt/random i multiplayer</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.8</span> — Genstart synkroniseres til alle spillere</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.7</span> — Din spillerkort vises altid nederst på skærmen i multiplayer</div>
@@ -1976,8 +1977,21 @@
     <div class="play-setup-overlay">
         <button id="setup-cancel-btn" onclick="cancelSetup()">✕</button>
 
+        <!-- Step 0: spiltilstand -->
+        <div id="setup-step-0" class="setup-step">
+            <div class="setup-title">Hvordan vil du spille?</div>
+            <div class="setup-btn-row">
+                <button class="setup-big-btn" style="width:130px;height:80px;font-size:13px;font-weight:800;line-height:1.5;" onclick="showSetup(1)">
+                    🔌<br>Lokalt
+                </button>
+                <button class="setup-big-btn" style="width:130px;height:80px;font-size:13px;font-weight:800;line-height:1.5;border-color:#4f7cff;color:#8fa8ff;" onclick="openMpModal()">
+                    🌐<br>Online
+                </button>
+            </div>
+        </div>
+
         <!-- Step 1: antal spillere -->
-        <div id="setup-step-1" class="setup-step active">
+        <div id="setup-step-1" class="setup-step">
             <div class="setup-title">Antal spillere?</div>
             <div class="setup-btn-row">
                 <button class="setup-big-btn" data-pc="1" onclick="pickPlayers(1)">1</button>
@@ -1988,6 +2002,7 @@
                 <button class="setup-big-btn" data-pc="6" onclick="pickPlayers(6)">6</button>
             </div>
             <button class="setup-quick-link" id="setup-quick-reset" onclick="quickReset()" style="display:none;">↺ Genstart med samme indstillinger</button>
+            <button class="setup-back-link" id="setup-step1-back" onclick="showSetup(0)" style="display:none;">← Tilbage</button>
         </div>
 
         <!-- Step 2: format -->
@@ -2419,7 +2434,7 @@ function switchView(name, el) {
     // #fs-btn er nu kun synlig i fs-mode via CSS — ikke mere JS-styret her
     if (name === 'play') {
         requestWakeLock();
-        if (gamePlayers.length === 0) showSetup(1);
+        if (gamePlayers.length === 0) showSetup(0);
     } else {
         releaseWakeLock();
     }
@@ -3203,7 +3218,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 
 function openInfoModal() {
     document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
@@ -3350,9 +3365,10 @@ function clearTrade(){tradeGive=[];tradeGet=[];updateTradeUI();}
 //  LIFE COUNTER
 // ═══════════════════════════════════════════════
 // ── SETUP WIZARD ──
-function showSetup(step=1){
+function showSetup(step=0){
     const vp=document.getElementById('view-play');
     vp.classList.add('setup-mode');
+    document.getElementById('setup-step-0').classList.toggle('active',step===0);
     document.getElementById('setup-step-1').classList.toggle('active',step===1);
     document.getElementById('setup-step-2').classList.toggle('active',step===2);
     document.getElementById('setup-step-3').classList.toggle('active',step===3);
@@ -3362,7 +3378,8 @@ function showSetup(step=1){
     document.querySelectorAll('.setup-big-btn[data-sl]').forEach(b=>b.classList.toggle('active',+b.dataset.sl===startLife));
     const hasGame=gamePlayers.length>0;
     document.getElementById('setup-cancel-btn').style.display=hasGame?'block':'none';
-    document.getElementById('setup-quick-reset').style.display=hasGame?'block':'none';
+    document.getElementById('setup-quick-reset').style.display=(hasGame&&step===1)?'block':'none';
+    document.getElementById('setup-step1-back').style.display=(!hasGame&&step===1)?'block':'none';
 }
 function pickPlayers(n){
     currentPC=n;
@@ -5755,7 +5772,7 @@ function exportDeck() {
 // ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
-showSetup(1);
+showSetup(0);
 
 // ═══════════════════════════════════════════════
 //  PWA — afregistrer service worker
@@ -5865,7 +5882,18 @@ const _mpClientId = 'mtgh-' + Math.random().toString(36).substr(2, 10);
 
 // ── Modal UI ──────────────────────────────────
 function openMpModal()  { document.getElementById('mp-modal').style.display = 'block'; }
-function closeMpModal() { document.getElementById('mp-modal').style.display = 'none'; }
+function closeMpModal() {
+    document.getElementById('mp-modal').style.display = 'none';
+    const vp = document.getElementById('view-play');
+    if (!vp) return;
+    if (vp.classList.contains('setup-mode')) {
+        if (gamePlayers.length > 0) {
+            vp.classList.remove('setup-mode'); // spil er klar via MP — gå til board
+        } else {
+            showSetup(0); // ingen spil endnu — tilbage til mode-vælger
+        }
+    }
+}
 
 function _mpShowPanel(name) {
     ['idle','join','host','client','client-setup'].forEach(p => {
