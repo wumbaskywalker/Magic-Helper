@@ -1824,6 +1824,18 @@
             🃏 Træk prøvehånd
         </button>
 
+        <!-- Card list sort -->
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <button id="deck-sort-type" onclick="deckSortMode='type';renderDeckEditor();"
+                style="flex:1;padding:6px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--border-lit);background:var(--accent);color:#0c0e18;cursor:pointer;">
+                Type
+            </button>
+            <button id="deck-sort-cmc" onclick="deckSortMode='cmc';renderDeckEditor();"
+                style="flex:1;padding:6px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--border-lit);background:var(--bg-input);color:var(--muted);cursor:pointer;">
+                Mana Value
+            </button>
+        </div>
+
         <!-- Card list -->
         <div id="deck-card-list"></div>
 
@@ -5118,6 +5130,15 @@ async function searchRules(q) {
 // ═══════════════════════════════════════════════
 let decks = JSON.parse(localStorage.getItem('mtg_decks') || '[]');
 let activeDeckId = null;
+let deckSortMode = 'type'; // 'type' | 'cmc'
+
+function formatManaCost(cost) {
+    if (!cost) return '';
+    return cost.replace(/\{([^}]+)\}/g, (_, sym) => {
+        const url = `https://svgs.scryfall.io/card-symbols/${encodeURIComponent(sym)}.svg`;
+        return `<img src="${url}" style="width:14px;height:14px;vertical-align:middle;margin:0 1px;" alt="{${sym}}">`;
+    });
+}
 let deckSearchVariants = [];
 
 const saveDecks = () => localStorage.setItem('mtg_decks', JSON.stringify(decks));
@@ -5316,6 +5337,16 @@ function renderDeckEditor() {
         legEl.innerHTML = problems.join('');
     }
 
+    // Sort toggle button states
+    const sortTypeBtn = document.getElementById('deck-sort-type');
+    const sortCmcBtn  = document.getElementById('deck-sort-cmc');
+    if (sortTypeBtn && sortCmcBtn) {
+        const activeStyle = 'background:var(--accent);color:#0c0e18;';
+        const idleStyle   = 'background:var(--bg-input);color:var(--muted);';
+        sortTypeBtn.style.cssText = `flex:1;padding:6px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--border-lit);cursor:pointer;${deckSortMode==='type'?activeStyle:idleStyle}`;
+        sortCmcBtn.style.cssText  = `flex:1;padding:6px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--border-lit);cursor:pointer;${deckSortMode==='cmc'?activeStyle:idleStyle}`;
+    }
+
     // Card list grouped by type
     const TYPE_ORDER = ['Creature','Planeswalker','Instant','Sorcery','Enchantment','Artifact','Land'];
     const groups = {};
@@ -5339,6 +5370,7 @@ function renderDeckEditor() {
                  style="cursor:pointer;" onclick="openDeckCardPreview('${ck}')">
             <div class="deck-card-info" style="cursor:pointer;" onclick="openDeckCardPreview('${ck}')">
                 <div class="deck-card-name">${isCmd ? '⭐ ' : ''}${c.name}</div>
+                ${c.manaCost ? `<div style="line-height:1.4;margin:1px 0;">${formatManaCost(c.manaCost)}</div>` : ''}
                 <div class="deck-card-sub">${c.setName||c.set} · ${fmt(c.price)}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
@@ -5368,13 +5400,32 @@ function renderDeckEditor() {
         }
     }
 
-    TYPE_ORDER.concat(['Andet']).forEach(type=>{
-        const grp = groups[type].filter(c=>(c._deckKey||c.id)!==cmdKey); if(!grp.length) return;
-        const grpQty = grp.reduce((s,c)=>s+c.qty,0);
-        const TYPE_COLORS = {Creature:'#4f7cff',Planeswalker:'#f39c12',Instant:'#3498db',Sorcery:'#9b59b6',Enchantment:'#2ecc71',Artifact:'#95a5a6',Land:'#8b6914',Andet:'#666'};
-        listHtml += `<div style="font-size:11px;font-weight:800;letter-spacing:.05em;color:${TYPE_COLORS[type]||'#666'};margin:10px 0 5px;">${type.toUpperCase()} (${grpQty})</div>`;
-        grp.forEach(c=>{ listHtml += deckCardHtml(c); });
-    });
+    if (deckSortMode === 'cmc') {
+        // Sort all non-commander cards by CMC then name
+        const sortedCards = cards
+            .filter(c=>(c._deckKey||c.id)!==cmdKey)
+            .slice()
+            .sort((a,b)=>((a.cmc||0)-(b.cmc||0))||a.name.localeCompare(b.name));
+        // Group by CMC bucket for headers
+        let lastCmc = -1;
+        sortedCards.forEach(c=>{
+            const cmc = c.cmc || 0;
+            if (cmc !== lastCmc) {
+                const cmcLabel = Number.isInteger(cmc) ? String(cmc) : cmc.toFixed(1);
+                listHtml += `<div style="font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--muted);margin:10px 0 5px;">MANA VALUE ${cmcLabel}</div>`;
+                lastCmc = cmc;
+            }
+            listHtml += deckCardHtml(c);
+        });
+    } else {
+        TYPE_ORDER.concat(['Andet']).forEach(type=>{
+            const grp = groups[type].filter(c=>(c._deckKey||c.id)!==cmdKey); if(!grp.length) return;
+            const grpQty = grp.reduce((s,c)=>s+c.qty,0);
+            const TYPE_COLORS = {Creature:'#4f7cff',Planeswalker:'#f39c12',Instant:'#3498db',Sorcery:'#9b59b6',Enchantment:'#2ecc71',Artifact:'#95a5a6',Land:'#8b6914',Andet:'#666'};
+            listHtml += `<div style="font-size:11px;font-weight:800;letter-spacing:.05em;color:${TYPE_COLORS[type]||'#666'};margin:10px 0 5px;">${type.toUpperCase()} (${grpQty})</div>`;
+            grp.forEach(c=>{ listHtml += deckCardHtml(c); });
+        });
+    }
     if (listHtml && totalVal > 0) {
         listHtml += `<div style="display:flex;justify-content:space-between;align-items:center;
             border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
