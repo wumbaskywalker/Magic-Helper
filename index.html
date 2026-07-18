@@ -1825,14 +1825,14 @@
         </button>
 
         <!-- Card list sort -->
-        <div style="display:flex;gap:6px;margin-bottom:8px;">
-            <button id="deck-sort-type" onclick="deckSortMode='type';renderDeckEditor();"
-                style="flex:1;padding:6px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--border-lit);background:var(--accent);color:#0c0e18;cursor:pointer;">
-                Type
+        <div id="deck-type-subsort" style="display:flex;gap:6px;margin-bottom:8px;">
+            <button id="deck-tsort-cmc" onclick="deckTypeSort='cmc';renderDeckEditor();"
+                style="flex:1;padding:4px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid var(--border-lit);background:var(--accent);color:#0c0e18;cursor:pointer;">
+                ↑ Mana Cost
             </button>
-            <button id="deck-sort-cmc" onclick="deckSortMode='cmc';renderDeckEditor();"
-                style="flex:1;padding:6px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--border-lit);background:var(--bg-input);color:var(--muted);cursor:pointer;">
-                Mana Value
+            <button id="deck-tsort-alpha" onclick="deckTypeSort='alpha';renderDeckEditor();"
+                style="flex:1;padding:4px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid var(--border-lit);background:var(--bg-input);color:var(--muted);cursor:pointer;">
+                A–Z
             </button>
         </div>
 
@@ -5130,7 +5130,8 @@ async function searchRules(q) {
 // ═══════════════════════════════════════════════
 let decks = JSON.parse(localStorage.getItem('mtg_decks') || '[]');
 let activeDeckId = null;
-let deckSortMode = 'type'; // 'type' | 'cmc'
+let deckTypeSort = 'cmc';  // within type groups: 'cmc' | 'alpha'
+let deckCollapsed = {};    // { [type]: true } when collapsed
 
 function formatManaCost(cost) {
     if (!cost) return '';
@@ -5337,14 +5338,14 @@ function renderDeckEditor() {
         legEl.innerHTML = problems.join('');
     }
 
-    // Sort toggle button states
-    const sortTypeBtn = document.getElementById('deck-sort-type');
-    const sortCmcBtn  = document.getElementById('deck-sort-cmc');
-    if (sortTypeBtn && sortCmcBtn) {
-        const activeStyle = 'background:var(--accent);color:#0c0e18;';
-        const idleStyle   = 'background:var(--bg-input);color:var(--muted);';
-        sortTypeBtn.style.cssText = `flex:1;padding:6px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--border-lit);cursor:pointer;${deckSortMode==='type'?activeStyle:idleStyle}`;
-        sortCmcBtn.style.cssText  = `flex:1;padding:6px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--border-lit);cursor:pointer;${deckSortMode==='cmc'?activeStyle:idleStyle}`;
+    // Sub-sort button states
+    const tsortCmc   = document.getElementById('deck-tsort-cmc');
+    const tsortAlpha = document.getElementById('deck-tsort-alpha');
+    if (tsortCmc && tsortAlpha) {
+        const a = 'background:var(--accent);color:#0c0e18;';
+        const i = 'background:var(--bg-input);color:var(--muted);';
+        tsortCmc.style.cssText   = `flex:1;padding:4px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid var(--border-lit);cursor:pointer;${deckTypeSort==='cmc'?a:i}`;
+        tsortAlpha.style.cssText = `flex:1;padding:4px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid var(--border-lit);cursor:pointer;${deckTypeSort==='alpha'?a:i}`;
     }
 
     // Card list grouped by type
@@ -5400,32 +5401,25 @@ function renderDeckEditor() {
         }
     }
 
-    if (deckSortMode === 'cmc') {
-        // Sort all non-commander cards by CMC then name
-        const sortedCards = cards
-            .filter(c=>(c._deckKey||c.id)!==cmdKey)
-            .slice()
-            .sort((a,b)=>((a.cmc||0)-(b.cmc||0))||a.name.localeCompare(b.name));
-        // Group by CMC bucket for headers
-        let lastCmc = -1;
-        sortedCards.forEach(c=>{
-            const cmc = c.cmc || 0;
-            if (cmc !== lastCmc) {
-                const cmcLabel = Number.isInteger(cmc) ? String(cmc) : cmc.toFixed(1);
-                listHtml += `<div style="font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--muted);margin:10px 0 5px;">MANA VALUE ${cmcLabel}</div>`;
-                lastCmc = cmc;
-            }
-            listHtml += deckCardHtml(c);
-        });
-    } else {
-        TYPE_ORDER.concat(['Andet']).forEach(type=>{
-            const grp = groups[type].filter(c=>(c._deckKey||c.id)!==cmdKey); if(!grp.length) return;
-            const grpQty = grp.reduce((s,c)=>s+c.qty,0);
-            const TYPE_COLORS = {Creature:'#4f7cff',Planeswalker:'#f39c12',Instant:'#3498db',Sorcery:'#9b59b6',Enchantment:'#2ecc71',Artifact:'#95a5a6',Land:'#8b6914',Andet:'#666'};
-            listHtml += `<div style="font-size:11px;font-weight:800;letter-spacing:.05em;color:${TYPE_COLORS[type]||'#666'};margin:10px 0 5px;">${type.toUpperCase()} (${grpQty})</div>`;
-            grp.forEach(c=>{ listHtml += deckCardHtml(c); });
-        });
-    }
+    const TYPE_COLORS = {Creature:'#4f7cff',Planeswalker:'#f39c12',Instant:'#3498db',Sorcery:'#9b59b6',Enchantment:'#2ecc71',Artifact:'#95a5a6',Land:'#8b6914',Andet:'#666'};
+    TYPE_ORDER.concat(['Andet']).forEach(type=>{
+        let grp = groups[type].filter(c=>(c._deckKey||c.id)!==cmdKey); if(!grp.length) return;
+        grp = grp.slice().sort((a,b) => deckTypeSort === 'alpha'
+            ? a.name.localeCompare(b.name)
+            : ((a.cmc||0)-(b.cmc||0)) || a.name.localeCompare(b.name));
+        const grpQty = grp.reduce((s,c)=>s+c.qty,0);
+        const col = TYPE_COLORS[type]||'#666';
+        const collapsed = !!deckCollapsed[type];
+        const arrow = collapsed ? '▶' : '▼';
+        listHtml += `<div onclick="deckCollapsed['${type}']=!deckCollapsed['${type}'];renderDeckEditor();"
+            style="display:flex;justify-content:space-between;align-items:center;
+                   font-size:11px;font-weight:800;letter-spacing:.05em;color:${col};
+                   margin:10px 0 5px;cursor:pointer;user-select:none;">
+            <span>${type.toUpperCase()} (${grpQty})</span>
+            <span style="font-size:10px;opacity:.7;">${arrow}</span>
+        </div>`;
+        if (!collapsed) grp.forEach(c=>{ listHtml += deckCardHtml(c); });
+    });
     if (listHtml && totalVal > 0) {
         listHtml += `<div style="display:flex;justify-content:space-between;align-items:center;
             border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
