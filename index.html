@@ -5267,7 +5267,8 @@ let deckCollapsed = {};    // { [type]: true } when collapsed
 function formatManaCost(cost) {
     if (!cost) return '';
     return cost.replace(/\{([^}]+)\}/g, (_, sym) => {
-        const url = `https://svgs.scryfall.io/card-symbols/${encodeURIComponent(sym)}.svg`;
+        const file = sym.replace(/\//g, ''); // {B/G} → BG, {W/P} → WP
+        const url = `https://svgs.scryfall.io/card-symbols/${file}.svg`;
         return `<img src="${url}" style="width:14px;height:14px;vertical-align:middle;margin:0 1px;" alt="{${sym}}">`;
     });
 }
