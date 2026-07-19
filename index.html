@@ -236,9 +236,15 @@
             cursor: pointer; transition: all .2s; white-space: nowrap;
         }
         .col-filter-chip.active {
-            border-color: #b47fff; background: rgba(123,94,167,.2); color: #e0c8ff;
-            box-shadow: 0 0 8px rgba(180,130,255,.25);
+            border-color: var(--accent); background: var(--accent); color: #0c0e18;
+            box-shadow: 0 0 10px rgba(79,124,255,.4);
         }
+        #cfc-W.active { background:#e8e4cc; border-color:#c8c090; color:#1a1200; box-shadow:0 0 10px rgba(232,228,180,.4); }
+        #cfc-U.active { background:#1a6bcc; border-color:#4a9bff; color:#fff;    box-shadow:0 0 10px rgba(26,107,204,.5); }
+        #cfc-B.active { background:#3a3a3a; border-color:#888;    color:#fff;    box-shadow:0 0 10px rgba(80,80,80,.5); }
+        #cfc-R.active { background:#cc2200; border-color:#ff5533; color:#fff;    box-shadow:0 0 10px rgba(204,34,0,.5); }
+        #cfc-G.active { background:#1a7a1a; border-color:#44bb44; color:#fff;    box-shadow:0 0 10px rgba(26,140,26,.5); }
+        #cfc-C.active { background:#666;    border-color:#aaa;    color:#fff;    box-shadow:0 0 10px rgba(150,150,150,.4); }
         .col-sort-select {
             flex: 1; min-width: 0; padding: 7px 10px; font-size: 12px;
             margin: 0; border-radius: 20px;
@@ -1530,23 +1536,23 @@
 
     <!-- Type filter -->
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
-        <button class="col-filter-chip" id="cft-creature"     onclick="toggleColTypeFilter('Creature')">🐉 Creature</button>
-        <button class="col-filter-chip" id="cft-instant"      onclick="toggleColTypeFilter('Instant')">⚡ Instant</button>
-        <button class="col-filter-chip" id="cft-sorcery"      onclick="toggleColTypeFilter('Sorcery')">📜 Sorcery</button>
-        <button class="col-filter-chip" id="cft-enchantment"  onclick="toggleColTypeFilter('Enchantment')">✨ Enchantment</button>
-        <button class="col-filter-chip" id="cft-artifact"     onclick="toggleColTypeFilter('Artifact')">⚙️ Artifact</button>
-        <button class="col-filter-chip" id="cft-planeswalker" onclick="toggleColTypeFilter('Planeswalker')">🌟 Planeswalker</button>
-        <button class="col-filter-chip" id="cft-land"         onclick="toggleColTypeFilter('Land')">🏔️ Land</button>
+        <button class="col-filter-chip" id="cft-creature"     onclick="toggleColTypeFilter('Creature')">Creature</button>
+        <button class="col-filter-chip" id="cft-instant"      onclick="toggleColTypeFilter('Instant')">Instant</button>
+        <button class="col-filter-chip" id="cft-sorcery"      onclick="toggleColTypeFilter('Sorcery')">Sorcery</button>
+        <button class="col-filter-chip" id="cft-enchantment"  onclick="toggleColTypeFilter('Enchantment')">Enchantment</button>
+        <button class="col-filter-chip" id="cft-artifact"     onclick="toggleColTypeFilter('Artifact')">Artifact</button>
+        <button class="col-filter-chip" id="cft-planeswalker" onclick="toggleColTypeFilter('Planeswalker')">Planeswalker</button>
+        <button class="col-filter-chip" id="cft-land"         onclick="toggleColTypeFilter('Land')">Land</button>
     </div>
 
     <!-- Color filter -->
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-        <button class="col-filter-chip" id="cfc-W" onclick="toggleColColorFilter('W')" style="background:rgba(249,246,232,.1);border-color:rgba(249,246,232,.3);">☀️ Hvid</button>
-        <button class="col-filter-chip" id="cfc-U" onclick="toggleColColorFilter('U')" style="background:rgba(26,107,204,.1);border-color:rgba(26,107,204,.3);">💧 Blå</button>
-        <button class="col-filter-chip" id="cfc-B" onclick="toggleColColorFilter('B')" style="background:rgba(80,80,80,.1);border-color:rgba(80,80,80,.3);">💀 Sort</button>
-        <button class="col-filter-chip" id="cfc-R" onclick="toggleColColorFilter('R')" style="background:rgba(204,34,0,.1);border-color:rgba(204,34,0,.3);">🔥 Rød</button>
-        <button class="col-filter-chip" id="cfc-G" onclick="toggleColColorFilter('G')" style="background:rgba(26,140,26,.1);border-color:rgba(26,140,26,.3);">🌲 Grøn</button>
-        <button class="col-filter-chip" id="cfc-C" onclick="toggleColColorFilter('C')" style="background:rgba(150,150,150,.1);border-color:rgba(150,150,150,.3);">⬡ Farveløs</button>
+        <button class="col-filter-chip" id="cfc-W" onclick="toggleColColorFilter('W')">Hvid</button>
+        <button class="col-filter-chip" id="cfc-U" onclick="toggleColColorFilter('U')">Blå</button>
+        <button class="col-filter-chip" id="cfc-B" onclick="toggleColColorFilter('B')">Sort</button>
+        <button class="col-filter-chip" id="cfc-R" onclick="toggleColColorFilter('R')">Rød</button>
+        <button class="col-filter-chip" id="cfc-G" onclick="toggleColColorFilter('G')">Grøn</button>
+        <button class="col-filter-chip" id="cfc-C" onclick="toggleColColorFilter('C')">Farveløs</button>
     </div>
 
     <div id="col-price-status" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:16px;"></div>
@@ -4520,15 +4526,14 @@ function updateCollectionView(query = '') {
         });
     }
 
-    // Color filter
+    // Color filter — brug colors (kortets faktiske farve, ikke colorIdentity)
+    // colorIdentity inkluderer farver fra regelstekst (fx Timeless Lotus = WUBRG)
+    // colors = kun farver i manakostnaden — det vi ønsker her
     if (colColorFilters.size) {
         filtered = filtered.filter(x => {
-            const ci = (x.colorIdentity && x.colorIdentity.length)
-                ? x.colorIdentity
-                : (x.colors && x.colors.length ? x.colors : []);
-            // Ingen farve = farveløst kort (artifact, land uden farve osv.)
-            if (ci.length === 0) return colColorFilters.has('C');
-            return [...colColorFilters].some(c => c !== 'C' && ci.includes(c));
+            const c = x.colors && x.colors.length ? x.colors : [];
+            if (c.length === 0) return colColorFilters.has('C');
+            return [...colColorFilters].some(col => col !== 'C' && c.includes(col));
         });
     }
 
