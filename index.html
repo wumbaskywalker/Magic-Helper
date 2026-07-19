@@ -1520,10 +1520,33 @@
         <select class="col-sort-select" id="col-sort" onchange="updateCollectionView(document.getElementById('col-search').value)">
             <option value="added-desc">Sidst tilføjet</option>
             <option value="name-asc">Navn A→Z</option>
+            <option value="cmc-asc">Mana Cost ↑</option>
+            <option value="cmc-desc">Mana Cost ↓</option>
             <option value="price-desc">Pris ↓</option>
             <option value="price-asc">Pris ↑</option>
             <option value="foil-first">Foil først</option>
         </select>
+    </div>
+
+    <!-- Type filter -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+        <button class="col-filter-chip" id="cft-creature"     onclick="toggleColTypeFilter('Creature')">🐉 Creature</button>
+        <button class="col-filter-chip" id="cft-instant"      onclick="toggleColTypeFilter('Instant')">⚡ Instant</button>
+        <button class="col-filter-chip" id="cft-sorcery"      onclick="toggleColTypeFilter('Sorcery')">📜 Sorcery</button>
+        <button class="col-filter-chip" id="cft-enchantment"  onclick="toggleColTypeFilter('Enchantment')">✨ Enchantment</button>
+        <button class="col-filter-chip" id="cft-artifact"     onclick="toggleColTypeFilter('Artifact')">⚙️ Artifact</button>
+        <button class="col-filter-chip" id="cft-planeswalker" onclick="toggleColTypeFilter('Planeswalker')">🌟 Planeswalker</button>
+        <button class="col-filter-chip" id="cft-land"         onclick="toggleColTypeFilter('Land')">🏔️ Land</button>
+    </div>
+
+    <!-- Color filter -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <button class="col-filter-chip" id="cfc-W" onclick="toggleColColorFilter('W')" style="background:rgba(249,246,232,.1);border-color:rgba(249,246,232,.3);">☀️ Hvid</button>
+        <button class="col-filter-chip" id="cfc-U" onclick="toggleColColorFilter('U')" style="background:rgba(26,107,204,.1);border-color:rgba(26,107,204,.3);">💧 Blå</button>
+        <button class="col-filter-chip" id="cfc-B" onclick="toggleColColorFilter('B')" style="background:rgba(80,80,80,.1);border-color:rgba(80,80,80,.3);">💀 Sort</button>
+        <button class="col-filter-chip" id="cfc-R" onclick="toggleColColorFilter('R')" style="background:rgba(204,34,0,.1);border-color:rgba(204,34,0,.3);">🔥 Rød</button>
+        <button class="col-filter-chip" id="cfc-G" onclick="toggleColColorFilter('G')" style="background:rgba(26,140,26,.1);border-color:rgba(26,140,26,.3);">🌲 Grøn</button>
+        <button class="col-filter-chip" id="cfc-C" onclick="toggleColColorFilter('C')" style="background:rgba(150,150,150,.1);border-color:rgba(150,150,150,.3);">⬡ Farveløs</button>
     </div>
 
     <div id="col-price-status" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:16px;"></div>
@@ -4056,6 +4079,46 @@ function deleteCollection(id) {
     updateCollectionView();
 }
 
+// Baggrundsopdatering: hent manglende farve/type-data for ældre kort
+let _colMigrationRunning = false;
+async function migrateCollectionData() {
+    if (_colMigrationRunning) return;
+    // Find alle kort (på tværs af alle samlinger) der mangler typeLine
+    const allCards = Object.values(collections).flatMap(c => c.cards || []);
+    const missing = allCards.filter(x => !x.typeLine && x.id && !x.id.startsWith('import_'));
+    if (!missing.length) return;
+    _colMigrationRunning = true;
+    document.getElementById('col-price-status').textContent = `Opdaterer ${missing.length} kort med farve/type data…`;
+    // Batch à 75 (Scryfall-grænse)
+    const BATCH = 75;
+    for (let i = 0; i < missing.length; i += BATCH) {
+        const batch = missing.slice(i, i + BATCH);
+        try {
+            const res = await fetch('https://api.scryfall.com/cards/collection', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ identifiers: batch.map(x => ({ id: x.id })) })
+            });
+            if (!res.ok) continue;
+            const data = await res.json();
+            (data.data || []).forEach(sc => {
+                // Opdater alle kort med samme id på tværs af samlinger
+                allCards.filter(x => x.id === sc.id).forEach(x => {
+                    x.typeLine      = sc.type_line || '';
+                    x.colorIdentity = sc.color_identity || [];
+                    x.colors        = sc.colors || [];
+                    x.manaCost      = sc.mana_cost || '';
+                    x.cmc           = sc.cmc || 0;
+                });
+            });
+            await new Promise(r => setTimeout(r, 100)); // respektér rate limit
+        } catch(e) { /* ignorer netværksfejl */ }
+    }
+    saveCollection();
+    _colMigrationRunning = false;
+    updateCollectionView(document.getElementById('col-search')?.value || '');
+}
+
 function renderCollectionTabs() {
     const bar = document.getElementById('col-tabs-bar');
     const ids = Object.keys(collections);
@@ -4121,7 +4184,12 @@ function addToCollection() {
             img: currentCard.img,
             imgBack: currentCard.imgBack || '',
             thumb: currentCard.thumb || '',
-            addedAt: Date.now()
+            addedAt: Date.now(),
+            colorIdentity: currentCard.colorIdentity || currentCard.color_identity || [],
+            colors: currentCard.colors || [],
+            typeLine: currentCard.typeLine || currentCard.type_line || '',
+            manaCost: currentCard.manaCost || currentCard.mana_cost || '',
+            cmc: currentCard.cmc || 0,
         });
     }
     saveCollection();
@@ -4182,9 +4250,23 @@ function removeFromCollection(id) {
 }
 
 let colFoilFilter = false;
+let colTypeFilters = new Set();   // e.g. {'Creature','Land'}
+let colColorFilters = new Set();  // e.g. {'W','R'}
+
 function toggleColFoilFilter() {
     colFoilFilter = !colFoilFilter;
     document.getElementById('col-foil-chip').classList.toggle('active', colFoilFilter);
+    updateCollectionView(document.getElementById('col-search').value);
+}
+function toggleColTypeFilter(type) {
+    colTypeFilters.has(type) ? colTypeFilters.delete(type) : colTypeFilters.add(type);
+    const id = 'cft-' + type.toLowerCase();
+    document.getElementById(id)?.classList.toggle('active', colTypeFilters.has(type));
+    updateCollectionView(document.getElementById('col-search').value);
+}
+function toggleColColorFilter(color) {
+    colColorFilters.has(color) ? colColorFilters.delete(color) : colColorFilters.add(color);
+    document.getElementById('cfc-' + color)?.classList.toggle('active', colColorFilters.has(color));
     updateCollectionView(document.getElementById('col-search').value);
 }
 function filterCollection(query) {
@@ -4430,9 +4512,31 @@ function updateCollectionView(query = '') {
     // Foil filter
     if (colFoilFilter) filtered = filtered.filter(x => x.foil);
 
+    // Type filter
+    if (colTypeFilters.size) {
+        filtered = filtered.filter(x => {
+            if (!x.typeLine) return true; // ældre kort uden typedata vises altid
+            return [...colTypeFilters].some(t => x.typeLine.includes(t));
+        });
+    }
+
+    // Color filter
+    if (colColorFilters.size) {
+        filtered = filtered.filter(x => {
+            const ci = (x.colorIdentity && x.colorIdentity.length)
+                ? x.colorIdentity
+                : (x.colors && x.colors.length ? x.colors : []);
+            // Ingen farve = farveløst kort (artifact, land uden farve osv.)
+            if (ci.length === 0) return colColorFilters.has('C');
+            return [...colColorFilters].some(c => c !== 'C' && ci.includes(c));
+        });
+    }
+
     // Sort
     filtered.sort((a, b) => {
         if (sort === 'name-asc')    return a.name.localeCompare(b.name);
+        if (sort === 'cmc-asc')     return ((a.cmc||0) - (b.cmc||0)) || a.name.localeCompare(b.name);
+        if (sort === 'cmc-desc')    return ((b.cmc||0) - (a.cmc||0)) || a.name.localeCompare(b.name);
         if (sort === 'price-desc')  return (b.price||0) - (a.price||0);
         if (sort === 'price-asc')   return (a.price||0) - (b.price||0);
         if (sort === 'foil-first')  return (b.foil?1:0) - (a.foil?1:0);
@@ -4487,6 +4591,7 @@ function updateCollectionView(query = '') {
     });
 }
 updateCollectionView();
+migrateCollectionData();
 
 // ═══════════════════════════════════════════════
 //  AUTOMATISK PRISOPDATERING
