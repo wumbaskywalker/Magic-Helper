@@ -2123,9 +2123,10 @@
         <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:20px;max-width:320px;width:100%;padding:24px;position:relative;">
             <button onclick="closeReorderModal()"
                     style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">✕</button>
-            <div style="font-size:17px;font-weight:800;margin-bottom:16px;">⇄ Flyt spillere</div>
-            <div id="reorder-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-            <button onclick="closeReorderModal()" class="app-btn" style="margin-top:16px;">Færdig</button>
+            <div style="font-size:17px;font-weight:800;margin-bottom:4px;">⇄ Flyt spillere</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Tryk på to spillere for at bytte dem</div>
+            <div id="reorder-grid" style="display:grid;gap:8px;margin-bottom:16px;"></div>
+            <button onclick="closeReorderModal()" class="app-btn" style="margin-top:4px;">Færdig</button>
         </div>
     </div>
 
@@ -6043,38 +6044,71 @@ function hideTilbehoer() {
     document.getElementById('tilbehoer-pop').style.display = 'none';
 }
 
+let _reorderSelected = -1; // indeks i visningsrækkefølge der er valgt
+
 function openReorderModal() {
-    renderReorderList();
+    _reorderSelected = -1;
+    renderReorderGrid();
     document.getElementById('reorder-modal').style.display = 'flex';
 }
 function closeReorderModal() {
     document.getElementById('reorder-modal').style.display = 'none';
+    _reorderSelected = -1;
 }
-function renderReorderList() {
-    const list = document.getElementById('reorder-list');
-    list.innerHTML = gamePlayers.map((p, i) => `
-        <div style="display:flex;align-items:center;gap:10px;background:var(--bg-input);
-                    border:1px solid var(--border-lit);border-radius:12px;padding:10px 12px;
-                    border-left:4px solid ${p.color};">
-            <div style="flex:1;font-weight:700;font-size:15px;">${p.name}</div>
-            <button onclick="reorderSwap(${i}, ${i-1})" ${i===0?'disabled':''}
-                style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border-lit);
-                       background:var(--bg-panel);color:${i===0?'var(--muted)':'var(--text)'};
-                       font-size:16px;cursor:${i===0?'default':'pointer'};">↑</button>
-            <button onclick="reorderSwap(${i}, ${i+1})" ${i===gamePlayers.length-1?'disabled':''}
-                style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border-lit);
-                       background:var(--bg-panel);color:${i===gamePlayers.length-1?'var(--muted)':'var(--text)'};
-                       font-size:16px;cursor:${i===gamePlayers.length-1?'default':'pointer'};">↓</button>
-        </div>`).join('');
+
+function _getDisplayOrder() {
+    if (playerDisplayOrder.length === gamePlayers.length) return playerDisplayOrder;
+    return gamePlayers.map(p => p.id);
 }
-function reorderSwap(a, b) {
-    if (b < 0 || b >= gamePlayers.length) return;
-    // Arbejd på den lokale visningsrækkefølge (påvirker ikke andre skærme)
-    if (playerDisplayOrder.length !== gamePlayers.length)
-        playerDisplayOrder = gamePlayers.map(p => p.id);
-    [playerDisplayOrder[a], playerDisplayOrder[b]] = [playerDisplayOrder[b], playerDisplayOrder[a]];
-    renderBoard();
-    renderReorderList();
+
+function renderReorderGrid() {
+    const grid = document.getElementById('reorder-grid');
+    const order = _getDisplayOrder();
+    const n = order.length;
+
+    // Grid-kolonner spejler board-layoutet
+    const cols = n <= 2 ? 1 : 2;
+    grid.style.gridTemplateColumns = cols === 1 ? '1fr' : '1fr 1fr';
+
+    grid.innerHTML = order.map((pid, i) => {
+        const p = gamePlayers.find(x => x.id === pid);
+        if (!p) return '';
+        const isSelected = _reorderSelected === i;
+        const border = isSelected
+            ? 'border:2px solid #f4b942;box-shadow:0 0 12px rgba(244,185,66,.5);'
+            : `border:2px solid ${p.color}44;`;
+        // Span fuld bredde for øverste kort i 3/5-spiller layout
+        const span = (cols === 2 && n % 2 === 1 && i === 0) ? 'grid-column:span 2;' : '';
+        return `<div onclick="reorderTap(${i})"
+            style="cursor:pointer;border-radius:12px;padding:14px 10px;text-align:center;
+                   background:linear-gradient(160deg,${p.color}33,${p.color}11);
+                   ${border}${span}transition:all .15s;">
+            ${isSelected ? '<div style="font-size:10px;color:#f4b942;font-weight:800;margin-bottom:4px;">VALGT</div>' : ''}
+            <div style="width:28px;height:28px;border-radius:50%;background:${p.color};margin:0 auto 6px;"></div>
+            <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+        </div>`;
+    }).join('');
+}
+
+function reorderTap(i) {
+    if (_reorderSelected === -1) {
+        // Første tryk — vælg spiller
+        _reorderSelected = i;
+        renderReorderGrid();
+    } else if (_reorderSelected === i) {
+        // Tryk på samme — afvælg
+        _reorderSelected = -1;
+        renderReorderGrid();
+    } else {
+        // Andet tryk — byt de to
+        if (playerDisplayOrder.length !== gamePlayers.length)
+            playerDisplayOrder = gamePlayers.map(p => p.id);
+        [playerDisplayOrder[_reorderSelected], playerDisplayOrder[i]] =
+            [playerDisplayOrder[i], playerDisplayOrder[_reorderSelected]];
+        _reorderSelected = -1;
+        renderBoard();
+        renderReorderGrid();
+    }
 }
 document.addEventListener('click', () => hideTilbehoer());
 
