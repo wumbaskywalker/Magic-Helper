@@ -1229,11 +1229,11 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v2.3</span> — Farve- og typefilter i samling, flyt spillere lokalt, eksport som klartekst</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.2</span> — Mana-symboler på kort, sammenfoldelige typegrupper og sortering i deck-builder</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.1</span> — Vælg Lokalt eller Online når du starter spillet</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.0</span> — 3- og 5-spiller multiplayer: dit kort altid nederst og fuld bredde</div>
                 <div><span style="color:var(--gold);font-weight:700;">v1.9</span> — Vis hvem der kastede terning/mønt/random i multiplayer</div>
-                <div><span style="color:var(--gold);font-weight:700;">v1.8</span> — Genstart synkroniseres til alle spillere</div>
             </div>
         </div>
 
@@ -1504,7 +1504,7 @@
             <strong id="col-count">0</strong> kort &nbsp;·&nbsp; Total: <strong id="col-total" class="price-text">0.00</strong>
         </div>
         <div style="display:flex;gap:6px;">
-            <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="exportCollectionCSV()">
+            <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="openExportModal()">
                 <i class="fa-solid fa-file-export"></i> Eksport
             </button>
             <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="document.getElementById('col-import-input').click()">
@@ -1586,6 +1586,31 @@
 </main>
 
 <!-- ══ COLLECTION CARD DETAIL MODAL ══ -->
+<!-- Export modal -->
+<div id="col-export-modal" onclick="if(event.target===this)this.style.display='none'"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:center;justify-content:center;padding:24px;">
+    <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:20px;max-width:320px;width:100%;padding:24px;position:relative;">
+        <button onclick="document.getElementById('col-export-modal').style.display='none'"
+                style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">✕</button>
+        <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Eksportér samling</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Vælg format</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            <button onclick="exportCollectionText();document.getElementById('col-export-modal').style.display='none';"
+                style="padding:14px;border-radius:12px;border:1.5px solid var(--border-lit);background:var(--bg-input);
+                       color:var(--text);font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
+                <div>📋 Klartekst</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:400;">1 Lightning Bolt<br>2 Dark Ritual<br>Kompatibel med Kelz0r</div>
+            </button>
+            <button onclick="exportCollectionCSV();document.getElementById('col-export-modal').style.display='none';"
+                style="padding:14px;border-radius:12px;border:1.5px solid var(--border-lit);background:var(--bg-input);
+                       color:var(--text);font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
+                <div>📊 CSV med priser</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:400;">Navn, sæt, antal og pris<br>Åbn i Excel / Numbers</div>
+            </button>
+        </div>
+    </div>
+</div>
+
 <div id="col-card-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.96);z-index:1000;overflow-y:auto;padding:20px;">
     <div style="max-width:400px;margin:0 auto;">
         <button onclick="document.getElementById('col-card-detail-modal').style.display='none'"
@@ -2092,6 +2117,18 @@
 
     <div id="game-board" class="play-area players-4"></div>
 
+    <!-- Reorder players modal -->
+    <div id="reorder-modal" onclick="if(event.target===this)closeReorderModal()"
+         style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9000;align-items:center;justify-content:center;padding:24px;">
+        <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:20px;max-width:320px;width:100%;padding:24px;position:relative;">
+            <button onclick="closeReorderModal()"
+                    style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">✕</button>
+            <div style="font-size:17px;font-weight:800;margin-bottom:16px;">⇄ Flyt spillere</div>
+            <div id="reorder-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <button onclick="closeReorderModal()" class="app-btn" style="margin-top:16px;">Færdig</button>
+        </div>
+    </div>
+
     <!-- Tilbehør popover -->
     <div id="tilbehoer-pop" style="display:none;position:absolute;bottom:56px;left:0;
          background:#12141f;border:1px solid #2a2f50;border-radius:12px;padding:8px;
@@ -2100,6 +2137,7 @@
         <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="flipCoin();hideTilbehoer()">🪙 Kast mønt</button>
         <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="pickRandomPlayer();hideTilbehoer()">🎯 Vælg random spiller</button>
         <button id="tilb-who-starts-btn" class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="whoStarts();hideTilbehoer()">⚔ Hvem starter?</button>
+        <button class="app-btn btn-dark" style="margin:0;font-size:13px;" onclick="openReorderModal();hideTilbehoer()">⇄ Flyt spillere</button>
     </div>
 
     <div class="play-btns" id="play-btns-bar">
@@ -2367,6 +2405,7 @@ let acTimeout;
 let tradeVariants   = [];
 let tradeGive = [], tradeGet = [], tradeSide = '';
 let gamePlayers     = [];
+let playerDisplayOrder = []; // lokal visningsrækkefølge (array af player IDs)
 let currentPC       = 4;
 let startLife       = 40;
 let gameFormat      = 'commander';
@@ -3280,7 +3319,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '2.2';
+const APP_VERSION = '2.3';
 
 function openInfoModal() {
     document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
@@ -3492,7 +3531,7 @@ function initGame(n){
         for(let j=1;j<=n;j++)if(j!==i)pl.cmdDmg[j]=0;
         next.push(pl);
     }
-    gamePlayers=next; renderBoard();
+    gamePlayers=next; playerDisplayOrder=[]; renderBoard();
 }
 function showResetConfirm(){ showSetup(1); }
 function confirmReset(){ quickReset(); }
@@ -3562,10 +3601,16 @@ function renderBoard(){
     board.className='play-area players-'+currentPC+(isMpPlaying?' mp-playing':'');
     board.innerHTML='';
 
-    let displayPlayers = [...gamePlayers];
+    // Byg displayPlayers ud fra lokal visningsrækkefølge (hvis sat), ellers standard
+    let displayPlayers;
+    if (playerDisplayOrder.length === gamePlayers.length) {
+        displayPlayers = playerDisplayOrder.map(id => gamePlayers.find(p => p.id === id)).filter(Boolean);
+    } else {
+        displayPlayers = [...gamePlayers];
+    }
     if (isMpPlaying) {
-        const mine = displayPlayers.splice(mpMyPlayer, 1)[0];
-        displayPlayers.push(mine);
+        const mine = displayPlayers.find(p => p.id === gamePlayers[mpMyPlayer]?.id);
+        if (mine) { displayPlayers.splice(displayPlayers.indexOf(mine), 1); displayPlayers.push(mine); }
     }
 
     displayPlayers.forEach((p, idx)=>{
@@ -4704,6 +4749,22 @@ function importCollectionCSV(input) {
         toast(`${imported} kort importeret!${skipped ? ' ' + skipped + ' sprunget over.' : ''}`);
     };
     reader.readAsText(file, 'UTF-8');
+}
+
+function openExportModal() {
+    if (!collection.length) return toast('Samlingen er tom!', '#e74c3c');
+    document.getElementById('col-export-modal').style.display = 'flex';
+}
+
+function exportCollectionText() {
+    if (!collection.length) return toast('Samlingen er tom!', '#e74c3c');
+    const lines = collection.map(x => `${x.qty} ${x.name}`).join('\n');
+    const blob = new Blob([lines], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'mtg-samling.txt'; a.click();
+    URL.revokeObjectURL(url);
+    toast('Tekstfil downloadet!');
 }
 
 function exportCollectionCSV() {
@@ -5980,6 +6041,40 @@ function toggleTilbehoer(e) {
 }
 function hideTilbehoer() {
     document.getElementById('tilbehoer-pop').style.display = 'none';
+}
+
+function openReorderModal() {
+    renderReorderList();
+    document.getElementById('reorder-modal').style.display = 'flex';
+}
+function closeReorderModal() {
+    document.getElementById('reorder-modal').style.display = 'none';
+}
+function renderReorderList() {
+    const list = document.getElementById('reorder-list');
+    list.innerHTML = gamePlayers.map((p, i) => `
+        <div style="display:flex;align-items:center;gap:10px;background:var(--bg-input);
+                    border:1px solid var(--border-lit);border-radius:12px;padding:10px 12px;
+                    border-left:4px solid ${p.color};">
+            <div style="flex:1;font-weight:700;font-size:15px;">${p.name}</div>
+            <button onclick="reorderSwap(${i}, ${i-1})" ${i===0?'disabled':''}
+                style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border-lit);
+                       background:var(--bg-panel);color:${i===0?'var(--muted)':'var(--text)'};
+                       font-size:16px;cursor:${i===0?'default':'pointer'};">↑</button>
+            <button onclick="reorderSwap(${i}, ${i+1})" ${i===gamePlayers.length-1?'disabled':''}
+                style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border-lit);
+                       background:var(--bg-panel);color:${i===gamePlayers.length-1?'var(--muted)':'var(--text)'};
+                       font-size:16px;cursor:${i===gamePlayers.length-1?'default':'pointer'};">↓</button>
+        </div>`).join('');
+}
+function reorderSwap(a, b) {
+    if (b < 0 || b >= gamePlayers.length) return;
+    // Arbejd på den lokale visningsrækkefølge (påvirker ikke andre skærme)
+    if (playerDisplayOrder.length !== gamePlayers.length)
+        playerDisplayOrder = gamePlayers.map(p => p.id);
+    [playerDisplayOrder[a], playerDisplayOrder[b]] = [playerDisplayOrder[b], playerDisplayOrder[a]];
+    renderBoard();
+    renderReorderList();
 }
 document.addEventListener('click', () => hideTilbehoer());
 
