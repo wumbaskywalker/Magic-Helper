@@ -468,8 +468,8 @@
             color: #fff; text-shadow: 0 0 20px rgba(255,255,255,.25), 0 2px 8px rgba(0,0,0,.9);
         }
 
-        /* ── LANDSCAPE: skjul stats/cmd og vis kun liv ── */
-        @media (orientation: landscape) {
+        /* ── LANDSCAPE (kun telefon, lav højde): skjul stats/cmd og vis kun liv ── */
+        @media (orientation: landscape) and (max-height: 500px) {
             .stats-row, .cmd-badges-container { display: none !important; }
             .player-header { min-height: 0; padding: 2px 6px; }
             .life-val { font-size: clamp(72px, 16vh, 160px); }
@@ -1152,6 +1152,44 @@
             color: var(--gold-lt);
         }
 
+        /* ── ONLINE MP: alle paneler retvendte (rotation er kun til lokal delt telefon) ── */
+        .play-area.mp-playing .player-box { transform: none !important; }
+
+        /* ══ DESIGN POLISH (v2.5) ══ */
+        body {
+            background:
+                radial-gradient(1100px 520px at 85% -10%, rgba(79,124,255,.10), transparent 60%),
+                radial-gradient(900px 480px at -10% 108%, rgba(123,82,171,.11), transparent 55%),
+                radial-gradient(700px 400px at 50% 45%, rgba(201,168,76,.045), transparent 60%),
+                var(--bg-body);
+            background-attachment: fixed;
+        }
+        nav div { border-radius: 12px; margin: 0 2px; }
+        nav div.active {
+            background: linear-gradient(160deg, rgba(201,168,76,.16), rgba(201,168,76,.04));
+            box-shadow: inset 0 0 0 1px rgba(201,168,76,.28);
+        }
+        .result-card, .deck-stat-box, .kal-card, .trade-col {
+            box-shadow: 0 10px 34px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.035);
+        }
+        .list-item, .deck-list-item, .col-card {
+            box-shadow: 0 4px 16px rgba(0,0,0,.25);
+        }
+        button.app-btn { letter-spacing: .01em; }
+        .player-box { border-radius: 20px; }
+        .player-box::after {
+            content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+            background: linear-gradient(168deg, rgba(255,255,255,.06) 0%, transparent 26%);
+        }
+        .life-val { text-shadow: 0 0 26px rgba(255,255,255,.30), 0 0 70px rgba(255,255,255,.18), 0 2px 8px rgba(0,0,0,.9); }
+        .life-btn { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+        .setup-title {
+            background: linear-gradient(125deg, var(--gold) 0%, var(--gold-lt) 60%, #fff 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .setup-big-btn { box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+        .status-pill { box-shadow: inset 0 1px 0 rgba(255,255,255,.03); }
+
         /* ── TOAST ── */
         #toast {
             position: fixed; bottom: 78px; left: 50%; transform: translateX(-50%);
@@ -1229,6 +1267,8 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v2.6</span> — Hurtigere og mere præcis scanning, batch-scan til samling, scan-historik og lommelygte</div>
+                <div><span style="color:var(--gold);font-weight:700;">v2.5</span> — Nyt look, sikre samtidige tryk (multi-touch + online), rettet fortryd af commander-skade</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.4</span> — Fortryd-knap i Life counter, hurtigere prisopdatering og fejlrettelser</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.3</span> — Farve- og typefilter i samling, flyt spillere lokalt, eksport som klartekst</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.2</span> — Mana-symboler på kort, sammenfoldelige typegrupper og sortering i deck-builder</div>
@@ -1398,6 +1438,15 @@
         </button>
     </div>
 
+    <div class="auto-scan-row" id="quick-add-row" style="display:none;">
+        <span>⚡ Gem direkte (uden bekræftelse)</span>
+        <label class="toggle-switch">
+            <input type="checkbox" id="quick-add-chk" onchange="document.getElementById('quick-add-lbl').innerText=this.checked?'Til':'Fra'">
+            <span class="toggle-slider"></span>
+        </label>
+        <span id="quick-add-lbl" style="min-width:28px;">Fra</span>
+    </div>
+
     <div class="auto-scan-row">
         <span>Auto-scan</span>
         <label class="toggle-switch">
@@ -1412,12 +1461,21 @@
         <div id="scan-overlay"></div>
         <div id="scan-line"></div>
         <div id="scan-guide">God belysning giver de bedste resultater</div>
+        <button id="torch-btn" onclick="toggleTorch()" title="Lommelygte"
+            style="display:none;position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;
+                   background:rgba(12,14,24,.6);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:17px;
+                   cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(6px);z-index:5;">🔦</button>
     </div>
 
     <button class="app-btn btn-purple" onclick="captureAndScan(false)">
         <i class="fa-solid fa-camera"></i> Scan Kort
     </button>
     <div id="scan-status" style="text-align:center;margin-top:10px;font-weight:600;font-size:15px;min-height:22px;"></div>
+
+    <div id="scan-history-wrap" style="display:none;margin-top:14px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">SENESTE SCANNINGER</div>
+        <div id="scan-history" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;"></div>
+    </div>
 </main>
 
 <!-- ══ LIST ══ -->
@@ -2417,7 +2475,7 @@ let currentView     = 'play';
 const defaultColors = ['#dc3545','#007bff','#28a745','#fd7e14','#6f42c1','#20c997'];
 let rates           = { EUR: 1, DKK: 7.46, USD: 1.07 };
 let currency        = localStorage.getItem('mtg_currency') || 'DKK';
-let lpTimer = null, lpIv = null;
+let lpTimers = {};
 
 document.getElementById('currency-select').value = currency;
 
@@ -2997,6 +3055,13 @@ async function startCamera() {
             video.srcObject = videoStream;
         } catch(e2) { document.getElementById('scan-status').innerText='⚠️ Kamera ikke tilgængeligt.'; return; }
     }
+    // Lommelygte-knap hvis kameraet understøtter torch
+    try {
+        const caps = videoStream.getVideoTracks()[0].getCapabilities?.();
+        document.getElementById('torch-btn').style.display = caps?.torch ? 'flex' : 'none';
+    } catch(e) {}
+    // Varm OCR-motoren op i baggrunden så første scan er hurtigt
+    getOcrWorker().catch(()=>{});
     // Auto-scan er slået til som standard
     const chk = document.getElementById('auto-scan-chk');
     if (chk && !chk.checked) { chk.checked = true; toggleAutoScan(true); }
@@ -3022,8 +3087,124 @@ function stopCamera() {
 
 function toggleAutoScan(on) {
     document.getElementById('auto-scan-lbl').innerText = on ? 'Til' : 'Fra';
-    if (on) { autoScanIv = setInterval(()=>captureAndScan(true), 2500); }
+    if (on) { autoScanIv = setInterval(()=>captureAndScan(true), 1800); }
     else    { clearInterval(autoScanIv); autoScanIv=null; }
+}
+
+// ── Genbrugt OCR-worker (i stedet for ny motor pr. scan — meget hurtigere) ──
+let _ocrWorker = null, _ocrInit = null, _ocrBusy = false;
+function getOcrWorker() {
+    if (_ocrInit) return _ocrInit;
+    _ocrInit = (async () => {
+        const w = await Tesseract.createWorker();
+        if (w.loadLanguage) { await w.loadLanguage('eng'); await w.initialize('eng'); }
+        if (w.setParameters) await w.setParameters({
+            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ,-'",
+            tessedit_pageseg_mode: '7',
+            preserve_interword_spaces: '0'
+        });
+        _ocrWorker = w;
+        return w;
+    })();
+    _ocrInit.catch(() => { _ocrInit = null; });
+    return _ocrInit;
+}
+
+// ── Levenshtein-afstand til navnematch ──
+function _lev(a, b) {
+    const m = a.length, n = b.length;
+    if (!m) return n; if (!n) return m;
+    let prev = Array.from({length: n+1}, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+        const cur = [i];
+        for (let j = 1; j <= n; j++)
+            cur[j] = Math.min(prev[j]+1, cur[j-1]+1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+        prev = cur;
+    }
+    return prev[n];
+}
+
+// ── Validér/ret OCR-tekst mod Scryfalls autocomplete (retter små læsefejl) ──
+async function resolveCardName(text) {
+    try {
+        const d = await (await fetch('https://api.scryfall.com/cards/autocomplete?q=' + encodeURIComponent(text))).json();
+        if (d.data?.length) {
+            const t = text.toLowerCase();
+            let best = d.data[0], bestD = 1e9;
+            d.data.forEach(n => { const dd = _lev(t, n.toLowerCase()); if (dd < bestD) { bestD = dd; best = n; } });
+            return best;
+        }
+    } catch(e) {}
+    return text;
+}
+
+// ── Scan-historik (kun denne session) ──
+const _scanHistory = [];
+function addScanHistory(card) {
+    if (_scanHistory[0]?.id !== card.id) {
+        _scanHistory.unshift(card);
+        if (_scanHistory.length > 12) _scanHistory.pop();
+    }
+    renderScanHistory();
+}
+function renderScanHistory() {
+    const wrap = document.getElementById('scan-history-wrap');
+    const el = document.getElementById('scan-history');
+    if (!wrap || !el) return;
+    if (!_scanHistory.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    el.innerHTML = _scanHistory.map((c, i) => `
+        <div onclick="scanHistOpen(${i})" style="flex-shrink:0;width:72px;cursor:pointer;">
+            <img src="${c.thumb || c.img || ''}" style="width:72px;border-radius:6px;display:block;background:var(--bg-input);" loading="lazy">
+            <div style="font-size:9px;color:var(--muted);margin-top:3px;text-align:center;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
+        </div>`).join('');
+}
+function scanHistOpen(i) {
+    const c = _scanHistory[i]; if (!c) return;
+    switchView('search', document.querySelector('nav div:nth-child(1)'));
+    document.getElementById('manual-search').value = c.name;
+    searchCard(c.name);
+}
+
+// ── Hurtig-gem direkte i samlingen (batch-scanning) ──
+let _lastQuickId = null, _lastQuickAt = 0;
+function quickAddToCollection(card) {
+    const key = card.id;
+    const ex = collection.find(x => (x._colKey||x.id) === key && !x.foil);
+    if (ex) { ex.qty += 1; }
+    else { collection.push({ ...card, _colKey: key, foil: false, condition: 'NM',
+        set: (card.set||'').toUpperCase(), qty: 1, addedAt: Date.now() }); }
+    saveCollection(); updateCollectionView();
+    toast(`✓ ${card.name} gemt i samlingen`);
+}
+
+// ── Lommelygte ──
+let _torchOn = false;
+async function toggleTorch() {
+    const track = videoStream?.getVideoTracks?.()[0];
+    if (!track) return;
+    try {
+        _torchOn = !_torchOn;
+        await track.applyConstraints({ advanced: [{ torch: _torchOn }] });
+        const b = document.getElementById('torch-btn');
+        if (b) b.style.background = _torchOn ? 'rgba(201,168,76,.9)' : 'rgba(12,14,24,.6)';
+    } catch(e) { _torchOn = false; toast('Lommelygte ikke understøttet', '#e74c3c'); }
+}
+
+// ── Succes-blip ──
+function sndScanOk() {
+    if (!soundEnabled) return;
+    try {
+        const ac = _ac(), t = ac.currentTime;
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(880, t);
+        o.frequency.setValueAtTime(1320, t + 0.08);
+        g.gain.setValueAtTime(0.16, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        o.connect(g); g.connect(ac.destination);
+        o.start(t); o.stop(t + 0.22);
+    } catch(e) {}
 }
 
 /* Otsu's threshold — O(n), much better than adaptive for this use case */
@@ -3086,35 +3267,44 @@ async function captureAndScan(isAuto=false) {
     const video=document.getElementById('camera-stream');
     const status=document.getElementById('scan-status');
     if (!videoStream||!video.videoWidth) return;
+    if (_ocrBusy) return; // undgå overlappende OCR-kørsler
+    _ocrBusy = true;
     if (!isAuto) { status.innerText='🔍 Analyserer…'; status.style.color='var(--accent)'; }
 
-    const full=document.createElement('canvas');
-    const vidW=video.videoWidth, vidH=video.videoHeight;
-    full.width=vidW; full.height=vidH;
-    full.getContext('2d').drawImage(video,0,0);
-
-    // Map scan-overlay display rect → raw video pixels, accounting for object-fit:cover
-    const vr=video.getBoundingClientRect();
-    const br=document.getElementById('scan-overlay').getBoundingClientRect();
-    const scale=Math.max(vr.width/vidW, vr.height/vidH);
-    const offX=(vidW*scale - vr.width)/2;
-    const offY=(vidH*scale - vr.height)/2;
-    const cX=Math.max(0, Math.round(((br.left-vr.left)+offX)/scale));
-    const cY=Math.max(0, Math.round(((br.top -vr.top )+offY)/scale));
-    const cW=Math.min(Math.round(br.width/scale),  vidW-cX);
-    const cH=Math.min(Math.round(br.height/scale), vidH-cY);
-
-    const crop=document.createElement('canvas');
-    crop.width=cW*3; crop.height=cH*3; // 3× upscale for better OCR
-    crop.getContext('2d').drawImage(full,cX,cY,cW,cH,0,0,cW*3,cH*3);
-    preprocess(crop);
-
     try {
-        const r=await Tesseract.recognize(crop,'eng',{
-            tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ,-\'',
-            tessedit_pageseg_mode:'7',
-            preserve_interword_spaces:'0'
-        });
+        const full=document.createElement('canvas');
+        const vidW=video.videoWidth, vidH=video.videoHeight;
+        full.width=vidW; full.height=vidH;
+        full.getContext('2d').drawImage(video,0,0);
+
+        // Map scan-overlay display rect → raw video pixels, accounting for object-fit:cover
+        const vr=video.getBoundingClientRect();
+        const br=document.getElementById('scan-overlay').getBoundingClientRect();
+        const scale=Math.max(vr.width/vidW, vr.height/vidH);
+        const offX=(vidW*scale - vr.width)/2;
+        const offY=(vidH*scale - vr.height)/2;
+        const cX=Math.max(0, Math.round(((br.left-vr.left)+offX)/scale));
+        const cY=Math.max(0, Math.round(((br.top -vr.top )+offY)/scale));
+        const cW=Math.min(Math.round(br.width/scale),  vidW-cX);
+        const cH=Math.min(Math.round(br.height/scale), vidH-cY);
+
+        const crop=document.createElement('canvas');
+        crop.width=cW*3; crop.height=cH*3; // 3× upscale for better OCR
+        crop.getContext('2d').drawImage(full,cX,cY,cW,cH,0,0,cW*3,cH*3);
+        preprocess(crop);
+
+        // OCR via genbrugt worker (hurtigt) — falder tilbage til engangs-kald
+        let r;
+        try {
+            const w = await getOcrWorker();
+            r = await w.recognize(crop);
+        } catch(e) {
+            r = await Tesseract.recognize(crop,'eng',{
+                tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ,-\'',
+                tessedit_pageseg_mode:'7',
+                preserve_interword_spaces:'0'
+            });
+        }
         let text=r.data.text.trim().split('\n')[0]||'';
         text=text.replace(/[^a-zA-Z0-9 '\-,]/g,'').replace(/\s+/g,' ').trim();
         const conf=r.data.confidence;
@@ -3122,47 +3312,69 @@ async function captureAndScan(isAuto=false) {
         // Reject if too many single-character "words" (OCR noise pattern)
         const words=text.split(' ').filter(w=>w.length>0);
         const singleCharRatio=words.filter(w=>w.length===1).length/Math.max(words.length,1);
+
         if(text.length>2 && letters.length>=3 && singleCharRatio<0.4) {
             if (isAuto&&conf<55) {
-                // Show live feedback so user knows scanning is active
                 status.innerText=`🔍 Ser: "${text}" (${Math.round(conf)}%) — hold kortet stille…`;
                 status.style.color='var(--muted)'; status.style.display='block';
                 return;
             }
-            if (isAuto) { toggleAutoScan(false); document.getElementById('auto-scan-chk').checked=false; }
-            status.innerText=`✅ Fandt: "${text}" — slår op…`; status.style.color='var(--green)';
+            status.innerText=`✅ Læste: "${text}" — matcher navn…`; status.style.color='var(--green)';
+
+            // Ret små OCR-fejl via Scryfalls autocomplete, slå kortet op
+            const name = await resolveCardName(text);
+            let data;
+            try {
+                const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+                if (!res.ok) throw new Error();
+                data = await res.json();
+            } catch(e) {
+                status.innerText=`⚠️ Fandt ikke "${text}" — prøv igen.`; status.style.color='var(--red)';
+                return;
+            }
+            const price = data.prices?.eur ? +data.prices.eur : (data.prices?.usd ? +data.prices.usd/rates.USD : 0);
+            const card = {
+                id: data.id, name: data.name, set: data.set, setName: data.set_name, price,
+                img:     data.image_uris?.normal || data.card_faces?.[0]?.image_uris?.normal || '',
+                thumb:   data.image_uris?.small  || data.card_faces?.[0]?.image_uris?.small  || '',
+                imgBack: data.card_faces?.[1]?.image_uris?.normal || '',
+                cmc: data.cmc||0, colors: data.colors||[], colorIdentity: data.color_identity||[],
+                typeLine: data.type_line||'', manaCost: data.mana_cost||''
+            };
+            sndScanOk(); vib([30,20,40]);
+            addScanHistory(card);
 
             if (scanTarget === 'collection') {
-                // Søg kortet op via Scryfall, vis derefter scan-til-samling modal
-                try {
-                    const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(text)}`);
-                    if (!res.ok) throw new Error();
-                    const data = await res.json();
-                    const price = parseFloat(data.prices?.eur) || 0;
-                    const card = {
-                        id: data.id,
-                        name: data.name,
-                        set: data.set,
-                        setName: data.set_name,
-                        price,
-                        img: data.image_uris?.normal || (data.card_faces?.[0]?.image_uris?.normal) || ''
-                    };
+                const quick = document.getElementById('quick-add-chk')?.checked;
+                if (quick) {
+                    // Batch-mode: gem direkte og fortsæt auto-scan — næste kort kan lægges frem
+                    if (_lastQuickId === card.id && Date.now() - _lastQuickAt < 7000) {
+                        status.innerText=`✓ ${card.name} er lige gemt — læg næste kort frem`;
+                        status.style.color='var(--muted)';
+                    } else {
+                        _lastQuickId = card.id; _lastQuickAt = Date.now();
+                        quickAddToCollection(card);
+                        status.innerText=`✅ ${card.name} gemt — klar til næste kort`;
+                        status.style.color='var(--green)';
+                    }
+                } else {
+                    if (isAuto) { toggleAutoScan(false); document.getElementById('auto-scan-chk').checked=false; }
                     currentCard = card;
                     openScanColModal(card);
-                    status.innerText = `✅ ${data.name}`; status.style.color = 'var(--green)';
-                } catch(e) {
-                    status.innerText = `⚠️ Fandt ikke "${text}" — prøv igen.`; status.style.color = 'var(--red)';
+                    status.innerText=`✅ ${card.name}`; status.style.color='var(--green)';
                 }
             } else {
+                if (isAuto) { toggleAutoScan(false); document.getElementById('auto-scan-chk').checked=false; }
                 switchView('search',document.querySelector('nav div:nth-child(1)'));
-                document.getElementById('manual-search').value=text;
-                searchCard(text);
+                document.getElementById('manual-search').value=data.name;
+                searchCard(data.name);
             }
         } else if (isAuto) {
             status.innerText='🔍 Auto-scan aktiv — hold kortets navn i boksen…';
             status.style.color='var(--muted)'; status.style.display='block';
         } else { status.innerText='⚠️ Kunne ikke læse — flyt tættere på og sørg for god belysning.'; status.style.color='var(--red)'; }
     } catch(e) { if(!isAuto){status.innerText='❌ OCR fejl.'; status.style.color='var(--red)';} }
+    finally { _ocrBusy = false; }
 }
 
 // ═══════════════════════════════════════════════
@@ -3322,7 +3534,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '2.4';
+const APP_VERSION = '2.6';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
@@ -3591,29 +3803,52 @@ function undoLast(){
     if(!u) return;
     const p=gamePlayers.find(x=>x.id===u.id);
     if(!p) return;
-    if(u.t==='life')   p.life -= u.amt;
-    if(u.t==='poison') p.poison = Math.max(0, p.poison - u.amt);
-    if(u.t==='tax')    p.tax    = Math.max(0, p.tax - u.amt);
-    if(u.t==='cmd'){ p.cmdDmg[u.sid]=Math.max(0,(p.cmdDmg[u.sid]||0)-u.cd); p.life += u.ld; }
-    checkDeath(p); renderBoard(); mpBroadcast(); vib(20);
+    if(u.t==='life'){ p.life -= u.amt; mpSendEvent({type:'adj',f:'life',id:u.id,amt:-u.amt}); }
+    if(u.t==='poison'){ const b=p.poison; p.poison=Math.max(0,p.poison-u.amt); const d=p.poison-b; if(d) mpSendEvent({type:'adj',f:'poison',id:u.id,amt:d}); }
+    if(u.t==='tax'){ const b=p.tax; p.tax=Math.max(0,p.tax-u.amt); const d=p.tax-b; if(d) mpSendEvent({type:'adj',f:'tax',id:u.id,amt:d}); }
+    if(u.t==='cmd'){ const b=p.cmdDmg[u.sid]||0; p.cmdDmg[u.sid]=Math.max(0,b-u.cd); p.life -= u.ld;
+        mpSendEvent({type:'adj',f:'cmd',id:u.id,sid:u.sid,cd:p.cmdDmg[u.sid]-b,ld:-u.ld}); }
+    checkDeath(p); renderBoard(); vib(20);
     toast('↩ Fortrudt', '#555e7a');
 }
 
-function startLP(id,amt){lpTimer=setTimeout(()=>{vib([25,15,25]);lpIv=setInterval(()=>doLife(id,amt*5),140);},450);}
-function endLP(){clearTimeout(lpTimer);clearInterval(lpIv);lpTimer=lpIv=null;}
+// Per-spiller long-press timere: sikkert ved multi-touch (flere spillere trykker samtidig)
+function startLP(id, amt, el){
+    endLP(id);
+    const o = { el };
+    o.t = setTimeout(() => {
+        vib([25,15,25]);
+        o.iv = setInterval(() => {
+            // Selvstop hvis knappen er fjernet fra DOM (fx re-render fra multiplayer)
+            if (o.el && !document.contains(o.el)) { endLP(id); return; }
+            doLife(id, amt*5);
+        }, 140);
+    }, 450);
+    lpTimers[id] = o;
+}
+function endLP(id){
+    if (id === undefined) { Object.keys(lpTimers).forEach(k => endLP(k)); return; }
+    const o = lpTimers[id]; if (!o) return;
+    clearTimeout(o.t); clearInterval(o.iv); delete lpTimers[id];
+}
+document.addEventListener('pointercancel', () => endLP());
 
 function doLife(id,amt){
-    const p=gamePlayers[id-1]; p.life+=amt; _pushUndo({t:'life',id,amt}); checkDeath(p);
-    const box=document.querySelector(`[data-pid="${id}"]`);
+    const p=gamePlayers[id-1]; const wasDead=p.dead;
+    p.life+=amt; _pushUndo({t:'life',id,amt}); checkDeath(p);
+    vib(15);
+    // Delvis opdatering: kun tallet ændres, så knappen du holder nede ikke ødelægges
+    let box=document.querySelector(`[data-pid="${id}"]`);
+    if (p.dead !== wasDead || !box) { renderBoard(); box=document.querySelector(`[data-pid="${id}"]`); }
+    else { const lv=box.querySelector('.life-val'); if(lv) lv.innerText=p.life; }
     if(box){const el=document.createElement('div');el.className='life-delta';el.innerText=(amt>0?'+':'')+amt;el.style.color=amt>0?'#2ecc71':'#e74c3c';box.appendChild(el);setTimeout(()=>el.remove(),750);}
-    vib(15); renderBoard();
     showAccum(id, amt, 'life');
-    mpBroadcast();
+    mpSendEvent({ type:'adj', f:'life', id, amt });
 }
 function adjLife(id,amt){doLife(id,amt);}
-function adjPoison(id,amt){const p=gamePlayers[id-1];const _b=p.poison;p.poison=Math.max(0,p.poison+amt);if(p.poison!==_b)_pushUndo({t:'poison',id,amt:p.poison-_b});checkDeath(p);renderBoard();showAccum(id,amt,'poison');mpBroadcast();}
-function adjTax(id,amt){const p=gamePlayers[id-1];const _b=p.tax;p.tax=Math.max(0,p.tax+amt);if(p.tax!==_b)_pushUndo({t:'tax',id,amt:p.tax-_b});renderBoard();showAccum(id,amt,'tax');mpBroadcast();}
-function adjCmd(tid,sid,amt){const p=gamePlayers[tid-1];const _b=p.cmdDmg[sid]||0;p.cmdDmg[sid]=Math.max(0,p.cmdDmg[sid]+amt);p.life-=amt;_pushUndo({t:'cmd',id:tid,sid,cd:p.cmdDmg[sid]-_b,ld:-amt});checkDeath(p);renderBoard();showAccum(tid,amt,'cmd');mpBroadcast();}
+function adjPoison(id,amt){const p=gamePlayers[id-1];const _b=p.poison;p.poison=Math.max(0,p.poison+amt);const _d=p.poison-_b;if(_d){_pushUndo({t:'poison',id,amt:_d});mpSendEvent({type:'adj',f:'poison',id,amt:_d});}checkDeath(p);renderBoard();showAccum(id,amt,'poison');}
+function adjTax(id,amt){const p=gamePlayers[id-1];const _b=p.tax;p.tax=Math.max(0,p.tax+amt);const _d=p.tax-_b;if(_d){_pushUndo({t:'tax',id,amt:_d});mpSendEvent({type:'adj',f:'tax',id,amt:_d});}renderBoard();showAccum(id,amt,'tax');}
+function adjCmd(tid,sid,amt){const p=gamePlayers[tid-1];const _b=p.cmdDmg[sid]||0;p.cmdDmg[sid]=Math.max(0,p.cmdDmg[sid]+amt);p.life-=amt;const _cd=p.cmdDmg[sid]-_b;_pushUndo({t:'cmd',id:tid,sid,cd:_cd,ld:-amt});mpSendEvent({type:'adj',f:'cmd',id:tid,sid,cd:_cd,ld:-amt});checkDeath(p);renderBoard();showAccum(tid,amt,'cmd');}
 function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.name=v;renderBoard();mpBroadcast();}
 function setColor(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.color=v;renderBoard();mpBroadcast();}
 
@@ -3696,9 +3931,9 @@ function renderBoard(){
         // Ikke-roterede: stats i DOM FØRST → visuelt øverst
         const lifeBtnStyle = ctrlStyle;
         const lifeHTML = `<div class="life-controls">
-                <button class="life-btn" style="${lifeBtnStyle}" onpointerdown="startLP(${p.id},-1);adjLife(${p.id},-1)" onpointerup="endLP()" onpointerleave="endLP()">−</button>
+                <button class="life-btn" style="${lifeBtnStyle}" onpointerdown="startLP(${p.id},-1,this);adjLife(${p.id},-1)" onpointerup="endLP(${p.id})" onpointerleave="endLP(${p.id})">−</button>
                 <div class="life-val">${p.life}</div>
-                <button class="life-btn" style="${lifeBtnStyle}" onpointerdown="startLP(${p.id},1);adjLife(${p.id},1)" onpointerup="endLP()" onpointerleave="endLP()">+</button>
+                <button class="life-btn" style="${lifeBtnStyle}" onpointerdown="startLP(${p.id},1,this);adjLife(${p.id},1)" onpointerup="endLP(${p.id})" onpointerleave="endLP(${p.id})">+</button>
             </div>`;
 
         const meTag = _isMe ? `<span style="font-size:9px;font-weight:800;letter-spacing:.06em;color:#c9a84c;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 5px;flex-shrink:0;">DIG</span>` : '';
@@ -4835,6 +5070,8 @@ function setScanTarget(t) {
     document.getElementById('scan-target-search').classList.toggle('active', t === 'search');
     document.getElementById('scan-target-collection').classList.toggle('active', t === 'collection');
     document.getElementById('scan-target-collection').classList.toggle('green', t === 'collection');
+    const qa = document.getElementById('quick-add-row');
+    if (qa) qa.style.display = t === 'collection' ? 'flex' : 'none';
 }
 
 function openScanColModal(card) {
@@ -6588,6 +6825,17 @@ function mpApplyState(data) {
             }
             mpBroadcast();
         }
+        return;
+    }
+    if (data.type === 'adj') {
+        const p = gamePlayers.find(x => x.id === data.id);
+        if (!p) return;
+        if (data.f === 'life')   p.life += data.amt;
+        if (data.f === 'poison') p.poison = Math.max(0, p.poison + data.amt);
+        if (data.f === 'tax')    p.tax    = Math.max(0, p.tax + data.amt);
+        if (data.f === 'cmd')  { p.cmdDmg[data.sid] = Math.max(0, (p.cmdDmg[data.sid]||0) + (data.cd||0)); p.life += (data.ld||0); }
+        checkDeath(p); renderBoard();
+        showAccum(data.id, data.f === 'cmd' ? (data.cd||0) : data.amt, data.f);
         return;
     }
     if (data.type === 'whoStarts') {
