@@ -1267,6 +1267,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v2.7</span> — Smartere scanner: score-baseret navnematch, delvise navne genkendes, to-frame bekræftelse</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.6</span> — Hurtigere og mere præcis scanning, batch-scan til samling, scan-historik og lommelygte</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.5</span> — Nyt look, sikre samtidige tryk (multi-touch + online), rettet fortryd af commander-skade</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.4</span> — Fortryd-knap i Life counter, hurtigere prisopdatering og fejlrettelser</div>
@@ -3087,7 +3088,7 @@ function stopCamera() {
 
 function toggleAutoScan(on) {
     document.getElementById('auto-scan-lbl').innerText = on ? 'Til' : 'Fra';
-    if (on) { autoScanIv = setInterval(()=>captureAndScan(true), 1800); }
+    if (on) { autoScanIv = setInterval(()=>captureAndScan(true), 1100); }
     else    { clearInterval(autoScanIv); autoScanIv=null; }
 }
 
@@ -3137,6 +3138,41 @@ async function resolveCardName(text) {
     } catch(e) {}
     return text;
 }
+
+// ── Score-baseret kortmatch: "regn dig frem" til kortet ──
+const _acCache = new Map();
+async function _acLookup(text) {
+    const key = text.toLowerCase();
+    if (_acCache.has(key)) return _acCache.get(key);
+    let out = [];
+    try {
+        const d = await (await fetch('https://api.scryfall.com/cards/autocomplete?q=' + encodeURIComponent(text))).json();
+        out = d.data || [];
+    } catch(e) {}
+    if (_acCache.size > 80) _acCache.clear();
+    _acCache.set(key, out);
+    return out;
+}
+function _nameSim(ocr, cand) {
+    const a = ocr.toLowerCase(), b = cand.toLowerCase();
+    let sim = 1 - _lev(a, b) / Math.max(a.length, b.length);
+    // Bonus: OCR-teksten er starten/en del af navnet (delvist læst kort)
+    if (b.startsWith(a) || b.includes(a)) sim = Math.max(sim, 0.55 + 0.45 * Math.min(1, a.length / b.length));
+    return sim;
+}
+async function resolveCardScored(candidates) {
+    let best = null;
+    for (const text of [...new Set(candidates)]) {
+        if (!text || text.length < 3) continue;
+        const list = await _acLookup(text);
+        for (const n of list) {
+            const sim = _nameSim(text, n);
+            if (!best || sim > best.sim) best = { name: n, sim, read: text };
+        }
+    }
+    return best;
+}
+let _lastSeenName = '';
 
 // ── Scan-historik (kun denne session) ──
 const _scanHistory = [];
@@ -3307,29 +3343,49 @@ async function captureAndScan(isAuto=false) {
         }
         let text=r.data.text.trim().split('\n')[0]||'';
         text=text.replace(/[^a-zA-Z0-9 '\-,]/g,'').replace(/\s+/g,' ').trim();
-        const conf=r.data.confidence;
         const letters=text.replace(/[^a-zA-Z]/g,'');
-        // Reject if too many single-character "words" (OCR noise pattern)
         const words=text.split(' ').filter(w=>w.length>0);
         const singleCharRatio=words.filter(w=>w.length===1).length/Math.max(words.length,1);
 
-        if(text.length>2 && letters.length>=3 && singleCharRatio<0.4) {
-            if (isAuto&&conf<55) {
-                status.innerText=`🔍 Ser: "${text}" (${Math.round(conf)}%) — hold kortet stille…`;
+        // Kandidat 2: kun de ord OCR er sikker på (frasorterer støjord)
+        let confText = '';
+        try {
+            confText = (r.data.words||[]).filter(w=>w.confidence>=50).map(w=>w.text).join(' ')
+                .replace(/[^a-zA-Z0-9 '\-,]/g,'').replace(/\s+/g,' ').trim();
+        } catch(e) {}
+
+        const plausible = (text.length>2 && letters.length>=3 && singleCharRatio<0.6)
+                       || (confText.length>2 && confText.replace(/[^a-zA-Z]/g,'').length>=3);
+
+        if (plausible) {
+            // Match begge kandidater mod Scryfalls autocomplete med ligheds-score
+            const best = await resolveCardScored([text, confText]);
+            if (!best) {
+                if (isAuto) { status.innerText=`🔍 Ser: "${text||confText}" — leder efter match…`; status.style.color='var(--muted)'; }
+                else { status.innerText=`⚠️ Fandt intet kort der matcher "${text}". Prøv igen.`; status.style.color='var(--red)'; }
+                return;
+            }
+            // Accept: høj score med det samme — ellers to ens billeder i træk
+            const twoFrames = best.name === _lastSeenName;
+            _lastSeenName = best.name;
+            const accept = !isAuto ? best.sim >= 0.35
+                                   : (best.sim >= 0.62 || (twoFrames && best.sim >= 0.42));
+            if (!accept) {
+                status.innerText=`🔍 Er det "${best.name}"? (${Math.round(best.sim*100)}%) — hold stille…`;
                 status.style.color='var(--muted)'; status.style.display='block';
                 return;
             }
-            status.innerText=`✅ Læste: "${text}" — matcher navn…`; status.style.color='var(--green)';
+            _lastSeenName = '';
+            status.innerText=`✅ ${best.name} — henter kort…`; status.style.color='var(--green)';
 
-            // Ret små OCR-fejl via Scryfalls autocomplete, slå kortet op
-            const name = await resolveCardName(text);
             let data;
             try {
-                const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+                let res = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(best.name)}`);
+                if (!res.ok) res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(best.name)}`);
                 if (!res.ok) throw new Error();
                 data = await res.json();
             } catch(e) {
-                status.innerText=`⚠️ Fandt ikke "${text}" — prøv igen.`; status.style.color='var(--red)';
+                status.innerText=`⚠️ Kunne ikke hente "${best.name}" — prøv igen.`; status.style.color='var(--red)';
                 return;
             }
             const price = data.prices?.eur ? +data.prices.eur : (data.prices?.usd ? +data.prices.usd/rates.USD : 0);
@@ -3534,7 +3590,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.7';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
