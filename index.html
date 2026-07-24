@@ -1229,6 +1229,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v2.4</span> — Fortryd-knap i Life counter, hurtigere prisopdatering og fejlrettelser</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.3</span> — Farve- og typefilter i samling, flyt spillere lokalt, eksport som klartekst</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.2</span> — Mana-symboler på kort, sammenfoldelige typegrupper og sortering i deck-builder</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.1</span> — Vælg Lokalt eller Online når du starter spillet</div>
@@ -2142,6 +2143,7 @@
     </div>
 
     <div class="play-btns" id="play-btns-bar">
+        <button id="undo-btn" class="app-btn btn-dark" style="flex:0 0 48px;font-size:16px;opacity:.35;" onclick="undoLast()" title="Fortryd seneste ændring">↩</button>
         <button class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="toggleTilbehoer(event)">🎲 Tilbehør</button>
         <button class="app-btn btn-red"  style="flex:1;font-size:13px;" onclick="showResetConfirm()">↺ Genstart</button>
         <button id="mp-btn" class="app-btn btn-dark" style="flex:1;font-size:13px;" onclick="openMpModal()">
@@ -3174,7 +3176,7 @@ function addToList() {
     const activePrice = currentFoil && currentCard.priceFoil >= 0 ? currentCard.priceFoil : currentCard.price;
     // Foil and non-foil are separate entries (different id suffix)
     const listKey = currentFoil ? currentCard.id + '_foil' : currentCard.id;
-    const ex=priceList.find(x=>x._listKey===listKey);
+    const ex=priceList.find(x=>(x._listKey||x.id)===listKey);
     if (ex) { ex.amount+=amt; }
     else { priceList.push({...currentCard, _listKey:listKey, price:activePrice, foil:currentFoil, amount:amt}); }
     saveList(); updateListView(); vib(40);
@@ -3320,7 +3322,10 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
+// Vis version med det samme (ikke først når info-modal åbnes)
+document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
+(() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
 
 function openInfoModal() {
     document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
@@ -3518,6 +3523,7 @@ function cancelSetup(){
 }
 function quickReset(){
     _deadAlready.clear();
+    _undoStack.length=0; _updateUndoBtn();
     gamePlayers.forEach(p=>{p.life=startLife;p.poison=0;p.tax=0;p.dead=false;Object.keys(p.cmdDmg).forEach(k=>p.cmdDmg[k]=0);});
     renderBoard();
     cancelSetup();
@@ -3576,11 +3582,28 @@ function triggerDeathAnimation(id) {
     setTimeout(() => overlay.remove(), 2000);
 }
 
+// ── FORTRYD (undo) ──
+const _undoStack = [];
+function _pushUndo(u){ _undoStack.push(u); if(_undoStack.length>60)_undoStack.shift(); _updateUndoBtn(); }
+function _updateUndoBtn(){ const b=document.getElementById('undo-btn'); if(b) b.style.opacity=_undoStack.length?'1':'.35'; }
+function undoLast(){
+    const u=_undoStack.pop(); _updateUndoBtn();
+    if(!u) return;
+    const p=gamePlayers.find(x=>x.id===u.id);
+    if(!p) return;
+    if(u.t==='life')   p.life -= u.amt;
+    if(u.t==='poison') p.poison = Math.max(0, p.poison - u.amt);
+    if(u.t==='tax')    p.tax    = Math.max(0, p.tax - u.amt);
+    if(u.t==='cmd'){ p.cmdDmg[u.sid]=Math.max(0,(p.cmdDmg[u.sid]||0)-u.cd); p.life += u.ld; }
+    checkDeath(p); renderBoard(); mpBroadcast(); vib(20);
+    toast('↩ Fortrudt', '#555e7a');
+}
+
 function startLP(id,amt){lpTimer=setTimeout(()=>{vib([25,15,25]);lpIv=setInterval(()=>doLife(id,amt*5),140);},450);}
 function endLP(){clearTimeout(lpTimer);clearInterval(lpIv);lpTimer=lpIv=null;}
 
 function doLife(id,amt){
-    const p=gamePlayers[id-1]; p.life+=amt; checkDeath(p);
+    const p=gamePlayers[id-1]; p.life+=amt; _pushUndo({t:'life',id,amt}); checkDeath(p);
     const box=document.querySelector(`[data-pid="${id}"]`);
     if(box){const el=document.createElement('div');el.className='life-delta';el.innerText=(amt>0?'+':'')+amt;el.style.color=amt>0?'#2ecc71':'#e74c3c';box.appendChild(el);setTimeout(()=>el.remove(),750);}
     vib(15); renderBoard();
@@ -3588,9 +3611,9 @@ function doLife(id,amt){
     mpBroadcast();
 }
 function adjLife(id,amt){doLife(id,amt);}
-function adjPoison(id,amt){const p=gamePlayers[id-1];p.poison=Math.max(0,p.poison+amt);checkDeath(p);renderBoard();showAccum(id,amt,'poison');mpBroadcast();}
-function adjTax(id,amt){const p=gamePlayers[id-1];p.tax=Math.max(0,p.tax+amt);renderBoard();showAccum(id,amt,'tax');mpBroadcast();}
-function adjCmd(tid,sid,amt){const p=gamePlayers[tid-1];p.cmdDmg[sid]=Math.max(0,p.cmdDmg[sid]+amt);p.life-=amt;checkDeath(p);renderBoard();showAccum(tid,amt,'cmd');mpBroadcast();}
+function adjPoison(id,amt){const p=gamePlayers[id-1];const _b=p.poison;p.poison=Math.max(0,p.poison+amt);if(p.poison!==_b)_pushUndo({t:'poison',id,amt:p.poison-_b});checkDeath(p);renderBoard();showAccum(id,amt,'poison');mpBroadcast();}
+function adjTax(id,amt){const p=gamePlayers[id-1];const _b=p.tax;p.tax=Math.max(0,p.tax+amt);if(p.tax!==_b)_pushUndo({t:'tax',id,amt:p.tax-_b});renderBoard();showAccum(id,amt,'tax');mpBroadcast();}
+function adjCmd(tid,sid,amt){const p=gamePlayers[tid-1];const _b=p.cmdDmg[sid]||0;p.cmdDmg[sid]=Math.max(0,p.cmdDmg[sid]+amt);p.life-=amt;_pushUndo({t:'cmd',id:tid,sid,cd:p.cmdDmg[sid]-_b,ld:-amt});checkDeath(p);renderBoard();showAccum(tid,amt,'cmd');mpBroadcast();}
 function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.name=v;renderBoard();mpBroadcast();}
 function setColor(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.color=v;renderBoard();mpBroadcast();}
 
@@ -4478,6 +4501,7 @@ async function openColCardDetail(id) {
     img.style.display = item.img ? 'block' : 'none';
     img.style.transform = ''; img.style.opacity = '1';
     const flipBtn = document.getElementById('ccd-flip-btn');
+    flipBtn.onclick = flipColCard; // nulstil evt. trade-preview handler
     flipBtn.style.display = 'none';
     modal.style.display = 'block';
 
@@ -4668,34 +4692,39 @@ async function refreshCollectionPrices(force = false) {
 
     setColPriceStatus(`⏳ Henter dagspriser… (0/${total})`);
 
-    for (const item of collection) {
+    // Batch via Scryfall collection-API: 75 kort pr. kald i stedet for 1
+    const BATCH = 75;
+    const withId = collection.filter(x => x.id && !String(x.id).startsWith('import_'));
+    for (let i = 0; i < withId.length; i += BATCH) {
+        const batch = withId.slice(i, i + BATCH);
         try {
-            const r = await fetch(`https://api.scryfall.com/cards/${item.id}`);
+            const r = await fetch('https://api.scryfall.com/cards/collection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifiers: batch.map(x => ({ id: x.id })) })
+            });
             if (r.ok) {
-                const c = await r.json();
-                const p = c.prices;
-                let price = -1, priceFoil = -1;
-                if (p?.eur)      price = +p.eur;
-                else if (p?.usd) price = +p.usd / rates.USD;
-                if (p?.eur_foil)      priceFoil = +p.eur_foil;
-                else if (p?.usd_foil) priceFoil = +p.usd_foil / rates.USD;
-
-                // Update the item's price based on whether it's foil
-                if (item.foil && priceFoil >= 0) item.price = priceFoil;
-                else if (!item.foil && price >= 0) item.price = price;
-                else if (price < 0 && priceFoil >= 0) item.price = priceFoil;
-
-                // Also store priceFoil for reference
-                if (priceFoil >= 0) item.priceFoil = priceFoil;
-                if (price >= 0)     item.priceNormal = price;
+                const res = await r.json();
+                (res.data || []).forEach(c => {
+                    const p = c.prices;
+                    let price = -1, priceFoil = -1;
+                    if (p?.eur)      price = +p.eur;
+                    else if (p?.usd) price = +p.usd / rates.USD;
+                    if (p?.eur_foil)      priceFoil = +p.eur_foil;
+                    else if (p?.usd_foil) priceFoil = +p.usd_foil / rates.USD;
+                    collection.filter(x => x.id === c.id).forEach(item => {
+                        if (item.foil && priceFoil >= 0) item.price = priceFoil;
+                        else if (!item.foil && price >= 0) item.price = price;
+                        else if (price < 0 && priceFoil >= 0) item.price = priceFoil;
+                        if (priceFoil >= 0) item.priceFoil = priceFoil;
+                        if (price >= 0)     item.priceNormal = price;
+                    });
+                });
             }
         } catch(e) { /* skip on error */ }
-
-        done++;
-        setColPriceStatus(`⏳ Henter dagspriser… (${done}/${total})`);
-
-        // Scryfall: max 10 req/s — wait 110ms between requests
-        await new Promise(r => setTimeout(r, 110));
+        done = Math.min(withId.length, i + BATCH);
+        setColPriceStatus(`⏳ Henter dagspriser… (${done}/${withId.length})`);
+        if (i + BATCH < withId.length) await new Promise(r => setTimeout(r, 150));
     }
 
     saveCollection();
@@ -4831,9 +4860,11 @@ function closeScanColModal() {
 
 function confirmScanToCollection() {
     if (!scanColCard) return;
-    const ex = collection.find(x => x.id === scanColCard.id);
+    const key = scanColCard.id;
+    const ex = collection.find(x => (x._colKey||x.id) === key && !x.foil);
     if (ex) { ex.qty += scanColQty; }
-    else { collection.push({...scanColCard, qty: scanColQty, addedAt: Date.now()}); }
+    else { collection.push({...scanColCard, _colKey: key, foil: false, condition: 'NM',
+        set: (scanColCard.set||'').toUpperCase(), qty: scanColQty, addedAt: Date.now()}); }
     saveCollection(); updateCollectionView();
     closeScanColModal();
     vib(40);
@@ -4931,28 +4962,8 @@ function _shareAsCSV() {
     }
 }
 
-function _shareAsLink() {
-    const d = _shareData(); if (!d || !d.items.length) return;
-    const minimal = d.items.map(x => ({ n:x.name, s:x.setName||x.set, q:x.qty||x.amount||1, p:x.price>0?+x.price.toFixed(2):0, f:x.foil?1:0 }));
-    let encoded;
-    try { encoded = btoa(unescape(encodeURIComponent(JSON.stringify(minimal)))); }
-    catch(e) { return toast('For mange data til et link — brug tekstliste.', '#e67e22'); }
-    const url = location.href.split('#')[0] + '#share=' + encoded;
-    document.getElementById('share-url-display').innerText = url;
-    window._shareUrl = url;
-    document.getElementById('share-link-result').style.display = 'block';
-}
-
 function shareColAsText() { _shareCtx='col'; _shareAsText(); }
 function shareColAsCSV()  { _shareCtx='col'; _shareAsCSV(); }
-function shareColAsLink() { _shareCtx='col'; _shareAsLink(); }
-
-function copyShareUrl() {
-    const url = window._shareUrl || document.getElementById('share-url-display').innerText;
-    navigator.clipboard.writeText(url).then(() => toast('Link kopieret! ✓')).catch(() => {
-        if (navigator.share) navigator.share({ title: 'Min MTG Samling', url }).catch(()=>{});
-    });
-}
 
 // Check on load if there's a shared collection in the URL hash
 (function checkShareHash() {
@@ -4996,19 +5007,6 @@ function renderSharedCollection(items) {
     modal.style.display = 'block';
 }
 
-// Tjek for delt samling i URL ved load
-(function checkShareUrl() {
-    const hash = location.hash;
-    if (!hash.startsWith('#share=')) return;
-    try {
-        const b64 = hash.slice(7);
-        const json = decodeURIComponent(escape(atob(b64)));
-        const items = JSON.parse(json);
-        if (Array.isArray(items) && items.length) {
-            setTimeout(() => renderSharedCollection(items), 500);
-        }
-    } catch(e) {}
-})();
 
 // ═══════════════════════════════════════════════
 //  BACKUP & RESTORE
@@ -5212,9 +5210,9 @@ async function loadKalender() {
 const GLOSSARY = [
     {k:'Flying',          t:'Flyvning',       d:'En skabning med flying kan kun blokeres af skabninger med flying eller reach. Den kan angribe frit over skabninger uden nogen af disse evner.'},
     {k:'Trample',         t:'Trampe',         d:'Hvis en skabning med trample er blokeret, kan overskydende kampskade tildeles direkte til forsvarsspilleren eller planeswalker, selvom blokkeren er i live.'},
-    {k:'Deathtouch',      t:'Dødsgreb',       d:'Enhver skadesamt fra en skabning med deathtouch er nok til at destruere det skadede mål — selv 1 skade er dødelig.'},
+    {k:'Deathtouch',      t:'Dødsgreb',       d:'Enhver skade fra en skabning med deathtouch er nok til at destruere det skadede mål — selv 1 skade er dødelig.'},
     {k:'First Strike',    t:'Første slag',    d:'En skabning med first strike deler kampskade i første kampskade-trin. Modstandere uden first strike/double strike svarer igen i næste trin.'},
-    {k:'Double Strike',   t:'Dobbelt slag',   d:'Skabningen deler skade i begge kampskade-trin — den har effektivt både first strike og normal strikke.'},
+    {k:'Double Strike',   t:'Dobbelt slag',   d:'Skabningen deler skade i begge kampskade-trin — den har effektivt både first strike og normalt slag.'},
     {k:'Lifelink',        t:'Livslink',       d:'Skade fra en skabning med lifelink giver kontrolløren samme antal livspoint, som der deles skade.'},
     {k:'Vigilance',       t:'Vagt',           d:'En skabning med vigilance bliver ikke tappet, når den angriber.'},
     {k:'Haste',           t:'Hastighed',      d:'En skabning med haste kan angribe og bruge tapaktiviteter allerede den runde den kommer i spil, selvom den normalt lider af summoning sickness.'},
@@ -5225,7 +5223,7 @@ const GLOSSARY = [
     {k:'Menace',          t:'Trussel',        d:'En skabning med menace kan kun blokeres af to eller flere skabninger.'},
     {k:'Reach',           t:'Rækkevidde',     d:'En skabning med reach kan blokere skabninger med flying.'},
     {k:'Prowess',         t:'Dygtighed',      d:'Hver gang du spiller et non-permanent tryllekort, får skabningen +1/+1 indtil slut på runden.'},
-    {k:'Ward',            t:'Beskyttelse',    d:'Når en skabning med ward bliver mål for en trylleformel eller evne fra en modstander, countes den medmindre modstanderen betaler ward-omkostningen.'},
+    {k:'Ward',            t:'Beskyttelse',    d:'Når en skabning med ward bliver mål for en trylleformel eller evne fra en modstander, modvirkes den, medmindre modstanderen betaler ward-omkostningen.'},
     {k:'Defender',        t:'Forsvar',        d:'En skabning med defender kan ikke angribe.'},
     {k:'Protection',      t:'Beskyttelse',    d:'Protection from [quality] betyder: kan ikke skades, enchantes, udstyres, blokeres eller være mål for noget med den pågældende egenskab.'},
     {k:'Infect',          t:'Infektion',      d:'Skade fra en skabning med infect gives til spillere som gift-tæller og til skabninger som -1/-1 tæller. En spiller med 10 gift-tæller taber.'},
@@ -6255,8 +6253,7 @@ function mpHostSetPlayers(n) {
     // Bevar navn og farve fra spiller 1
     const name  = gamePlayers[0]?.name  || (document.getElementById('mp-host-name')?.value  || 'Spiller 1');
     const color = gamePlayers[0]?.color || '#dc3545';
-    startLife = gameFormat === 'commander' ? 40 : 20;
-    initGame(n);
+    initGame(n); // bevarer det valgte startliv
     if (gamePlayers[0]) { gamePlayers[0].name = name; gamePlayers[0].color = color; }
     renderBoard(); mpBroadcast();
     document.querySelectorAll('.mp-host-pc-btn').forEach(b =>
