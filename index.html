@@ -1190,6 +1190,20 @@
         .setup-big-btn { box-shadow: 0 4px 14px rgba(0,0,0,.35); }
         .status-pill { box-shadow: inset 0 1px 0 rgba(255,255,255,.03); }
 
+        /* ── PRESENCE (online/offline i multiplayer) ── */
+        .presence-dot {
+            width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+            background: #2ecc71; box-shadow: 0 0 6px rgba(46,204,113,.8);
+        }
+        .presence-dot.offline {
+            background: #e74c3c; box-shadow: 0 0 6px rgba(231,76,60,.9);
+            animation: presence-blink 1.2s infinite;
+        }
+        .presence-dot.none {
+            background: transparent; border: 1.5px solid rgba(255,255,255,.35); box-shadow: none;
+        }
+        @keyframes presence-blink { 50% { opacity: .25; } }
+
         /* ── TOAST ── */
         #toast {
             position: fixed; bottom: 78px; left: 50%; transform: translateX(-50%);
@@ -1267,6 +1281,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v3.0</span> — Online/offline-indikator på spillere i multiplayer + ny farverækkefølge (MTG-farverne først)</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.9</span> — Genforbindelse i multiplayer: du får automatisk din plads igen, og forladte pladser frigives</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.8</span> — Flyt spillere virker nu i multiplayer + pladser tildeles automatisk og kan ikke tages af flere</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.7</span> — Smartere scanner: score-baseret navnematch, delvise navne genkendes, to-frame bekræftelse</div>
@@ -3592,7 +3607,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '2.9';
+const APP_VERSION = '3.0';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
@@ -3996,8 +4011,10 @@ function renderBoard(){
             </div>`;
 
         const meTag = _isMe ? `<span style="font-size:9px;font-weight:800;letter-spacing:.06em;color:#c9a84c;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;padding:1px 5px;flex-shrink:0;">DIG</span>` : '';
+        const _pres = _mpPlayerStatus(p);
+        const presHTML = _pres ? `<span class="presence-dot ${_pres}" data-presence-pid="${p.id}" title="${_pres==='offline'?'Har forladt spillet / offline':_pres==='none'?'Ingen enhed tilsluttet':'Online'}"></span>` : '';
         const headerHTML = `<div class="player-header">
-                ${meTag}<input class="player-name-input" value="${p.name}" ${isMyPlayer?'':'readonly style="pointer-events:none;opacity:.5;"'} onchange="setName(${p.id},this.value)">
+                ${presHTML}${meTag}<input class="player-name-input" value="${p.name}" ${isMyPlayer?'':'readonly style="pointer-events:none;opacity:.5;"'} onchange="setName(${p.id},this.value)">
                 <input type="color" class="player-color-input" value="${p.color}" ${isMyPlayer?'':'disabled style="pointer-events:none;opacity:.5;"'} onchange="setColor(${p.id},this.value)">
             </div>`;
 
@@ -6556,7 +6573,7 @@ function mpUpdateBtn() {
 function mpHostColor(hex) {
     if (gamePlayers[0]) { gamePlayers[0].color = hex; renderBoard(); mpBroadcast(); }
     document.querySelectorAll('[data-hc]').forEach(b =>
-        b.style.borderColor = b.dataset.hc === hex ? '#fff' : 'transparent');
+        b.style.borderColor = b.dataset.hc === hex ? '#fff' : 'rgba(255,255,255,.15)');
 }
 
 function mpHostSetPlayers(n) {
@@ -6659,9 +6676,9 @@ function _mpConnect(code, role) {
             const data = JSON.parse(msg.toString());
             if (data._sender === _mpClientId) return; // ignorer egne beskeder
             // Host tæller unikke klienter der har sendt beskeder
+            if (data._sender) _mpLastSeen[data._sender] = Date.now();
             if (mpMode === 'host' && data._sender) {
                 _mpJoinedClients.add(data._sender);
-                _mpLastSeen[data._sender] = Date.now();
                 mpUpdateHostJoinStatus();
             }
             mpApplyState(data);
@@ -6745,7 +6762,7 @@ function mpShowPlayerPicker(playerCount) {
         <div style="margin-bottom:28px;">
             <label style="font-size:12px;color:#7a80a0;font-weight:700;letter-spacing:.06em;display:block;margin-bottom:10px;">DIN FARVE</label>
             <div id="mp-color-btns" style="display:flex;gap:10px;flex-wrap:wrap;">
-                ${['#dc3545','#007bff','#28a745','#fd7e14','#6f42c1','#20c997','#e83e8c','#ffc107'].map(c =>
+                ${['#e8e4d0', '#dc3545', '#007bff', '#2b2b2b', '#28a745', '#8a8f98', '#c9a84c', '#fd7e14', '#6f42c1', '#20c997', '#e83e8c', '#ffc107'].map(c =>
                     `<button onclick="mpPickColor('${c}')" data-color="${c}" style="width:40px;height:40px;border-radius:50%;background:${c};border:3px solid transparent;cursor:pointer;transition:transform .15s,border-color .15s;"></button>`
                 ).join('')}
             </div>
@@ -6820,6 +6837,27 @@ const _mpJoinedClients = new Set();
 const _mpLastSeen = {};
 let _mpHbIv = null, _mpSweepIv = null;
 
+// Spillerstatus i MP: online (grøn), offline (rød, blinker), none (ingen enhed)
+function _mpPlayerStatus(p) {
+    if (mpMode === 'local') return '';
+    if (!p.claimedBy) return 'none';
+    if (p.claimedBy === _mpClientId) return 'online';
+    const seen = _mpLastSeen[p.claimedBy];
+    if (!seen) { _mpLastSeen[p.claimedBy] = Date.now(); return 'online'; }
+    return (Date.now() - seen) < 25000 ? 'online' : 'offline';
+}
+setInterval(() => {
+    if (mpMode === 'local') return;
+    document.querySelectorAll('.presence-dot').forEach(d => {
+        const p = gamePlayers.find(x => x.id == d.dataset.presencePid);
+        if (p) {
+            const st = _mpPlayerStatus(p);
+            d.className = 'presence-dot ' + st;
+            d.title = st === 'offline' ? 'Har forladt spillet / offline' : st === 'none' ? 'Ingen enhed tilsluttet' : 'Online';
+        }
+    });
+}, 5000);
+
 // Host: frigiv pladser fra enheder der har været tavse i over 60 sek.
 function _mpSweepStaleClaims() {
     if (mpMode !== 'host') return;
@@ -6834,7 +6872,7 @@ function _mpSweepStaleClaims() {
 }
 
 // ── Klient opsætningspanel ────────────────────
-const _mpSetupColors = ['#dc3545','#007bff','#28a745','#fd7e14','#6f42c1','#20c997','#e83e8c','#ffc107'];
+const _mpSetupColors = ['#e8e4d0', '#dc3545', '#007bff', '#2b2b2b', '#28a745', '#8a8f98', '#c9a84c', '#fd7e14', '#6f42c1', '#20c997', '#e83e8c', '#ffc107'];
 
 function mpPopulateClientSetup(playerCount) {
     document.getElementById('mp-setup-session').textContent = 'Session: ' + _mpCode;
@@ -6860,7 +6898,7 @@ function mpPopulateClientSetup(playerCount) {
     _mpSetupColors.forEach(c => {
         const btn = document.createElement('button');
         btn.dataset.color = c;
-        btn.style.cssText = `width:36px;height:36px;border-radius:50%;background:${c};border:3px solid transparent;cursor:pointer;transition:transform .12s,border-color .12s;`;
+        btn.style.cssText = `width:36px;height:36px;border-radius:50%;background:${c};border:3px solid rgba(255,255,255,.15);cursor:pointer;transition:transform .12s,border-color .12s;`;
         btn.onclick = () => mpSetupPickColor(c);
         colorsEl.appendChild(btn);
     });
@@ -6891,7 +6929,7 @@ function mpSetupPickColor(hex) {
     _mpPickedColor = hex;
     document.querySelectorAll('#mp-setup-colors [data-color]').forEach(b => {
         const sel = b.dataset.color === hex;
-        b.style.borderColor = sel ? '#fff' : 'transparent';
+        b.style.borderColor = sel ? '#fff' : 'rgba(255,255,255,.15)';
         b.style.transform = sel ? 'scale(1.2)' : 'scale(1)';
     });
 }
@@ -7267,14 +7305,18 @@ function showAccum(id, amt, type) {
             <div style="margin-bottom:20px;">
                 <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:8px;">DIN FARVE</label>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <button onclick="mpHostColor('#dc3545')" data-hc="#dc3545" style="width:36px;height:36px;border-radius:50%;background:#dc3545;border:3px solid transparent;cursor:pointer;"></button>
-                    <button onclick="mpHostColor('#007bff')" data-hc="#007bff" style="width:36px;height:36px;border-radius:50%;background:#007bff;border:3px solid transparent;cursor:pointer;"></button>
-                    <button onclick="mpHostColor('#28a745')" data-hc="#28a745" style="width:36px;height:36px;border-radius:50%;background:#28a745;border:3px solid transparent;cursor:pointer;"></button>
-                    <button onclick="mpHostColor('#fd7e14')" data-hc="#fd7e14" style="width:36px;height:36px;border-radius:50%;background:#fd7e14;border:3px solid transparent;cursor:pointer;"></button>
-                    <button onclick="mpHostColor('#6f42c1')" data-hc="#6f42c1" style="width:36px;height:36px;border-radius:50%;background:#6f42c1;border:3px solid transparent;cursor:pointer;"></button>
-                    <button onclick="mpHostColor('#20c997')" data-hc="#20c997" style="width:36px;height:36px;border-radius:50%;background:#20c997;border:3px solid transparent;cursor:pointer;"></button>
-                    <button onclick="mpHostColor('#e83e8c')" data-hc="#e83e8c" style="width:36px;height:36px;border-radius:50%;background:#e83e8c;border:3px solid transparent;cursor:pointer;"></button>
-                    <button onclick="mpHostColor('#ffc107')" data-hc="#ffc107" style="width:36px;height:36px;border-radius:50%;background:#ffc107;border:3px solid transparent;cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#e8e4d0')" data-hc="#e8e4d0" style="width:36px;height:36px;border-radius:50%;background:#e8e4d0;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#dc3545')" data-hc="#dc3545" style="width:36px;height:36px;border-radius:50%;background:#dc3545;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#007bff')" data-hc="#007bff" style="width:36px;height:36px;border-radius:50%;background:#007bff;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#2b2b2b')" data-hc="#2b2b2b" style="width:36px;height:36px;border-radius:50%;background:#2b2b2b;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#28a745')" data-hc="#28a745" style="width:36px;height:36px;border-radius:50%;background:#28a745;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#8a8f98')" data-hc="#8a8f98" style="width:36px;height:36px;border-radius:50%;background:#8a8f98;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#c9a84c')" data-hc="#c9a84c" style="width:36px;height:36px;border-radius:50%;background:#c9a84c;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#fd7e14')" data-hc="#fd7e14" style="width:36px;height:36px;border-radius:50%;background:#fd7e14;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#6f42c1')" data-hc="#6f42c1" style="width:36px;height:36px;border-radius:50%;background:#6f42c1;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#20c997')" data-hc="#20c997" style="width:36px;height:36px;border-radius:50%;background:#20c997;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#e83e8c')" data-hc="#e83e8c" style="width:36px;height:36px;border-radius:50%;background:#e83e8c;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
+                    <button onclick="mpHostColor('#ffc107')" data-hc="#ffc107" style="width:36px;height:36px;border-radius:50%;background:#ffc107;border:3px solid rgba(255,255,255,.15);cursor:pointer;"></button>
                 </div>
             </div>
 
