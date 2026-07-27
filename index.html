@@ -1267,6 +1267,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v2.9</span> — Genforbindelse i multiplayer: du får automatisk din plads igen, og forladte pladser frigives</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.8</span> — Flyt spillere virker nu i multiplayer + pladser tildeles automatisk og kan ikke tages af flere</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.7</span> — Smartere scanner: score-baseret navnematch, delvise navne genkendes, to-frame bekræftelse</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.6</span> — Hurtigere og mere præcis scanning, batch-scan til samling, scan-historik og lommelygte</div>
@@ -3591,7 +3592,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '2.8';
+const APP_VERSION = '2.9';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
@@ -6497,7 +6498,11 @@ let _mpCode     = '';
 let mpMode      = 'local';      // 'local' | 'host' | 'client'
 let _mpReceiving = false;
 let mpMyPlayer  = -1;           // 0-baseret index — hvilken spiller styrer denne enhed
-const _mpClientId = 'mtgh-' + Math.random().toString(36).substr(2, 10);
+const _mpClientId = (() => {
+    let cid = localStorage.getItem('mtg_mp_cid');
+    if (!cid) { cid = 'mtgh-' + Math.random().toString(36).substr(2, 10); localStorage.setItem('mtg_mp_cid', cid); }
+    return cid;
+})();
 
 // ── Modal UI ──────────────────────────────────
 function openMpModal()  { document.getElementById('mp-modal').style.display = 'block'; }
@@ -6642,6 +6647,11 @@ function _mpConnect(code, role) {
             else setTimeout(() => mpSendEvent({ type: 'requestState' }), 400);
         }
         mpUpdateBtn();
+        // Heartbeat: fortæl de andre at denne enhed stadig er her
+        clearInterval(_mpHbIv);
+        _mpHbIv = setInterval(() => mpSendEvent({ type: 'hb' }), 10000);
+        clearInterval(_mpSweepIv);
+        if (role === 'host') _mpSweepIv = setInterval(_mpSweepStaleClaims, 15000);
     });
 
     _mpClient.on('message', (_t, msg) => {
@@ -6651,6 +6661,7 @@ function _mpConnect(code, role) {
             // Host tæller unikke klienter der har sendt beskeder
             if (mpMode === 'host' && data._sender) {
                 _mpJoinedClients.add(data._sender);
+                _mpLastSeen[data._sender] = Date.now();
                 mpUpdateHostJoinStatus();
             }
             mpApplyState(data);
@@ -6696,6 +6707,7 @@ function mpDisconnect() {
         gamePlayers[mpMyPlayer].claimedBy = null;
         mpBroadcast();
     }
+    clearInterval(_mpHbIv); clearInterval(_mpSweepIv); _mpHbIv = _mpSweepIv = null;
     if (_mpClient) { try { _mpClient.end(true); } catch(e){} _mpClient = null; }
     mpMode = 'local'; _mpCode = ''; mpMyPlayer = -1;
     // Reset join-knap
@@ -6805,6 +6817,21 @@ function mpBroadcast() {
 }
 
 const _mpJoinedClients = new Set();
+const _mpLastSeen = {};
+let _mpHbIv = null, _mpSweepIv = null;
+
+// Host: frigiv pladser fra enheder der har været tavse i over 60 sek.
+function _mpSweepStaleClaims() {
+    if (mpMode !== 'host') return;
+    const now = Date.now();
+    let changed = false;
+    gamePlayers.forEach((p, i) => {
+        if (i === 0 || !p.claimedBy || p.claimedBy === _mpClientId) return;
+        if (!(p.claimedBy in _mpLastSeen)) { _mpLastSeen[p.claimedBy] = now; return; } // frist til ukendte
+        if (now - _mpLastSeen[p.claimedBy] > 60000) { p.claimedBy = null; changed = true; }
+    });
+    if (changed) { renderBoard(); mpBroadcast(); toast('Inaktiv plads frigivet'); }
+}
 
 // ── Klient opsætningspanel ────────────────────
 const _mpSetupColors = ['#dc3545','#007bff','#28a745','#fd7e14','#6f42c1','#20c997','#e83e8c','#ffc107'];
@@ -6914,6 +6941,7 @@ function mpApplyState(data) {
         }
         return;
     }
+    if (data.type === 'hb') return;
     if (data.type === 'adj') {
         const p = gamePlayers.find(x => x.id === data.id);
         if (!p) return;
@@ -6959,8 +6987,20 @@ function mpApplyState(data) {
             initGame(playerCount);
             document.getElementById('view-play')?.classList.remove('setup-mode');
         }
-        // Vis opsætningspanel for klienter der endnu ikke har valgt plads
-        if (mpMyPlayer === -1) mpPopulateClientSetup(playerCount);
+        // Genoptag automatisk min gamle plads (samme enhed = samme gemte id)
+        if (mpMyPlayer === -1) {
+            const mine = gamePlayers.findIndex(pl => pl.claimedBy === _mpClientId);
+            if (mine > 0) {
+                mpMyPlayer = mine;
+                const el = document.getElementById('mp-client-status');
+                if (el) el.textContent = `Du spiller som ${gamePlayers[mine].name} (Spiller ${mine + 1})`;
+                _mpShowPanel('client');
+                closeMpModal();
+                toast(`Velkommen tilbage — du er ${gamePlayers[mine].name}`);
+            } else {
+                mpPopulateClientSetup(playerCount);
+            }
+        }
     }
 
     const pendingAccums = [];
@@ -6998,20 +7038,26 @@ function mpApplyState(data) {
     pendingAccums.forEach(([pid, amt, type]) => showAccum(pid, amt, type));
     _mpReceiving = false;
 
-    // Pladskonflikt: en anden har claimet min plads (race ved samtidig join)
-    if (mpMode === 'client' && mpMyPlayer >= 0 && gamePlayers[mpMyPlayer] &&
-        gamePlayers[mpMyPlayer].claimedBy && gamePlayers[mpMyPlayer].claimedBy !== _mpClientId) {
-        const free = gamePlayers.findIndex((pl, idx) => idx > 0 && !pl.claimedBy);
-        if (free > 0) {
-            mpMyPlayer = free;
-            gamePlayers[free].claimedBy = _mpClientId;
-            toast(`Pladsen var optaget — du har fået Spiller ${free + 1}`, '#e67e22');
-            renderBoard(); mpBroadcast();
-        } else {
-            mpMyPlayer = -1;
-            toast('Din plads blev taget — vælg en ny', '#e74c3c');
-            mpPopulateClientSetup(gamePlayers.length);
-            openMpModal();
+    // Pladskonflikt / mistet claim
+    if (mpMode === 'client' && mpMyPlayer >= 0 && gamePlayers[mpMyPlayer]) {
+        const cb = gamePlayers[mpMyPlayer].claimedBy;
+        if (!cb) {
+            // Min plads blev frigivet mens jeg var væk — tag den stille tilbage
+            gamePlayers[mpMyPlayer].claimedBy = _mpClientId;
+            mpBroadcast();
+        } else if (cb !== _mpClientId) {
+            const free = gamePlayers.findIndex((pl, idx) => idx > 0 && !pl.claimedBy);
+            if (free > 0) {
+                mpMyPlayer = free;
+                gamePlayers[free].claimedBy = _mpClientId;
+                toast(`Pladsen var optaget — du har fået Spiller ${free + 1}`, '#e67e22');
+                renderBoard(); mpBroadcast();
+            } else {
+                mpMyPlayer = -1;
+                toast('Din plads blev taget — vælg en ny', '#e74c3c');
+                mpPopulateClientSetup(gamePlayers.length);
+                openMpModal();
+            }
         }
     }
 }
