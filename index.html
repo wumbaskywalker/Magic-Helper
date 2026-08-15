@@ -6,9 +6,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Magic Helper">
+    <meta name="theme-color" content="#090c12">
     <title>Magic Helper App</title>
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="icon" type="image/png" href="logo.png?v=14">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
@@ -1220,6 +1222,7 @@
         }
         #toast.show { opacity: 1; }
     </style>
+    <link rel="stylesheet" href="codex.css?v=1">
 </head>
 <body>
 <div id="death-screen-flash"></div>
@@ -1227,10 +1230,16 @@
 <div id="toast"></div>
 
 <header id="app-header">
-    <span class="header-title">⚔️ Magic Helper</span>
+    <div class="brand-lockup">
+        <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-wand-sparkles"></i></span>
+        <div class="brand-copy">
+            <span class="header-title">Magic Helper</span>
+            <div class="brand-subtitle">Din MTG companion</div>
+        </div>
+    </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-        <div style="display:flex;align-items:center;gap:6px;">
-            <button onclick="openInfoModal()" title="Om Magic Helper"
+        <div class="header-actions">
+            <button class="info-button" onclick="openInfoModal()" title="Om Magic Helper" aria-label="Om Magic Helper"
                 style="background:var(--bg-input);border:1px solid var(--border-lit);border-radius:8px;
                        color:var(--muted);font-size:11px;font-weight:600;padding:6px 10px;
                        cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;
@@ -1286,6 +1295,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v3.1 Codex</span> — Nyt responsivt design med desktop-sidebar, kompakt forside, hurtige genveje, bedre tilgængelighed og rettede billedstier</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.0</span> — Online/offline-indikator på spillere i multiplayer + ny farverækkefølge (MTG-farverne først)</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.9</span> — Genforbindelse i multiplayer: du får automatisk din plads igen, og forladte pladser frigives</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.8</span> — Flyt spillere virker nu i multiplayer + pladser tildeles automatisk og kan ikke tages af flere</div>
@@ -1326,7 +1336,31 @@
 
 <!-- ══ SEARCH ══ -->
 <main id="view-search" class="view-section active">
-    <img src="logo.png" alt="Magic Helper Logo" class="app-logo">
+    <section class="search-hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+            <div class="hero-kicker">Magic: The Gathering companion</div>
+            <h1 class="hero-title" id="hero-title">Find kort. Byg decks. Spil bedre.</h1>
+            <p class="hero-text">Kortpriser, samling, deck-builder og life counter samlet i ét hurtigt værktøj.</p>
+        </div>
+        <img src="data/logo.png" alt="Magic Helper" class="app-logo hero-logo">
+    </section>
+
+    <div class="quick-actions" aria-label="Hurtige genveje">
+        <button class="quick-action" onclick="openTool('scan')">
+            <span class="quick-icon"><i class="fa-solid fa-camera"></i></span>
+            <span class="quick-action-copy"><span class="quick-label">Scan et kort</span><span class="quick-meta">Find navn og pris</span></span>
+        </button>
+        <button class="quick-action" onclick="openTool('collection')">
+            <span class="quick-icon"><i class="fa-solid fa-box-archive"></i></span>
+            <span class="quick-action-copy"><span class="quick-label">Min samling</span><span class="quick-meta">Overblik og værdi</span></span>
+        </button>
+        <button class="quick-action" onclick="openTool('play')">
+            <span class="quick-icon"><i class="fa-solid fa-heart-pulse"></i></span>
+            <span class="quick-action-copy"><span class="quick-label">Start et spil</span><span class="quick-meta">Life og multiplayer</span></span>
+        </button>
+    </div>
+
+    <section class="search-workspace" aria-label="Kortværktøjer">
 
     <div class="search-mode-toggle">
         <button class="search-mode-btn active" id="mode-kort" onclick="setSearchMode('kort')">🃏 Kort</button>
@@ -1399,10 +1433,10 @@
 
         <div class="store-links">
             <a id="link-cm" href="#" target="_blank" style="background:#142E54;border:1px solid #1e4080;">
-                <img src="image_a81806.png" alt="Cardmarket" style="height:24px;object-fit:contain;">
+                <img src="data/image_a81806.png" alt="Cardmarket" style="height:24px;object-fit:contain;">
             </a>
             <a id="link-kelz" href="#" target="_blank" style="background:#fff;border:1px solid #ddd;">
-                <img src="image_a8185c.png" alt="Kelz0r.dk" style="height:24px;object-fit:contain;">
+                <img src="data/image_a8185c.png" alt="Kelz0r.dk" style="height:24px;object-fit:contain;">
             </a>
         </div>
         <div class="store-links" style="margin-top:8px;">
@@ -1446,6 +1480,7 @@
             </div>
         </div>
     </div>
+    </section>
 </main>
 
 <!-- ══ SCAN ══ -->
@@ -1511,7 +1546,7 @@
     </div>
     <button class="app-btn btn-dark" onclick="exportToKelz0r()" style="display:flex;align-items:center;gap:8px;">
         <span style="background:#fff;border-radius:5px;padding:2px 6px;display:flex;align-items:center;">
-            <img src="image_a8185c.png" style="height:18px;object-fit:contain;">
+            <img src="data/image_a8185c.png" alt="Kelz0r.dk" style="height:18px;object-fit:contain;">
         </span>
         Eksportér til Kelz0r
     </button>
@@ -1742,7 +1777,7 @@
 <div id="kelz0r-guide" style="display:none;position:fixed;inset:0;background:rgba(12,14,24,.88);z-index:1001;align-items:flex-end;justify-content:center;padding:16px;">
     <div style="background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-lg);padding:24px;width:100%;max-width:420px;">
         <div style="font-size:18px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
-            <span style="background:#fff;border-radius:6px;padding:2px 8px;display:inline-flex;align-items:center;"><img src="image_a8185c.png" style="height:18px;object-fit:contain;"></span>
+            <span style="background:#fff;border-radius:6px;padding:2px 8px;display:inline-flex;align-items:center;"><img src="data/image_a8185c.png" alt="Kelz0r.dk" style="height:18px;object-fit:contain;"></span>
             Eksportér til Kelz0r
         </div>
         <!-- Clipboard confirmation -->
@@ -2418,11 +2453,11 @@
             <div class="coin-3d" id="coin-3d">
                 <!-- Front: Plat (kiste) -->
                 <div class="coin-side coin-front">
-                    <img src="coin-plat.png" alt="Plat">
+                    <img src="data/coin-plat.png" alt="Plat">
                 </div>
                 <!-- Back: Krone (goblin) -->
                 <div class="coin-side coin-back">
-                    <img src="coin-krone.png" alt="Krone">
+                    <img src="data/coin-krone.png" alt="Krone">
                 </div>
             </div>
         </div>
@@ -2450,26 +2485,26 @@
 </div>
 
 <!-- ══ NAV ══ -->
-<nav>
-    <div class="active" onclick="switchView('search',this)">
+<nav aria-label="Hovednavigation">
+    <div class="active" data-view="search" role="button" tabindex="0" onclick="switchView('search',this)">
         <i class="fa-solid fa-magnifying-glass"></i><span>Søg</span>
     </div>
-    <div onclick="switchView('scan',this)">
+    <div data-view="scan" role="button" tabindex="0" onclick="switchView('scan',this)">
         <i class="fa-solid fa-camera"></i><span>Scan</span>
     </div>
-    <div onclick="switchView('list',this)">
+    <div data-view="list" role="button" tabindex="0" onclick="switchView('list',this)">
         <i class="fa-solid fa-list"></i><span>Ønskeliste</span>
     </div>
-    <div onclick="switchView('trade',this)">
+    <div data-view="trade" role="button" tabindex="0" onclick="switchView('trade',this)">
         <i class="fa-solid fa-scale-balanced"></i><span>Bytte</span>
     </div>
-    <div onclick="switchView('collection',this)">
+    <div data-view="collection" role="button" tabindex="0" onclick="switchView('collection',this)">
         <i class="fa-solid fa-box-archive"></i><span>Samling</span>
     </div>
-    <div onclick="switchView('deck',this)">
+    <div data-view="deck" role="button" tabindex="0" onclick="switchView('deck',this)">
         <i class="fa-solid fa-layer-group"></i><span>Deck</span>
     </div>
-    <div onclick="switchView('play',this)">
+    <div data-view="play" role="button" tabindex="0" onclick="switchView('play',this)">
         <i class="fa-solid fa-heart-pulse"></i><span>Life</span>
     </div>
 </nav>
@@ -2612,8 +2647,10 @@ function switchView(name, el) {
     document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('nav div').forEach(d => d.classList.remove('active','shimmer'));
     document.getElementById('view-' + name).classList.add('active');
-    el.classList.add('active','shimmer');
-    setTimeout(()=>el.classList.remove('shimmer'), 550);
+    if (el) {
+        el.classList.add('active','shimmer');
+        setTimeout(()=>el.classList.remove('shimmer'), 550);
+    }
     name === 'scan' ? startCamera() : pauseCamera();
     document.getElementById('app-header').style.display = name === 'play' ? 'none' : 'flex';
     // #fs-btn er nu kun synlig i fs-mode via CSS — ikke mere JS-styret her
@@ -2626,6 +2663,20 @@ function switchView(name, el) {
     if (name === 'collection') { requestPersistentStorage(); refreshCollectionPrices(); }
     if (name === 'deck' && activeDeckId) { renderDeckEditor(); }
 }
+
+function openTool(name) {
+    const navItem = document.querySelector(`nav [data-view="${name}"]`);
+    switchView(name, navItem);
+}
+
+document.querySelectorAll('nav [role="button"]').forEach(item => {
+    item.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            item.click();
+        }
+    });
+});
 
 function toggleFsMode(){
     document.body.classList.contains('fs-mode') ? exitFsMode() : enterFsMode();
@@ -3612,7 +3663,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '3.0';
+const APP_VERSION = '3.1 Codex';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
