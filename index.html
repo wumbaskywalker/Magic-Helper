@@ -363,20 +363,28 @@
         }
         #camera-stream { width: 100%; height: 100%; object-fit: cover; }
         #scan-overlay {
-            position: absolute; top: 11%; left: 5%; width: 90%; height: 15%;
-            border: 2px solid var(--gold); border-radius: var(--r-sm);
+            position: absolute; top: 8%; left: 19%; width: 62%; height: 65%;
+            border: 2px solid var(--gold); border-radius: 10px;
             box-shadow: 0 0 0 9999px rgba(0,0,0,.52); pointer-events: none;
         }
+        #collector-zone {
+            position: absolute; left: 1%; bottom: 1%; width: 60%; height: 13%;
+            border: 1.5px dashed rgba(232,197,106,.85); border-radius: 5px;
+        }
+        #collector-zone::after {
+            content: 'SÆT + NR.'; position: absolute; top: -14px; left: 0;
+            font-size: 8px; font-weight: 800; letter-spacing: .08em; color: rgba(232,197,106,.9);
+        }
         #scan-line {
-            position: absolute; left: 5%; width: 90%; height: 2px;
+            position: absolute; left: 19%; width: 62%; height: 2px;
             background: linear-gradient(90deg, transparent, var(--gold-lt), transparent);
-            pointer-events: none; animation: scan-line 2s ease-in-out infinite;
-            top: 11%;
+            pointer-events: none; animation: scan-line 2.4s ease-in-out infinite;
+            top: 8%;
         }
         @keyframes scan-line {
-            0%   { top: 11%; opacity: 1; }
-            90%  { top: 26%; opacity: 1; }
-            100% { top: 11%; opacity: 0; }
+            0%   { top: 8%; opacity: 1; }
+            90%  { top: 71%; opacity: 1; }
+            100% { top: 8%; opacity: 0; }
         }
         #scan-guide {
             position: absolute; bottom: 10px; width: 100%; text-align: center;
@@ -1286,6 +1294,9 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v3.3</span> — Scanneren bruger nu også kunstnernavnet som kontrolsignal</div>
+                <div><span style="color:var(--gold);font-weight:700;">v3.2</span> — Scanneren krydstjekker nu kortets navn og håndterer rarity-bogstavet ved nummeret</div>
+                <div><span style="color:var(--gold);font-weight:700;">v3.1</span> — Scanneren læser nu sæt-kode + kortnummer og rammer den præcise udgave (navne-OCR som fallback)</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.0</span> — Online/offline-indikator på spillere i multiplayer + ny farverækkefølge (MTG-farverne først)</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.9</span> — Genforbindelse i multiplayer: du får automatisk din plads igen, og forladte pladser frigives</div>
                 <div><span style="color:var(--gold);font-weight:700;">v2.8</span> — Flyt spillere virker nu i multiplayer + pladser tildeles automatisk og kan ikke tages af flere</div>
@@ -1450,7 +1461,7 @@
 
 <!-- ══ SCAN ══ -->
 <main id="view-scan" class="view-section">
-    <p class="scan-header">Hold kortets <strong>navn</strong> inden for den gyldne boks</p>
+    <p class="scan-header">Hold <strong>hele kortet</strong> i rammen — koden nederst til venstre aflæses automatisk</p>
 
     <div class="scan-target-row">
         <button class="scan-target-btn active" id="scan-target-search" onclick="setScanTarget('search')">
@@ -1481,7 +1492,7 @@
 
     <div id="camera-container">
         <video id="camera-stream" autoplay playsinline></video>
-        <div id="scan-overlay"></div>
+        <div id="scan-overlay"><div id="collector-zone"></div></div>
         <div id="scan-line"></div>
         <div id="scan-guide">God belysning giver de bedste resultater</div>
         <button id="torch-btn" onclick="toggleTorch()" title="Lommelygte"
@@ -1490,7 +1501,7 @@
                    cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(6px);z-index:5;">🔦</button>
     </div>
 
-    <button class="app-btn btn-purple" onclick="captureAndScan(false)">
+    <button class="app-btn btn-purple" onclick="smartScan(false)">
         <i class="fa-solid fa-camera"></i> Scan Kort
     </button>
     <div id="scan-status" style="text-align:center;margin-top:10px;font-weight:600;font-size:15px;min-height:22px;"></div>
@@ -3110,7 +3121,7 @@ function stopCamera() {
 
 function toggleAutoScan(on) {
     document.getElementById('auto-scan-lbl').innerText = on ? 'Til' : 'Fra';
-    if (on) { autoScanIv = setInterval(()=>captureAndScan(true), 1100); }
+    if (on) { autoScanIv = setInterval(()=>smartScan(true), 1300); }
     else    { clearInterval(autoScanIv); autoScanIv=null; }
 }
 
@@ -3321,6 +3332,279 @@ function preprocess(canvas) {
     return canvas;
 }
 
+// ═══════════════════════════════════════════════
+//  COLLECTOR-SCAN — læser sæt-kode + kortnummer nederst på kortet
+//  (unik nøgle → præcis udgave via Scryfall /cards/:set/:number)
+// ═══════════════════════════════════════════════
+
+// Crop et udsnit af video relativt til #scan-overlay (rx/ry/rw/rh = 0..1)
+function _scanCropCanvas(rx, ry, rw, rh, scale) {
+    const video = document.getElementById('camera-stream');
+    if (!videoStream || !video.videoWidth) return null;
+    const vidW = video.videoWidth, vidH = video.videoHeight;
+    const full = document.createElement('canvas');
+    full.width = vidW; full.height = vidH;
+    full.getContext('2d').drawImage(video, 0, 0);
+    const vr = video.getBoundingClientRect();
+    const br = document.getElementById('scan-overlay').getBoundingClientRect();
+    const sc = Math.max(vr.width/vidW, vr.height/vidH);
+    const offX = (vidW*sc - vr.width)/2, offY = (vidH*sc - vr.height)/2;
+    const fx = ((br.left-vr.left)+offX)/sc, fy = ((br.top-vr.top)+offY)/sc;
+    const fw = br.width/sc, fh = br.height/sc;
+    const cX = Math.max(0, Math.round(fx + rx*fw)), cY = Math.max(0, Math.round(fy + ry*fh));
+    const cW = Math.min(Math.round(rw*fw), vidW-cX), cH = Math.min(Math.round(rh*fh), vidH-cY);
+    if (cW < 8 || cH < 8) return null;
+    const crop = document.createElement('canvas');
+    crop.width = cW*scale; crop.height = cH*scale;
+    crop.getContext('2d').drawImage(full, cX, cY, cW, cH, 0, 0, cW*scale, cH*scale);
+    return crop;
+}
+
+// Adaptiv (middelværdi-)tærskel — collector-linjen er for lille til fast tærskel
+function _prepPolarity(canvas, invert) {
+    const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height;
+    const ctx = c.getContext('2d'); ctx.drawImage(canvas, 0, 0);
+    const id = ctx.getImageData(0, 0, c.width, c.height), d = id.data, n = c.width*c.height;
+    let sum = 0; const g = new Float32Array(n);
+    for (let i = 0; i < n; i++) { g[i] = 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2]; sum += g[i]; }
+    const t = sum / n;
+    for (let i = 0; i < n; i++) {
+        let v = g[i] >= t ? 255 : 0;
+        if (invert) v = 255 - v;
+        d[i*4] = d[i*4+1] = d[i*4+2] = v; d[i*4+3] = 255;
+    }
+    ctx.putImageData(id, 0, 0);
+    return c;
+}
+
+async function _setOcrParams(w, mode) {
+    if (!w.setParameters) return;
+    if (mode === 'collector') await w.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 •·/★',
+        tessedit_pageseg_mode: '6', preserve_interword_spaces: '1'
+    });
+    else await w.setParameters({
+        tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ,-'",
+        tessedit_pageseg_mode: '7', preserve_interword_spaces: '0'
+    });
+}
+
+// Bogstav→ciffer, men kun hvis mindst halvdelen allerede er cifre (æder ikke kunstnernavne)
+function _digitize(tok) {
+    const map = { O:'0', D:'0', I:'1', L:'1', S:'5', B:'8', Z:'2', G:'6', Q:'9' };
+    const digits = (tok.match(/\d/g) || []).length;
+    if (digits < Math.ceil(tok.length / 2)) return tok;
+    return tok.split('').map(ch => map[ch] ?? ch).join('');
+}
+
+function _parseCollector(raw) {
+    const text = raw.replace(/[|]/g, 'I');
+    let set = null, lang = null, num = null;
+    // Sæt-kode + sprog: linjebaseret, tåler mellemrum inde i koden ("Z NR • EN")
+    for (const line of text.split('\n')) {
+        const bm = line.match(/^(.*?)[•·*+:¢]\s*([A-Z]{2})(?![A-Z])/);
+        if (!bm) continue;
+        let code = bm[1].replace(/[^A-Z0-9]/g, '');
+        code = code.replace(/^\d+/, ''); // evt. foranstillet kortnummer på samme linje
+        if (code.length >= 2) {
+            set = code.length > 5 ? code.slice(-4) : code;
+            lang = bm[2].toLowerCase();
+            break;
+        }
+    }
+    // Gammel stil "077/281"
+    let m = text.match(/(\d{1,3})\s*\/\s*\d{2,3}/);
+    if (m) num = m[1].replace(/^0+(?=\d)/, '');
+    // Moderne stil: token med overvægt af cifre, evt. suffiksbogstav
+    if (!num) for (const tokRaw of text.split(/\s+/)) {
+        const tok = tokRaw.replace(/[^A-Z0-9★]/g, '');
+        if (!tok || tok.length > 5) continue;
+        const dz = _digitize(tok);
+        if (/^\d{1,4}[A-Z★]?$/.test(dz)) { num = dz.replace(/^0+(?=\d)/, ''); break; }
+    }
+    // Fallback uden bullet: kode der starter med bogstav, evt. cifre i ("M15", "4ED" fanges via snap)
+    if (!set) {
+        m = text.replace(/\s+/g, ' ').match(/(?:^|\s)([A-Z][A-Z0-9]{2,3})(?:\s|$)/);
+        if (m) set = m[1];
+    }
+    if (!set || !num) return null;
+    return { set: set.toLowerCase(), num: num.toLowerCase(), lang };
+}
+
+// Scryfalls sæt-koder (caches 7 dage) + forvekslings-vægtet snap
+let _setCodes = null;
+async function _getSetCodes() {
+    if (_setCodes) return _setCodes;
+    try {
+        const cached = JSON.parse(localStorage.getItem('mtg_setcodes') || 'null');
+        if (cached && Date.now() - cached.at < 7*864e5) return _setCodes = cached.codes;
+    } catch(e) {}
+    try {
+        const d = await (await fetch('https://api.scryfall.com/sets')).json();
+        const codes = (d.data || []).filter(x => !x.digital).map(x => x.code.toUpperCase());
+        localStorage.setItem('mtg_setcodes', JSON.stringify({ at: Date.now(), codes }));
+        return _setCodes = codes;
+    } catch(e) { return []; }
+}
+const _confPairs = { '0O':.3,'O0':.3,'0D':.4,'D0':.4,'1I':.3,'I1':.3,'1L':.3,'L1':.3,
+                     '5S':.3,'S5':.3,'8B':.3,'B8':.3,'2Z':.3,'Z2':.3,'6G':.3,'G6':.3 };
+function _confDist(a, b) {
+    if (a.length !== b.length) return 99;
+    let d = 0;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) d += _confPairs[a[i]+b[i]] ?? 1;
+    return d;
+}
+async function _snapSetCode(code) {
+    const codes = await _getSetCodes();
+    if (codes.includes(code)) return code;
+    let best = null, bd = 1.41;
+    codes.forEach(c => { const d = _confDist(code, c); if (d < bd) { bd = d; best = c; } });
+    return best || code;
+}
+
+async function _lookupCollector(pc) {
+    const tries = [
+        pc.lang ? `https://api.scryfall.com/cards/${pc.set}/${pc.num}/${pc.lang}` : null,
+        `https://api.scryfall.com/cards/${pc.set}/${pc.num}`,
+        `https://api.scryfall.com/cards/search?q=${encodeURIComponent('set:'+pc.set+' cn:"'+pc.num+'"')}`
+    ].filter(Boolean);
+    // Bogstav-suffiks kan være rarity-mærket (M/R/U/C) OCR har klistret på tallet — prøv uden
+    if (/[a-z★]$/.test(pc.num)) {
+        const bare = pc.num.replace(/[a-z★]+$/, '');
+        if (bare) tries.push(`https://api.scryfall.com/cards/${pc.set}/${bare}`);
+    }
+    for (const url of tries) {
+        try {
+            const r = await fetch(url);
+            if (!r.ok) continue;
+            const d = await r.json();
+            if (d.object === 'card') return d;
+            if (d.object === 'list' && d.data?.length) return d.data[0];
+        } catch(e) {}
+    }
+    return null;
+}
+
+// Fælles succes-håndtering for collector- og navne-scan
+async function _scanSuccess(data, isAuto) {
+    const status = document.getElementById('scan-status');
+    const price = data.prices?.eur ? +data.prices.eur : (data.prices?.usd ? +data.prices.usd/rates.USD : 0);
+    const card = {
+        id: data.id, name: data.name, set: data.set, setName: data.set_name, price,
+        img:     data.image_uris?.normal || data.card_faces?.[0]?.image_uris?.normal || '',
+        thumb:   data.image_uris?.small  || data.card_faces?.[0]?.image_uris?.small  || '',
+        imgBack: data.card_faces?.[1]?.image_uris?.normal || '',
+        cmc: data.cmc||0, colors: data.colors||[], colorIdentity: data.color_identity||[],
+        typeLine: data.type_line||'', manaCost: data.mana_cost||''
+    };
+    sndScanOk(); vib([30,20,40]);
+    addScanHistory(card);
+
+    if (scanTarget === 'collection') {
+        const quick = document.getElementById('quick-add-chk')?.checked;
+        if (quick) {
+            // Batch-mode: gem direkte og fortsæt auto-scan — næste kort kan lægges frem
+            if (_lastQuickId === card.id && Date.now() - _lastQuickAt < 7000) {
+                status.innerText=`✓ ${card.name} er lige gemt — læg næste kort frem`;
+                status.style.color='var(--muted)';
+            } else {
+                _lastQuickId = card.id; _lastQuickAt = Date.now();
+                quickAddToCollection(card);
+                status.innerText=`✅ ${card.name} (${(card.set||'').toUpperCase()}) gemt — klar til næste kort`;
+                status.style.color='var(--green)';
+            }
+        } else {
+            if (isAuto) { toggleAutoScan(false); document.getElementById('auto-scan-chk').checked=false; }
+            currentCard = card;
+            openScanColModal(card);
+            status.innerText=`✅ ${card.name}`; status.style.color='var(--green)';
+        }
+    } else {
+        if (isAuto) { toggleAutoScan(false); document.getElementById('auto-scan-chk').checked=false; }
+        switchView('search',document.querySelector('nav div:nth-child(1)'));
+        document.getElementById('manual-search').value=data.name;
+        await searchCard(data.name);
+        // Vælg præcis den udgave der blev scannet (collector-scan kender den eksakte print)
+        const idx = currentVariants.findIndex(v => v.id === data.id);
+        if (idx >= 0) selectVariant(idx);
+    }
+}
+
+// Kunstnernavnet står i collector-området og er allerede OCR'et — brug det som signal
+function _artistMatch(rawText, artist) {
+    if (!artist || !rawText) return false;
+    const toks  = rawText.toUpperCase().split(/[^A-Z]+/).filter(t => t.length >= 4);
+    const words = artist.toUpperCase().split(/[^A-Z]+/).filter(t => t.length >= 4);
+    for (const w of words) for (const t of toks) {
+        if (Math.abs(t.length - w.length) <= 2 && _lev(t, w) <= 2) return true;
+    }
+    return false;
+}
+
+// Verificér collector-resultat: kunstner først (gratis), ellers kortets navnefelt
+async function _verifyScanByName(data, rawCollector) {
+    try {
+        // Signal 1: kunstnernavn i collector-teksten matcher → accepter uden ekstra OCR
+        if (_artistMatch(rawCollector, data.artist || data.card_faces?.[0]?.artist || '')) return true;
+        if (_ocrBusy) return true; // kan ikke verificere lige nu → accepter
+        const crop = _scanCropCanvas(0, 0.025, 1, 0.085, 3);
+        if (!crop) return true;
+        preprocess(crop);
+        _ocrBusy = true;
+        let r;
+        try { const w = await getOcrWorker(); r = await w.recognize(crop); }
+        finally { _ocrBusy = false; }
+        let text = (r.data.text || '').trim().split('\n')[0] || '';
+        text = text.replace(/[^a-zA-Z0-9 '\-,]/g, '').replace(/\s+/g, ' ').trim();
+        if (text.replace(/[^a-zA-Z]/g, '').length < 3) return true; // intet læsbart navn → accepter
+        const front = data.name.split('//')[0].trim();
+        return _nameSim(text, front) >= 0.30;
+    } catch(e) { return true; }
+}
+
+// Entry: prøv collector-linjen først, fald tilbage til navne-OCR
+async function smartScan(isAuto=false) {
+    if (_ocrBusy) return;
+    const status = document.getElementById('scan-status');
+    const crop = _scanCropCanvas(0, 0.86, 0.62, 0.14, 4);
+    if (crop) {
+        _ocrBusy = true;
+        let parsed = null, w = null, rawCollector = '';
+        try {
+            w = await getOcrWorker();
+            await _setOcrParams(w, 'collector');
+            // Hvid-på-sort er normen → prøv inverteret først, derefter normal
+            for (const inv of [true, false]) {
+                const c = _prepPolarity(crop, inv);
+                const r = await w.recognize(c);
+                rawCollector = (r.data.text || '').toUpperCase();
+                parsed = _parseCollector(rawCollector);
+                if (parsed) break;
+            }
+        } catch(e) { parsed = null; }
+        finally {
+            try { if (w) await _setOcrParams(w, 'name'); } catch(e) {}
+            _ocrBusy = false;
+        }
+        if (parsed) {
+            const readCode = parsed.set.toUpperCase();
+            const snapped = await _snapSetCode(readCode);
+            status.innerText = snapped !== readCode
+                ? `🔎 Retter ${readCode} → ${snapped} #${parsed.num} — slår op…`
+                : `🔎 Læste ${snapped} #${parsed.num} — slår op…`;
+            status.style.color = 'var(--accent)';
+            parsed.set = snapped.toLowerCase();
+            const data = await _lookupCollector(parsed);
+            if (data) {
+                // Krydstjek mod navnefeltet før vi stoler på koden
+                if (await _verifyScanByName(data, rawCollector)) return _scanSuccess(data, isAuto);
+                if (!isAuto) { status.innerText = `⚠️ ${snapped} #${parsed.num} gav "${data.name}", men navnet matcher ikke — prøver kortnavn…`; status.style.color = 'var(--muted)'; }
+            } else if (!isAuto) { status.innerText = `⚠️ ${snapped} #${parsed.num} ikke fundet — prøver kortnavn…`; status.style.color = 'var(--muted)'; }
+        }
+    }
+    return captureAndScan(isAuto);
+}
+
 async function captureAndScan(isAuto=false) {
     const video=document.getElementById('camera-stream');
     const status=document.getElementById('scan-status');
@@ -3330,25 +3614,9 @@ async function captureAndScan(isAuto=false) {
     if (!isAuto) { status.innerText='🔍 Analyserer…'; status.style.color='var(--accent)'; }
 
     try {
-        const full=document.createElement('canvas');
-        const vidW=video.videoWidth, vidH=video.videoHeight;
-        full.width=vidW; full.height=vidH;
-        full.getContext('2d').drawImage(video,0,0);
-
-        // Map scan-overlay display rect → raw video pixels, accounting for object-fit:cover
-        const vr=video.getBoundingClientRect();
-        const br=document.getElementById('scan-overlay').getBoundingClientRect();
-        const scale=Math.max(vr.width/vidW, vr.height/vidH);
-        const offX=(vidW*scale - vr.width)/2;
-        const offY=(vidH*scale - vr.height)/2;
-        const cX=Math.max(0, Math.round(((br.left-vr.left)+offX)/scale));
-        const cY=Math.max(0, Math.round(((br.top -vr.top )+offY)/scale));
-        const cW=Math.min(Math.round(br.width/scale),  vidW-cX);
-        const cH=Math.min(Math.round(br.height/scale), vidH-cY);
-
-        const crop=document.createElement('canvas');
-        crop.width=cW*3; crop.height=cH*3; // 3× upscale for better OCR
-        crop.getContext('2d').drawImage(full,cX,cY,cW,cH,0,0,cW*3,cH*3);
+        // Navnefeltet = øverste stribe af kort-rammen
+        const crop = _scanCropCanvas(0, 0.025, 1, 0.085, 3);
+        if (!crop) return;
         preprocess(crop);
 
         // OCR via genbrugt worker (hurtigt) — falder tilbage til engangs-kald
@@ -3410,43 +3678,7 @@ async function captureAndScan(isAuto=false) {
                 status.innerText=`⚠️ Kunne ikke hente "${best.name}" — prøv igen.`; status.style.color='var(--red)';
                 return;
             }
-            const price = data.prices?.eur ? +data.prices.eur : (data.prices?.usd ? +data.prices.usd/rates.USD : 0);
-            const card = {
-                id: data.id, name: data.name, set: data.set, setName: data.set_name, price,
-                img:     data.image_uris?.normal || data.card_faces?.[0]?.image_uris?.normal || '',
-                thumb:   data.image_uris?.small  || data.card_faces?.[0]?.image_uris?.small  || '',
-                imgBack: data.card_faces?.[1]?.image_uris?.normal || '',
-                cmc: data.cmc||0, colors: data.colors||[], colorIdentity: data.color_identity||[],
-                typeLine: data.type_line||'', manaCost: data.mana_cost||''
-            };
-            sndScanOk(); vib([30,20,40]);
-            addScanHistory(card);
-
-            if (scanTarget === 'collection') {
-                const quick = document.getElementById('quick-add-chk')?.checked;
-                if (quick) {
-                    // Batch-mode: gem direkte og fortsæt auto-scan — næste kort kan lægges frem
-                    if (_lastQuickId === card.id && Date.now() - _lastQuickAt < 7000) {
-                        status.innerText=`✓ ${card.name} er lige gemt — læg næste kort frem`;
-                        status.style.color='var(--muted)';
-                    } else {
-                        _lastQuickId = card.id; _lastQuickAt = Date.now();
-                        quickAddToCollection(card);
-                        status.innerText=`✅ ${card.name} gemt — klar til næste kort`;
-                        status.style.color='var(--green)';
-                    }
-                } else {
-                    if (isAuto) { toggleAutoScan(false); document.getElementById('auto-scan-chk').checked=false; }
-                    currentCard = card;
-                    openScanColModal(card);
-                    status.innerText=`✅ ${card.name}`; status.style.color='var(--green)';
-                }
-            } else {
-                if (isAuto) { toggleAutoScan(false); document.getElementById('auto-scan-chk').checked=false; }
-                switchView('search',document.querySelector('nav div:nth-child(1)'));
-                document.getElementById('manual-search').value=data.name;
-                searchCard(data.name);
-            }
+            await _scanSuccess(data, isAuto);
         } else if (isAuto) {
             status.innerText='🔍 Auto-scan aktiv — hold kortets navn i boksen…';
             status.style.color='var(--muted)'; status.style.display='block';
@@ -3612,7 +3844,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '3.0';
+const APP_VERSION = '3.3';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
