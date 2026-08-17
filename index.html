@@ -1294,6 +1294,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v3.4</span> — Scanneren sammenligner nu også artwork-billedet og vælger den rigtige udgave ud fra det</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.3</span> — Scanneren bruger nu også kunstnernavnet som kontrolsignal</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.2</span> — Scanneren krydstjekker nu kortets navn og håndterer rarity-bogstavet ved nummeret</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.1</span> — Scanneren læser nu sæt-kode + kortnummer og rammer den præcise udgave (navne-OCR som fallback)</div>
@@ -3486,7 +3487,7 @@ async function _lookupCollector(pc) {
 }
 
 // Fælles succes-håndtering for collector- og navne-scan
-async function _scanSuccess(data, isAuto) {
+async function _scanSuccess(data, isAuto, artHash, exact) {
     const status = document.getElementById('scan-status');
     const price = data.prices?.eur ? +data.prices.eur : (data.prices?.usd ? +data.prices.usd/rates.USD : 0);
     const card = {
@@ -3524,10 +3525,72 @@ async function _scanSuccess(data, isAuto) {
         switchView('search',document.querySelector('nav div:nth-child(1)'));
         document.getElementById('manual-search').value=data.name;
         await searchCard(data.name);
-        // Vælg præcis den udgave der blev scannet (collector-scan kender den eksakte print)
-        const idx = currentVariants.findIndex(v => v.id === data.id);
+        // Collector-scan kender den eksakte print — ellers matcher vi på artwork-billedet
+        let idx = exact ? currentVariants.findIndex(v => v.id === data.id) : -1;
+        if (idx < 0 && artHash && currentVariants.length > 1) idx = await _matchVariantByArt(artHash);
         if (idx >= 0) selectVariant(idx);
     }
+}
+
+// ── BILLED-MATCH: perceptuel hash (dHash) af kortets kunst-område ──
+function _dhashFromCanvas(cv) {
+    const c = document.createElement('canvas'); c.width = 9; c.height = 8;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(cv, 0, 0, 9, 8);
+    const d = ctx.getImageData(0, 0, 9, 8).data;
+    const g = [];
+    for (let i = 0; i < 72; i++) g.push(0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2]);
+    const bits = [];
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++)
+        bits.push(g[y*9+x] < g[y*9+x+1] ? 1 : 0);
+    return bits;
+}
+function _hamming(a, b) { let d = 0; for (let i = 0; i < 64; i++) if (a[i] !== b[i]) d++; return d; }
+
+// Hash af kunst-området i scan-rammen (x 6-94%, y 11-55% af kortet)
+function _scanArtHash() {
+    try {
+        const crop = _scanCropCanvas(0.06, 0.11, 0.88, 0.44, 1);
+        return crop ? _dhashFromCanvas(crop) : null;
+    } catch(e) { return null; }
+}
+
+// Hash af kunst-området i et Scryfall-kortbillede
+function _artHashFromUrl(url) {
+    return new Promise(resolve => {
+        if (!url) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        const to = setTimeout(() => resolve(null), 6000);
+        img.onload = () => {
+            clearTimeout(to);
+            try {
+                const c = document.createElement('canvas');
+                c.width = 90; c.height = 44;
+                c.getContext('2d').drawImage(img,
+                    img.width*0.06, img.height*0.11, img.width*0.88, img.height*0.44,
+                    0, 0, 90, 44);
+                resolve(_dhashFromCanvas(c));
+            } catch(e) { resolve(null); /* CORS-taint m.m. */ }
+        };
+        img.onerror = () => { clearTimeout(to); resolve(null); };
+        img.src = url;
+    });
+}
+
+// Find den udgave i variant-galleriet hvis kunst matcher det scannede billede
+async function _matchVariantByArt(artHash) {
+    try {
+        const cands = currentVariants.slice(0, 12);
+        const hashes = await Promise.all(cands.map(c => _artHashFromUrl(c.thumb)));
+        let best = -1, bd = 21; // accept-grænse: hamming ≤ 20/64
+        hashes.forEach((h, i) => {
+            if (!h) return;
+            const d = _hamming(artHash, h);
+            if (d < bd) { bd = d; best = i; }
+        });
+        return best;
+    } catch(e) { return -1; }
 }
 
 // Kunstnernavnet står i collector-området og er allerede OCR'et — brug det som signal
@@ -3541,24 +3604,34 @@ function _artistMatch(rawText, artist) {
     return false;
 }
 
-// Verificér collector-resultat: kunstner først (gratis), ellers kortets navnefelt
-async function _verifyScanByName(data, rawCollector) {
+// Verificér collector-resultat: kunstner (gratis) → navnefelt → artwork-billede
+async function _verifyScanByName(data, rawCollector, artHash) {
     try {
-        // Signal 1: kunstnernavn i collector-teksten matcher → accepter uden ekstra OCR
+        // Signal 1: kunstnernavn i collector-teksten
         if (_artistMatch(rawCollector, data.artist || data.card_faces?.[0]?.artist || '')) return true;
-        if (_ocrBusy) return true; // kan ikke verificere lige nu → accepter
-        const crop = _scanCropCanvas(0, 0.025, 1, 0.085, 3);
-        if (!crop) return true;
-        preprocess(crop);
-        _ocrBusy = true;
-        let r;
-        try { const w = await getOcrWorker(); r = await w.recognize(crop); }
-        finally { _ocrBusy = false; }
-        let text = (r.data.text || '').trim().split('\n')[0] || '';
-        text = text.replace(/[^a-zA-Z0-9 '\-,]/g, '').replace(/\s+/g, ' ').trim();
-        if (text.replace(/[^a-zA-Z]/g, '').length < 3) return true; // intet læsbart navn → accepter
-        const front = data.name.split('//')[0].trim();
-        return _nameSim(text, front) >= 0.30;
+        // Signal 2: kortets navnefelt
+        let nameSim = null;
+        if (!_ocrBusy) {
+            const crop = _scanCropCanvas(0, 0.025, 1, 0.085, 3);
+            if (crop) {
+                preprocess(crop);
+                _ocrBusy = true;
+                let r;
+                try { const w = await getOcrWorker(); r = await w.recognize(crop); }
+                finally { _ocrBusy = false; }
+                let text = (r.data.text || '').trim().split('\n')[0] || '';
+                text = text.replace(/[^a-zA-Z0-9 '\-,]/g, '').replace(/\s+/g, ' ').trim();
+                if (text.replace(/[^a-zA-Z]/g, '').length >= 3)
+                    nameSim = _nameSim(text, data.name.split('//')[0].trim());
+            }
+        }
+        if (nameSim !== null && nameSim >= 0.30) return true;
+        // Signal 3: sammenlign artwork med Scryfalls billede af kortet
+        if (artHash) {
+            const h = await _artHashFromUrl(data.image_uris?.small || data.card_faces?.[0]?.image_uris?.small || '');
+            if (h) return _hamming(artHash, h) <= 20;
+        }
+        return nameSim === null; // ingen signaler kunne afgøre → accepter kun hvis navnet var ulæseligt
     } catch(e) { return true; }
 }
 
@@ -3566,6 +3639,7 @@ async function _verifyScanByName(data, rawCollector) {
 async function smartScan(isAuto=false) {
     if (_ocrBusy) return;
     const status = document.getElementById('scan-status');
+    const artHash = _scanArtHash(); // kunst-området, til billed-verifikation og udgave-match
     const crop = _scanCropCanvas(0, 0.86, 0.62, 0.14, 4);
     if (crop) {
         _ocrBusy = true;
@@ -3597,7 +3671,7 @@ async function smartScan(isAuto=false) {
             const data = await _lookupCollector(parsed);
             if (data) {
                 // Krydstjek mod navnefeltet før vi stoler på koden
-                if (await _verifyScanByName(data, rawCollector)) return _scanSuccess(data, isAuto);
+                if (await _verifyScanByName(data, rawCollector, artHash)) return _scanSuccess(data, isAuto, artHash, true);
                 if (!isAuto) { status.innerText = `⚠️ ${snapped} #${parsed.num} gav "${data.name}", men navnet matcher ikke — prøver kortnavn…`; status.style.color = 'var(--muted)'; }
             } else if (!isAuto) { status.innerText = `⚠️ ${snapped} #${parsed.num} ikke fundet — prøver kortnavn…`; status.style.color = 'var(--muted)'; }
         }
@@ -3610,6 +3684,7 @@ async function captureAndScan(isAuto=false) {
     const status=document.getElementById('scan-status');
     if (!videoStream||!video.videoWidth) return;
     if (_ocrBusy) return; // undgå overlappende OCR-kørsler
+    const artHash = _scanArtHash(); // til udgave-match i variant-galleriet
     _ocrBusy = true;
     if (!isAuto) { status.innerText='🔍 Analyserer…'; status.style.color='var(--accent)'; }
 
@@ -3678,7 +3753,7 @@ async function captureAndScan(isAuto=false) {
                 status.innerText=`⚠️ Kunne ikke hente "${best.name}" — prøv igen.`; status.style.color='var(--red)';
                 return;
             }
-            await _scanSuccess(data, isAuto);
+            await _scanSuccess(data, isAuto, artHash, false);
         } else if (isAuto) {
             status.innerText='🔍 Auto-scan aktiv — hold kortets navn i boksen…';
             status.style.color='var(--muted)'; status.style.display='block';
@@ -3844,7 +3919,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '3.3';
+const APP_VERSION = '3.4';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
