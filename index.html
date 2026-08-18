@@ -363,7 +363,9 @@
         }
         #camera-stream { width: 100%; height: 100%; object-fit: cover; }
         #scan-overlay {
-            position: absolute; top: 8%; left: 19%; width: 62%; height: 65%;
+            position: absolute;
+            top: var(--frame-top, 8%); left: var(--frame-left, 19%);
+            width: var(--frame-w, 62%); height: var(--frame-h, 65%);
             border: 2px solid var(--gold); border-radius: 10px;
             box-shadow: 0 0 0 9999px rgba(0,0,0,.52); pointer-events: none;
         }
@@ -376,15 +378,27 @@
             font-size: 8px; font-weight: 800; letter-spacing: .08em; color: rgba(232,197,106,.9);
         }
         #scan-line {
-            position: absolute; left: 19%; width: 62%; height: 2px;
+            position: absolute; left: var(--frame-left, 19%); width: var(--frame-w, 62%); height: 2px;
             background: linear-gradient(90deg, transparent, var(--gold-lt), transparent);
             pointer-events: none; animation: scan-line 2.4s ease-in-out infinite;
             top: 8%;
         }
         @keyframes scan-line {
-            0%   { top: 8%; opacity: 1; }
-            90%  { top: 71%; opacity: 1; }
-            100% { top: 8%; opacity: 0; }
+            0%   { top: var(--frame-top, 8%); opacity: 1; }
+            90%  { top: var(--frame-bot, 71%); opacity: 1; }
+            100% { top: var(--frame-top, 8%); opacity: 0; }
+        }
+        .scan-tool-row {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+            font-size: 12px; color: var(--muted); font-weight: 700;
+        }
+        .scan-tool-row input[type=range] {
+            flex: 1; margin: 0; accent-color: var(--accent); height: 22px;
+        }
+        .scan-mini-btn {
+            padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 700;
+            background: var(--bg-input); border: 1px solid var(--border-lit);
+            color: var(--text); cursor: pointer; white-space: nowrap;
         }
         #scan-guide {
             position: absolute; bottom: 10px; width: 100%; text-align: center;
@@ -1294,6 +1308,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.6</span> — Rigtig kasseapparat-lyd når du scanner et kort til over 50 kr.</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.4</span> — Scanneren sammenligner nu også artwork-billedet og vælger den rigtige udgave ud fra det</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.3</span> — Scanneren bruger nu også kunstnernavnet som kontrolsignal</div>
@@ -1501,6 +1516,18 @@
             style="display:none;position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;
                    background:rgba(12,14,24,.6);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:17px;
                    cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(6px);z-index:5;">🔦</button>
+    </div>
+
+    <div class="scan-tool-row" id="zoom-row" style="display:none;">
+        <span>🔍 Zoom</span>
+        <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1" oninput="setCamZoom(this.value)">
+        <span id="zoom-val" style="min-width:34px;text-align:right;">1.0×</span>
+    </div>
+    <div class="scan-tool-row">
+        <span>🖼 Ramme</span>
+        <input type="range" id="frame-slider" min="40" max="100" step="1" value="62" oninput="setFrameSize(this.value)">
+        <button class="scan-mini-btn" onclick="autoFitFrame()">🎯 Auto-tilpas</button>
+        <button class="scan-mini-btn" onclick="resetFrame()">↺</button>
     </div>
 
     <button class="app-btn btn-purple" onclick="smartScan(false)">
@@ -3076,6 +3103,7 @@ async function startCamera() {
         // Stream already alive — just resume playback and re-enable auto-scan
         video.srcObject = videoStream;
         video.play().catch(()=>{});
+        initCamZoom(); restoreFrame();
         const chk = document.getElementById('auto-scan-chk');
         if (chk && !chk.checked) { chk.checked = true; toggleAutoScan(true); }
         return;
@@ -3096,6 +3124,8 @@ async function startCamera() {
         const caps = videoStream.getVideoTracks()[0].getCapabilities?.();
         document.getElementById('torch-btn').style.display = caps?.torch ? 'flex' : 'none';
     } catch(e) {}
+    // Zoom-kontrol + gemt rammestørrelse
+    initCamZoom(); restoreFrame();
     // Varm OCR-motoren op i baggrunden så første scan er hurtigt
     getOcrWorker().catch(()=>{});
     // Auto-scan er slået til som standard
@@ -3392,6 +3422,130 @@ function preprocess(canvas) {
 
     ctx.putImageData(id,0,0);
     return canvas;
+}
+
+// ═══════════════════════════════════════════════
+//  KAMERA-ZOOM & RAMMEJUSTERING
+// ═══════════════════════════════════════════════
+let _camZoomCaps = null;
+
+function initCamZoom() {
+    const row = document.getElementById('zoom-row');
+    const sl  = document.getElementById('zoom-slider');
+    try {
+        const track = videoStream?.getVideoTracks?.()[0];
+        const caps = track?.getCapabilities?.();
+        if (caps && caps.zoom && caps.zoom.max > caps.zoom.min) {
+            _camZoomCaps = caps.zoom;
+            sl.min = caps.zoom.min; sl.max = caps.zoom.max;
+            sl.step = caps.zoom.step || 0.1;
+            const saved = parseFloat(localStorage.getItem('mtg_scan_zoom') || '');
+            const val = (!isNaN(saved) && saved >= caps.zoom.min && saved <= caps.zoom.max)
+                ? saved : (track.getSettings?.().zoom ?? caps.zoom.min);
+            sl.value = val; row.style.display = 'flex';
+            setCamZoom(val);
+            return;
+        }
+    } catch(e) {}
+    // Ingen hardware-zoom: brug digital zoom via CSS-skalering af videoen
+    _camZoomCaps = null;
+    sl.min = 1; sl.max = 3; sl.step = 0.1;
+    sl.value = parseFloat(localStorage.getItem('mtg_scan_zoom') || '1') || 1;
+    row.style.display = 'flex';
+    setCamZoom(sl.value);
+}
+
+function setCamZoom(v) {
+    v = parseFloat(v);
+    document.getElementById('zoom-val').innerText = v.toFixed(1) + '×';
+    localStorage.setItem('mtg_scan_zoom', v);
+    const video = document.getElementById('camera-stream');
+    if (_camZoomCaps) {
+        try { videoStream.getVideoTracks()[0].applyConstraints({ advanced: [{ zoom: v }] }); } catch(e) {}
+        video.style.transform = '';
+    } else {
+        // Digital zoom — beskærer billedet, så kortet fylder mere i rammen
+        video.style.transformOrigin = 'center center';
+        video.style.transform = `scale(${v})`;
+    }
+}
+
+// Rammen: bredde i % af kamerabilledet, højden følger kortets 5:7-format
+function applyFrame(widthPct, topPct) {
+    const cc = document.getElementById('camera-container');
+    const boxW = cc.clientWidth || 1, boxH = cc.clientHeight || 1;
+    const hPct = Math.min(96, (widthPct/100 * boxW * 7/5) / boxH * 100);
+    const top  = topPct !== undefined ? topPct : Math.max(2, (100 - hPct) / 2);
+    const left = (100 - widthPct) / 2;
+    const st = cc.style;
+    st.setProperty('--frame-w', widthPct + '%');
+    st.setProperty('--frame-h', hPct + '%');
+    st.setProperty('--frame-left', left + '%');
+    st.setProperty('--frame-top', top + '%');
+    st.setProperty('--frame-bot', (top + hPct - 4) + '%');
+    localStorage.setItem('mtg_scan_frame', JSON.stringify({ w: widthPct, t: top }));
+}
+function setFrameSize(v) { applyFrame(parseFloat(v)); }
+function resetFrame() {
+    localStorage.removeItem('mtg_scan_frame');
+    document.getElementById('frame-slider').value = 62;
+    applyFrame(62);
+    toast('Ramme nulstillet');
+}
+function restoreFrame() {
+    let w = 62, t;
+    try {
+        const f = JSON.parse(localStorage.getItem('mtg_scan_frame') || 'null');
+        if (f && f.w) { w = f.w; t = f.t; }
+    } catch(e) {}
+    document.getElementById('frame-slider').value = w;
+    applyFrame(w, t);
+}
+
+// Auto-tilpas: find kortets kanter i billedet og læg rammen præcist der
+function autoFitFrame() {
+    const video = document.getElementById('camera-stream');
+    if (!videoStream || !video.videoWidth) return toast('Kamera ikke klar', '#e74c3c');
+    const W = 160, H = Math.round(W * video.videoHeight / video.videoWidth);
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    c.getContext('2d').drawImage(video, 0, 0, W, H);
+    const d = c.getContext('2d').getImageData(0, 0, W, H).data;
+    const g = new Float32Array(W*H);
+    for (let i = 0; i < W*H; i++) g[i] = 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2];
+
+    // Kanttæthed pr. række/kolonne (Sobel-agtig gradient)
+    const colE = new Float32Array(W), rowE = new Float32Array(H);
+    for (let y = 1; y < H-1; y++) for (let x = 1; x < W-1; x++) {
+        const gx = Math.abs(g[y*W+x+1] - g[y*W+x-1]);
+        const gy = Math.abs(g[(y+1)*W+x] - g[(y-1)*W+x]);
+        const e = gx + gy;
+        colE[x] += e; rowE[y] += e;
+    }
+    const span = (arr, n) => {
+        const mx = Math.max(...arr);
+        if (mx <= 0) return null;
+        const th = mx * 0.28;
+        let a = -1, b = -1;
+        for (let i = 0; i < n; i++) if (arr[i] > th) { a = i; break; }
+        for (let i = n-1; i >= 0; i--) if (arr[i] > th) { b = i; break; }
+        return (a < 0 || b <= a) ? null : [a, b];
+    };
+    const cs = span(colE, W), rs = span(rowE, H);
+    if (!cs || !rs) return toast('Kunne ikke finde kortet — juster manuelt', '#e67e22');
+
+    let wPct = (cs[1] - cs[0]) / W * 100;
+    let hPct = (rs[1] - rs[0]) / H * 100;
+    // Vælg den dimension der giver bedst 5:7-pasform, og udvid 3% for sikkerhedsmargin
+    const cc = document.getElementById('camera-container');
+    const wFromH = (hPct/100 * cc.clientHeight * 5/7) / (cc.clientWidth || 1) * 100;
+    let finalW = Math.min(96, Math.max(wPct, wFromH) * 1.03);
+    if (finalW < 25) return toast('Kunne ikke finde kortet — juster manuelt', '#e67e22');
+
+    const topPct = Math.max(1, (rs[0] / H * 100) - 1.5);
+    document.getElementById('frame-slider').value = Math.round(finalW);
+    applyFrame(finalW, topPct);
+    vib(30);
+    toast('🎯 Ramme tilpasset kortet');
 }
 
 // ═══════════════════════════════════════════════
@@ -3987,7 +4141,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
