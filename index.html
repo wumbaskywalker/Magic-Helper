@@ -392,6 +392,8 @@
             display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
             font-size: 12px; color: var(--muted); font-weight: 700;
         }
+        .scan-tool-row, .scan-mini-btn, .scan-target-btn, .auto-scan-row,
+        #camera-container, .toggle-switch { touch-action: manipulation; }
         .scan-tool-row input[type=range] {
             flex: 1; margin: 0; accent-color: var(--accent); height: 22px;
         }
@@ -1308,7 +1310,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v4.1</span> — Hurtigere scanning: husker rammetypen der virkede, og vælger tekstpolaritet automatisk</div>
+                <div><span style="color:var(--gold);font-weight:700;">v4.2</span> — Rettet hukommelsesfejl der kunne få appen til at blinke hvidt under scanning</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -3179,6 +3181,8 @@ function pauseCamera() {
 function stopCamera() {
     clearInterval(autoScanIv); autoScanIv = null;
     if (typeof _stopFrameWatch === 'function') _stopFrameWatch();
+    // Frigiv canvas-hukommelse
+    try { Object.values(_cvPool).forEach(c => { c.width = 1; c.height = 1; }); } catch(e) {}
     const chk = document.getElementById('auto-scan-chk');
     if (chk) chk.checked = false;
     document.getElementById('auto-scan-lbl').innerText = 'Fra';
@@ -3309,7 +3313,7 @@ let _watchIv = null;
 function _startFrameWatch() {
     clearInterval(_watchIv);
     _watchIv = setInterval(() => {
-        if (!videoStream || !_lockHash) return;
+        if (document.hidden || !videoStream || !_lockHash) return;
         const h = _scanArtHash();
         if (!h) return;
         // Stor forskel = kortet er fjernet, eller et nyt er skubbet ind
@@ -3319,7 +3323,7 @@ function _startFrameWatch() {
             const st = document.getElementById('scan-status');
             if (batchMode && st) { st.innerText = '👉 Klar til næste kort…'; st.style.color = 'var(--accent)'; }
         }
-    }, 340);
+    }, 450);
 }
 function _stopFrameWatch() { clearInterval(_watchIv); _watchIv = null; _lockHash = null; _sceneChanged = true; }
 
@@ -3630,7 +3634,10 @@ function setCamZoom(v) {
 // Rammen: bredde i % af kamerabilledet, højden følger kortets 5:7-format
 function applyFrame(widthPct, topPct) {
     const cc = document.getElementById('camera-container');
-    const boxW = cc.clientWidth || 1, boxH = cc.clientHeight || 1;
+    if (!cc.clientWidth || !cc.clientHeight) { // endnu ikke layoutet — prøv igen
+        return requestAnimationFrame(() => applyFrame(widthPct, topPct));
+    }
+    const boxW = cc.clientWidth, boxH = cc.clientHeight;
     const hPct = Math.min(96, (widthPct/100 * boxW * 7/5) / boxH * 100);
     const top  = topPct !== undefined ? topPct : Math.max(2, (100 - hPct) / 2);
     const left = (100 - widthPct) / 2;
@@ -3664,7 +3671,7 @@ function autoFitFrame() {
     const video = document.getElementById('camera-stream');
     if (!videoStream || !video.videoWidth) return toast('Kamera ikke klar', '#e74c3c');
     const W = 160, H = Math.round(W * video.videoHeight / video.videoWidth);
-    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const c = _cv('autofit', W, H);
     c.getContext('2d').drawImage(video, 0, 0, W, H);
     const d = c.getContext('2d').getImageData(0, 0, W, H).data;
     const g = new Float32Array(W*H);
@@ -3710,32 +3717,45 @@ function autoFitFrame() {
 //  (unik nøgle → præcis udgave via Scryfall /cards/:set/:number)
 // ═══════════════════════════════════════════════
 
+// Genbrugte canvasser — nye allokeringer flere gange i sekundet får browseren til at crashe
+const _cvPool = {};
+function _cv(key, w, h) {
+    let c = _cvPool[key];
+    if (!c) { c = _cvPool[key] = document.createElement('canvas'); }
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    return c;
+}
+
 // Crop et udsnit af video relativt til #scan-overlay (rx/ry/rw/rh = 0..1)
-function _scanCropCanvas(rx, ry, rw, rh, scale) {
+function _scanCropCanvas(rx, ry, rw, rh, scale, poolKey) {
     const video = document.getElementById('camera-stream');
     if (!videoStream || !video.videoWidth) return null;
+    const vr0 = video.getBoundingClientRect();
+    if (!vr0.width || !vr0.height) return null; // ikke synlig endnu
     const vidW = video.videoWidth, vidH = video.videoHeight;
-    const full = document.createElement('canvas');
-    full.width = vidW; full.height = vidH;
-    full.getContext('2d').drawImage(video, 0, 0);
-    const vr = video.getBoundingClientRect();
+    const vr = vr0;
     const br = document.getElementById('scan-overlay').getBoundingClientRect();
     const sc = Math.max(vr.width/vidW, vr.height/vidH);
+    // (video tegnes direkte i udsnittet nedenfor — intet fuldskærms-canvas)
     const offX = (vidW*sc - vr.width)/2, offY = (vidH*sc - vr.height)/2;
     const fx = ((br.left-vr.left)+offX)/sc, fy = ((br.top-vr.top)+offY)/sc;
     const fw = br.width/sc, fh = br.height/sc;
     const cX = Math.max(0, Math.round(fx + rx*fw)), cY = Math.max(0, Math.round(fy + ry*fh));
     const cW = Math.min(Math.round(rw*fw), vidW-cX), cH = Math.min(Math.round(rh*fh), vidH-cY);
     if (cW < 8 || cH < 8) return null;
-    const crop = document.createElement('canvas');
-    crop.width = cW*scale; crop.height = cH*scale;
-    crop.getContext('2d').drawImage(full, cX, cY, cW, cH, 0, 0, cW*scale, cH*scale);
+    // Loft over størrelsen: meget store canvasser koster hukommelse uden at hjælpe OCR
+    const outW = Math.min(Math.round(cW*scale), 1600), outH = Math.min(Math.round(cH*scale), 1600);
+    const crop = _cv(poolKey || 'crop', outW, outH);
+    const cx = crop.getContext('2d');
+    cx.clearRect(0, 0, outW, outH);
+    // Tegn direkte fra videoen — ingen mellemliggende fuldskærms-canvas
+    cx.drawImage(video, cX, cY, cW, cH, 0, 0, outW, outH);
     return crop;
 }
 
 // Gennemsnitlig lyshed — bruges til at gætte polaritet (lys tekst på mørk bund?)
 function _meanLuma(cv) {
-    const c = document.createElement('canvas'); c.width = 40; c.height = 12;
+    const c = _cv('luma', 40, 12);
     c.getContext('2d').drawImage(cv, 0, 0, 40, 12);
     const d = c.getContext('2d').getImageData(0, 0, 40, 12).data;
     let sum = 0;
@@ -3745,7 +3765,7 @@ function _meanLuma(cv) {
 
 // Adaptiv (middelværdi-)tærskel — collector-linjen er for lille til fast tærskel
 function _prepPolarity(canvas, invert) {
-    const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height;
+    const c = _cv('pol', canvas.width, canvas.height);
     const ctx = c.getContext('2d'); ctx.drawImage(canvas, 0, 0);
     const id = ctx.getImageData(0, 0, c.width, c.height), d = id.data, n = c.width*c.height;
     let sum = 0; const g = new Float32Array(n);
@@ -3943,7 +3963,7 @@ async function _scanSuccess(data, isAuto, artHash, exact) {
 
 // ── BILLED-MATCH: perceptuel hash (dHash) af kortets kunst-område ──
 function _dhashFromCanvas(cv) {
-    const c = document.createElement('canvas'); c.width = 9; c.height = 8;
+    const c = _cv('dhash', 9, 8);
     const ctx = c.getContext('2d');
     ctx.drawImage(cv, 0, 0, 9, 8);
     const d = ctx.getImageData(0, 0, 9, 8).data;
@@ -3959,7 +3979,7 @@ function _hamming(a, b) { let d = 0; for (let i = 0; i < 64; i++) if (a[i] !== b
 // Hash af kunst-området i scan-rammen (x 6-94%, y 11-55% af kortet)
 function _scanArtHash() {
     try {
-        const crop = _scanCropCanvas(0.06, 0.11, 0.88, 0.44, 1);
+        const crop = _scanCropCanvas(0.06, 0.11, 0.88, 0.44, 1, 'art');
         return crop ? _dhashFromCanvas(crop) : null;
     } catch(e) { return null; }
 }
@@ -3974,8 +3994,7 @@ function _artHashFromUrl(url) {
         img.onload = () => {
             clearTimeout(to);
             try {
-                const c = document.createElement('canvas');
-                c.width = 90; c.height = 44;
+                const c = _cv('arthash', 90, 44);
                 c.getContext('2d').drawImage(img,
                     img.width*0.06, img.height*0.11, img.width*0.88, img.height*0.44,
                     0, 0, 90, 44);
@@ -4360,7 +4379,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '4.1';
+const APP_VERSION = '4.2';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
