@@ -1308,7 +1308,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v4.0</span> — Scanneren finder nu også bundteksten på retro-, showcase- og borderless-rammer</div>
+                <div><span style="color:var(--gold);font-weight:700;">v4.1</span> — Hurtigere scanning: husker rammetypen der virkede, og vælger tekstpolaritet automatisk</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -3319,7 +3319,7 @@ function _startFrameWatch() {
             const st = document.getElementById('scan-status');
             if (batchMode && st) { st.innerText = '👉 Klar til næste kort…'; st.style.color = 'var(--accent)'; }
         }
-    }, 220);
+    }, 340);
 }
 function _stopFrameWatch() { clearInterval(_watchIv); _watchIv = null; _lockHash = null; _sceneChanged = true; }
 
@@ -3733,6 +3733,16 @@ function _scanCropCanvas(rx, ry, rw, rh, scale) {
     return crop;
 }
 
+// Gennemsnitlig lyshed — bruges til at gætte polaritet (lys tekst på mørk bund?)
+function _meanLuma(cv) {
+    const c = document.createElement('canvas'); c.width = 40; c.height = 12;
+    c.getContext('2d').drawImage(cv, 0, 0, 40, 12);
+    const d = c.getContext('2d').getImageData(0, 0, 40, 12).data;
+    let sum = 0;
+    for (let i = 0; i < 480; i++) sum += 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2];
+    return sum / 480;
+}
+
 // Adaptiv (middelværdi-)tærskel — collector-linjen er for lille til fast tærskel
 function _prepPolarity(canvas, invert) {
     const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height;
@@ -4037,45 +4047,59 @@ async function _verifyScanByName(data, rawCollector, artHash) {
 // Entry: prøv collector-linjen først, fald tilbage til navne-OCR
 let oldCardMode = false; // gamle kort uden collector-linje → kun navne-scanning
 let _regionTick = 0;      // roterer mellem bundtekst-placeringer (retro/showcase-rammer)
+let _bestRegion = parseInt(localStorage.getItem('mtg_scan_region') || '0') || 0; // sidst virkende
 async function smartScan(isAuto=false) {
     if (_ocrBusy) return;
     const status = document.getElementById('scan-status');
     const artHash = _scanArtHash(); // kunst-området, til billed-verifikation og udgave-match
     if (!oldCardMode) {
         // Bundtekstens placering varierer med rammetypen:
-        //  0 moderne ramme · 1 retro/showcase (højere oppe) · 2 bred bund · 3 hele bundkanten
+        //  0 moderne · 1 retro/showcase (højere oppe) · 2 bred bund · 3 hele bundkanten
         const REGIONS = [
             [0, 0.86, 0.62, 0.14],
             [0, 0.80, 0.58, 0.13],
             [0, 0.88, 0.95, 0.12],
             [0, 0.83, 0.75, 0.17],
         ];
-        // Auto-scan: skift udsnit for hvert forsøg (hurtigt). Manuelt: prøv dem alle.
-        const order = isAuto ? [REGIONS[_regionTick++ % REGIONS.length]] : REGIONS;
+        // Prøv det udsnit der virkede sidst — ellers ét nyt pr. gennemløb (auto) / alle (manuelt)
+        let order;
+        if (!isAuto) {
+            order = [_bestRegion, ...REGIONS.keys()].filter((v, i, a) => a.indexOf(v) === i);
+        } else {
+            const next = _regionTick++ % REGIONS.length;
+            order = next === _bestRegion ? [_bestRegion] : [_bestRegion, next];
+        }
         _ocrBusy = true;
-        let parsed = null, w = null, rawCollector = '';
+        let parsed = null, w = null, rawCollector = '', hitRegion = _bestRegion;
         try {
             w = await getOcrWorker();
             await _setOcrParams(w, 'collector');
             outer:
-            for (const reg of order) {
+            for (const ri of order) {
+                const reg = REGIONS[ri]; if (!reg) continue;
                 const rc = _scanCropCanvas(reg[0], reg[1], reg[2], reg[3], 4);
                 if (!rc) continue;
-                // Hvid-på-sort er normen → prøv inverteret først, derefter normal
-                for (const inv of [true, false]) {
+                // Vælg polaritet ud fra lysheden — mørk bund betyder lys tekst
+                const dark = _meanLuma(rc) < 128;
+                for (const inv of (dark ? [true, false] : [false, true])) {
                     const c = _prepPolarity(rc, inv);
                     const r = await w.recognize(c);
                     const txt = (r.data.text || '').toUpperCase();
                     const p = _parseCollector(txt);
-                    if (p) { parsed = p; rawCollector = txt; break outer; }
+                    if (p) { parsed = p; rawCollector = txt; hitRegion = ri; break outer; }
                     if (txt.replace(/[^A-Z0-9]/g,'').length > rawCollector.replace(/[^A-Z0-9]/g,'').length)
                         rawCollector = txt; // gem bedste tekst til kunstner-tjek
+                    if (isAuto) break; // auto: kun ét forsøg pr. udsnit — hold tempoet
                 }
             }
         } catch(e) { parsed = null; }
         finally {
             try { if (w) await _setOcrParams(w, 'name'); } catch(e) {}
             _ocrBusy = false;
+        }
+        if (parsed && hitRegion !== _bestRegion) {
+            _bestRegion = hitRegion;
+            localStorage.setItem('mtg_scan_region', hitRegion);
         }
         if (parsed) {
             const readCode = parsed.set.toUpperCase();
@@ -4336,7 +4360,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
