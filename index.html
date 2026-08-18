@@ -1308,6 +1308,8 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v4.0</span> — Scanneren finder nu også bundteksten på retro-, showcase- og borderless-rammer</div>
+                <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.6</span> — Rigtig kasseapparat-lyd når du scanner et kort til over 50 kr.</div>
@@ -1538,6 +1540,15 @@
             style="display:none;position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;
                    background:rgba(12,14,24,.6);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:17px;
                    cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(6px);z-index:5;">🔦</button>
+    </div>
+
+    <div class="scan-tool-row">
+        <span>🕰 Gamle kort</span>
+        <span style="flex:1;font-weight:400;font-size:11px;">Kort uden sæt-kode nederst (før 1998) — scannes kun på navn</span>
+        <label class="toggle-switch">
+            <input type="checkbox" id="oldcard-chk" onchange="oldCardMode=this.checked;toast(this.checked?'🕰 Kun navne-scanning':'Normal scanning')">
+            <span class="toggle-slider"></span>
+        </label>
     </div>
 
     <div class="scan-tool-row" id="zoom-row" style="display:none;">
@@ -3167,6 +3178,7 @@ function pauseCamera() {
 // Full stop: called when page is hidden or app is unloaded
 function stopCamera() {
     clearInterval(autoScanIv); autoScanIv = null;
+    if (typeof _stopFrameWatch === 'function') _stopFrameWatch();
     const chk = document.getElementById('auto-scan-chk');
     if (chk) chk.checked = false;
     document.getElementById('auto-scan-lbl').innerText = 'Fra';
@@ -3289,6 +3301,28 @@ function scanHistOpen(i) {
     searchCard(c.name);
 }
 
+// ── KORT-SKIFT-VAGT: samme kort tælles først igen når rammen har været tom/ændret ──
+let _lockHash = null;        // artwork-hash på sidst accepterede kort
+let _sceneChanged = true;    // har rammen ændret sig siden da?
+let _watchIv = null;
+
+function _startFrameWatch() {
+    clearInterval(_watchIv);
+    _watchIv = setInterval(() => {
+        if (!videoStream || !_lockHash) return;
+        const h = _scanArtHash();
+        if (!h) return;
+        // Stor forskel = kortet er fjernet, eller et nyt er skubbet ind
+        if (_hamming(h, _lockHash) > 14) {
+            _sceneChanged = true;
+            _lockHash = null;
+            const st = document.getElementById('scan-status');
+            if (batchMode && st) { st.innerText = '👉 Klar til næste kort…'; st.style.color = 'var(--accent)'; }
+        }
+    }, 220);
+}
+function _stopFrameWatch() { clearInterval(_watchIv); _watchIv = null; _lockHash = null; _sceneChanged = true; }
+
 // ── MASSE-SCAN: scan mange kort i træk uden bekræftelse ──
 let batchMode = false, batchTarget = 'collection', batchItems = [];
 
@@ -3302,7 +3336,7 @@ function toggleBatchMode(on) {
         const chk = document.getElementById('auto-scan-chk');
         if (chk && !chk.checked) { chk.checked = true; toggleAutoScan(true); }
         toast('📚 Masse-scan aktiv — læg kortene til én ad gangen');
-    }
+    } else { _stopFrameWatch(); _lastQuickId = null; }
 }
 
 function setBatchTarget(t) {
@@ -3360,7 +3394,7 @@ function batchUndoLast() {
         saveList(); updateListView();
     }
     last.qty--; if (last.qty <= 0) batchItems.pop();
-    _lastQuickId = null;
+    _lastQuickId = null; _stopFrameWatch();
     renderBatchPanel(); vib(20);
     toast(`↩ ${last.name} fjernet`, '#555e7a');
 }
@@ -3844,19 +3878,22 @@ async function _scanSuccess(data, isAuto, artHash, exact) {
     addScanHistory(card);
 
     if (batchMode) {
-        // Masse-scan: gem direkte og fortsæt til næste kort
-        if (_lastQuickId === card.id && Date.now() - _lastQuickAt < 2500) {
-            status.innerText = `✓ ${card.name} — læg næste kort frem`;
+        // Masse-scan: samme kort accepteres først igen når det har forladt rammen
+        if (_lastQuickId === card.id && !_sceneChanged) {
+            status.innerText = `⏸ ${card.name} er talt med — fjern kortet og læg det næste frem`;
             status.style.color = 'var(--muted)';
-        } else {
-            _lastQuickId = card.id; _lastQuickAt = Date.now();
-            batchAdd(card);
-            const n = batchItems.reduce((s,x) => s + x.qty, 0);
-            status.innerText = bigHit
-                ? `💰 ${card.name} — ${fmt(card.price)}! (${n} scannet)`
-                : `✅ ${card.name} tilføjet (${n} scannet)`;
-            status.style.color = bigHit ? 'var(--gold-lt)' : 'var(--green)';
+            return;
         }
+        _lastQuickId = card.id; _lastQuickAt = Date.now();
+        _lockHash = artHash || _scanArtHash();
+        _sceneChanged = false;
+        _startFrameWatch();
+        batchAdd(card);
+        const n = batchItems.reduce((s,x) => s + x.qty, 0);
+        status.innerText = bigHit
+            ? `💰 ${card.name} — ${fmt(card.price)}! (${n} scannet)`
+            : `✅ ${card.name} tilføjet (${n} scannet)`;
+        status.style.color = bigHit ? 'var(--gold-lt)' : 'var(--green)';
         return;
     }
 
@@ -3998,24 +4035,42 @@ async function _verifyScanByName(data, rawCollector, artHash) {
 }
 
 // Entry: prøv collector-linjen først, fald tilbage til navne-OCR
+let oldCardMode = false; // gamle kort uden collector-linje → kun navne-scanning
+let _regionTick = 0;      // roterer mellem bundtekst-placeringer (retro/showcase-rammer)
 async function smartScan(isAuto=false) {
     if (_ocrBusy) return;
     const status = document.getElementById('scan-status');
     const artHash = _scanArtHash(); // kunst-området, til billed-verifikation og udgave-match
-    const crop = _scanCropCanvas(0, 0.86, 0.62, 0.14, 4);
-    if (crop) {
+    if (!oldCardMode) {
+        // Bundtekstens placering varierer med rammetypen:
+        //  0 moderne ramme · 1 retro/showcase (højere oppe) · 2 bred bund · 3 hele bundkanten
+        const REGIONS = [
+            [0, 0.86, 0.62, 0.14],
+            [0, 0.80, 0.58, 0.13],
+            [0, 0.88, 0.95, 0.12],
+            [0, 0.83, 0.75, 0.17],
+        ];
+        // Auto-scan: skift udsnit for hvert forsøg (hurtigt). Manuelt: prøv dem alle.
+        const order = isAuto ? [REGIONS[_regionTick++ % REGIONS.length]] : REGIONS;
         _ocrBusy = true;
         let parsed = null, w = null, rawCollector = '';
         try {
             w = await getOcrWorker();
             await _setOcrParams(w, 'collector');
-            // Hvid-på-sort er normen → prøv inverteret først, derefter normal
-            for (const inv of [true, false]) {
-                const c = _prepPolarity(crop, inv);
-                const r = await w.recognize(c);
-                rawCollector = (r.data.text || '').toUpperCase();
-                parsed = _parseCollector(rawCollector);
-                if (parsed) break;
+            outer:
+            for (const reg of order) {
+                const rc = _scanCropCanvas(reg[0], reg[1], reg[2], reg[3], 4);
+                if (!rc) continue;
+                // Hvid-på-sort er normen → prøv inverteret først, derefter normal
+                for (const inv of [true, false]) {
+                    const c = _prepPolarity(rc, inv);
+                    const r = await w.recognize(c);
+                    const txt = (r.data.text || '').toUpperCase();
+                    const p = _parseCollector(txt);
+                    if (p) { parsed = p; rawCollector = txt; break outer; }
+                    if (txt.replace(/[^A-Z0-9]/g,'').length > rawCollector.replace(/[^A-Z0-9]/g,'').length)
+                        rawCollector = txt; // gem bedste tekst til kunstner-tjek
+                }
             }
         } catch(e) { parsed = null; }
         finally {
@@ -4051,8 +4106,8 @@ async function captureAndScan(isAuto=false) {
     if (!isAuto) { status.innerText='🔍 Analyserer…'; status.style.color='var(--accent)'; }
 
     try {
-        // Navnefeltet = øverste stribe af kort-rammen
-        const crop = _scanCropCanvas(0, 0.025, 1, 0.085, 3);
+        // Navnefeltet: moderne ramme øverst — gamle kort har titlen lidt længere nede
+        const crop = _scanCropCanvas(0, oldCardMode ? 0.045 : 0.025, 1, oldCardMode ? 0.10 : 0.085, 3);
         if (!crop) return;
         preprocess(crop);
 
@@ -4281,7 +4336,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '3.8';
+const APP_VERSION = '4.0';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
