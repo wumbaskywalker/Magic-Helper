@@ -1308,6 +1308,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.6</span> — Rigtig kasseapparat-lyd når du scanner et kort til over 50 kr.</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.4</span> — Scanneren sammenligner nu også artwork-billedet og vælger den rigtige udgave ud fra det</div>
@@ -1489,13 +1490,34 @@
         </button>
     </div>
 
-    <div class="auto-scan-row" id="quick-add-row" style="display:none;">
-        <span>⚡ Gem direkte (uden bekræftelse)</span>
+    <div class="auto-scan-row" id="quick-add-row">
+        <span>📚 Masse-scan (mange kort i træk)</span>
         <label class="toggle-switch">
-            <input type="checkbox" id="quick-add-chk" onchange="document.getElementById('quick-add-lbl').innerText=this.checked?'Til':'Fra'">
+            <input type="checkbox" id="quick-add-chk" onchange="toggleBatchMode(this.checked)">
             <span class="toggle-slider"></span>
         </label>
         <span id="quick-add-lbl" style="min-width:28px;">Fra</span>
+    </div>
+
+    <div id="batch-target-row" style="display:none;gap:8px;margin-bottom:12px;">
+        <button class="scan-mini-btn" id="btgt-col" style="flex:1;" onclick="setBatchTarget('collection')">📦 Til samling</button>
+        <button class="scan-mini-btn" id="btgt-wish" style="flex:1;" onclick="setBatchTarget('wishlist')">📝 Til ønskeliste</button>
+    </div>
+
+    <div id="batch-panel" style="display:none;background:var(--bg-card);border:1px solid var(--border-lit);
+         border-radius:var(--r-md);padding:12px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:800;letter-spacing:.05em;color:var(--muted);">DENNE OMGANG</div>
+            <div style="font-size:13px;font-weight:800;">
+                <span id="batch-count" style="color:var(--text);">0</span> kort ·
+                <span id="batch-total" class="price-text">0.00</span>
+            </div>
+        </div>
+        <div id="batch-list" style="max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="scan-mini-btn" style="flex:1;" onclick="batchUndoLast()">↩ Fortryd sidste</button>
+            <button class="scan-mini-btn" style="flex:1;" onclick="finishBatch()">✓ Afslut</button>
+        </div>
     </div>
 
     <div class="auto-scan-row">
@@ -3267,6 +3289,107 @@ function scanHistOpen(i) {
     searchCard(c.name);
 }
 
+// ── MASSE-SCAN: scan mange kort i træk uden bekræftelse ──
+let batchMode = false, batchTarget = 'collection', batchItems = [];
+
+function toggleBatchMode(on) {
+    batchMode = on;
+    document.getElementById('quick-add-lbl').innerText = on ? 'Til' : 'Fra';
+    document.getElementById('batch-target-row').style.display = on ? 'flex' : 'none';
+    document.getElementById('batch-panel').style.display = on ? 'block' : 'none';
+    if (on) {
+        setBatchTarget(scanTarget === 'search' ? 'collection' : batchTarget);
+        const chk = document.getElementById('auto-scan-chk');
+        if (chk && !chk.checked) { chk.checked = true; toggleAutoScan(true); }
+        toast('📚 Masse-scan aktiv — læg kortene til én ad gangen');
+    }
+}
+
+function setBatchTarget(t) {
+    batchTarget = t;
+    const col = document.getElementById('btgt-col'), wish = document.getElementById('btgt-wish');
+    const on  = 'background:var(--accent);border-color:var(--accent);color:#0c0e18;';
+    const off = 'background:var(--bg-input);border-color:var(--border-lit);color:var(--muted);';
+    col.style.cssText  = `padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex:1;border:1px solid;${t==='collection'?on:off}`;
+    wish.style.cssText = `padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex:1;border:1px solid;${t==='wishlist'?on:off}`;
+}
+
+function batchAdd(card) {
+    const ex = batchItems.find(x => x.id === card.id);
+    if (ex) ex.qty++; else batchItems.push({ ...card, qty: 1 });
+    // Gem med det samme, så intet går tabt hvis appen lukkes
+    if (batchTarget === 'collection') quickAddToCollection(card);
+    else quickAddToWishlist(card);
+    renderBatchPanel();
+}
+
+function renderBatchPanel() {
+    const list = document.getElementById('batch-list');
+    const qty  = batchItems.reduce((s,x) => s + x.qty, 0);
+    const val  = batchItems.reduce((s,x) => s + (x.price > 0 ? x.price * x.qty : 0), 0);
+    document.getElementById('batch-count').innerText = qty;
+    document.getElementById('batch-total').innerText = fmt(val);
+    if (!batchItems.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:14px;">Ingen kort scannet endnu</div>';
+        return;
+    }
+    list.innerHTML = batchItems.slice().reverse().map(c => {
+        const big = (c.price||0) * (rates.DKK||7.46) >= BIG_HIT_DKK;
+        return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg-input);border-radius:7px;padding:5px 8px;">
+            <img src="${c.thumb||c.img||''}" style="width:26px;height:36px;object-fit:cover;border-radius:3px;flex-shrink:0;background:var(--bg-panel);" loading="lazy">
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.qty}× ${c.name}</div>
+                <div style="font-size:10px;color:var(--accent);font-weight:800;">${(c.set||'').toUpperCase()}</div>
+            </div>
+            <div style="font-size:12px;font-weight:800;color:${big?'var(--gold-lt)':'var(--green)'};white-space:nowrap;">${fmt((c.price||0)*c.qty)}</div>
+        </div>`;
+    }).join('');
+}
+
+function batchUndoLast() {
+    const last = batchItems[batchItems.length - 1];
+    if (!last) return toast('Ingen kort at fortryde', '#e74c3c');
+    // Træk én fra i målet
+    if (batchTarget === 'collection') {
+        const it = collection.find(x => (x._colKey||x.id) === last.id && !x.foil);
+        if (it) { it.qty -= 1; if (it.qty <= 0) collection.splice(collection.indexOf(it), 1); }
+        saveCollection(); updateCollectionView();
+    } else {
+        const it = priceList.find(x => (x._listKey||x.id) === last.id);
+        if (it) { it.amount -= 1; if (it.amount <= 0) priceList.splice(priceList.indexOf(it), 1); }
+        saveList(); updateListView();
+    }
+    last.qty--; if (last.qty <= 0) batchItems.pop();
+    _lastQuickId = null;
+    renderBatchPanel(); vib(20);
+    toast(`↩ ${last.name} fjernet`, '#555e7a');
+}
+
+function finishBatch() {
+    const qty = batchItems.reduce((s,x) => s + x.qty, 0);
+    const val = batchItems.reduce((s,x) => s + (x.price > 0 ? x.price * x.qty : 0), 0);
+    const where = batchTarget === 'collection' ? 'samlingen' : 'ønskelisten';
+    batchItems = [];
+    renderBatchPanel();
+    document.getElementById('quick-add-chk').checked = false;
+    toggleBatchMode(false);
+    toggleAutoScan(false);
+    const chk = document.getElementById('auto-scan-chk'); if (chk) chk.checked = false;
+    if (qty) toast(`✓ ${qty} kort (${fmt(val)}) lagt i ${where}`);
+}
+
+function quickAddToWishlist(card) {
+    const key = card.id;
+    const ex = priceList.find(x => (x._listKey||x.id) === key);
+    if (ex) ex.amount += 1;
+    else priceList.push({ id: card.id, _listKey: key, name: card.name,
+        set: (card.set||'').toUpperCase(), setName: card.setName || card.set,
+        price: card.price, foil: false, amount: 1,
+        img: card.img, thumb: card.thumb || card.img, imgBack: card.imgBack || '' });
+    saveList(); updateListView();
+    toast(`✓ ${card.name} på ønskelisten`);
+}
+
 // ── Hurtig-gem direkte i samlingen (batch-scanning) ──
 let _lastQuickId = null, _lastQuickAt = 0;
 function quickAddToCollection(card) {
@@ -3720,8 +3843,25 @@ async function _scanSuccess(data, isAuto, artHash, exact) {
     else        { sndScanOk();  vib([30,20,40]); }
     addScanHistory(card);
 
+    if (batchMode) {
+        // Masse-scan: gem direkte og fortsæt til næste kort
+        if (_lastQuickId === card.id && Date.now() - _lastQuickAt < 2500) {
+            status.innerText = `✓ ${card.name} — læg næste kort frem`;
+            status.style.color = 'var(--muted)';
+        } else {
+            _lastQuickId = card.id; _lastQuickAt = Date.now();
+            batchAdd(card);
+            const n = batchItems.reduce((s,x) => s + x.qty, 0);
+            status.innerText = bigHit
+                ? `💰 ${card.name} — ${fmt(card.price)}! (${n} scannet)`
+                : `✅ ${card.name} tilføjet (${n} scannet)`;
+            status.style.color = bigHit ? 'var(--gold-lt)' : 'var(--green)';
+        }
+        return;
+    }
+
     if (scanTarget === 'collection') {
-        const quick = document.getElementById('quick-add-chk')?.checked;
+        const quick = false;
         if (quick) {
             // Batch-mode: gem direkte og fortsæt auto-scan — næste kort kan lægges frem
             if (_lastQuickId === card.id && Date.now() - _lastQuickAt < 7000) {
@@ -4141,7 +4281,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.8';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
@@ -5680,8 +5820,7 @@ function setScanTarget(t) {
     document.getElementById('scan-target-search').classList.toggle('active', t === 'search');
     document.getElementById('scan-target-collection').classList.toggle('active', t === 'collection');
     document.getElementById('scan-target-collection').classList.toggle('green', t === 'collection');
-    const qa = document.getElementById('quick-add-row');
-    if (qa) qa.style.display = t === 'collection' ? 'flex' : 'none';
+    if (batchMode && t === 'collection') setBatchTarget('collection');
 }
 
 function openScanColModal(card) {
