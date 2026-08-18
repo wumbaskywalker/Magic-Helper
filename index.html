@@ -1310,7 +1310,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v4.2</span> — Rettet hukommelsesfejl der kunne få appen til at blinke hvidt under scanning</div>
+                <div><span style="color:var(--gold);font-weight:700;">v4.3</span> — Vælg mellem telefonens kameraer (makro/tele) og auto-zoom der tilpasser kortet i rammen</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -1551,6 +1551,12 @@
             <input type="checkbox" id="oldcard-chk" onchange="oldCardMode=this.checked;toast(this.checked?'🕰 Kun navne-scanning':'Normal scanning')">
             <span class="toggle-slider"></span>
         </label>
+    </div>
+
+    <div class="scan-tool-row" id="camera-row" style="display:none;">
+        <span>📷 Kamera</span>
+        <select id="camera-select" onchange="switchCamera(this.value)"
+                style="flex:1;margin:0;padding:7px 10px;font-size:12px;border-radius:8px;"></select>
     </div>
 
     <div class="scan-tool-row" id="zoom-row" style="display:none;">
@@ -3143,9 +3149,13 @@ async function startCamera() {
         if (chk && !chk.checked) { chk.checked = true; toggleAutoScan(true); }
         return;
     }
+    const savedDev = localStorage.getItem('mtg_scan_camera') || '';
+    const base = { width:{ideal:1920}, height:{ideal:1080},
+                   focusMode:'continuous', advanced:[{focusMode:'continuous'}] };
     try {
         videoStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }
+            video: savedDev ? { deviceId:{exact:savedDev}, ...base }
+                            : { facingMode:{ideal:'environment'}, ...base }
         });
         video.srcObject = videoStream;
     } catch(e) {
@@ -3154,6 +3164,7 @@ async function startCamera() {
             video.srcObject = videoStream;
         } catch(e2) { document.getElementById('scan-status').innerText='⚠️ Kamera ikke tilgængeligt.'; return; }
     }
+    await populateCameraList();
     // Lommelygte-knap hvis kameraet understøtter torch
     try {
         const caps = videoStream.getVideoTracks()[0].getCapabilities?.();
@@ -3161,6 +3172,8 @@ async function startCamera() {
     } catch(e) {}
     // Zoom-kontrol + gemt rammestørrelse
     initCamZoom(); restoreFrame();
+    // Første gang: tilpas automatisk zoom + ramme til kortet (fx i kortholder)
+    if (!localStorage.getItem('mtg_scan_frame')) setTimeout(() => autoFitFrame(), 1200);
     // Varm OCR-motoren op i baggrunden så første scan er hurtigt
     getOcrWorker().catch(()=>{});
     // Auto-scan er slået til som standard
@@ -3586,6 +3599,48 @@ function preprocess(canvas) {
 }
 
 // ═══════════════════════════════════════════════
+//  KAMERAVALG (flere linser: vidvinkel, ultravid/makro, tele)
+// ═══════════════════════════════════════════════
+function _camLabel(d, i) {
+    const l = (d.label || '').toLowerCase();
+    if (l.includes('ultra')) return '🔬 Ultravid (makro — tæt på)';
+    if (l.includes('tele')) return '🔭 Telefoto (zoom)';
+    if (l.includes('dual') || l.includes('triple')) return '✨ Auto (skifter selv linse)';
+    if (l.includes('back') || l.includes('rear') || l.includes('environment')) return '📷 Hovedkamera';
+    return d.label || ('Kamera ' + (i+1));
+}
+
+async function populateCameraList() {
+    const row = document.getElementById('camera-row');
+    const sel = document.getElementById('camera-select');
+    try {
+        const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+        // Frasortér frontkameraer når vi kan se det på navnet
+        const back = devs.filter(d => !/front|face|selfie/i.test(d.label || ''));
+        const list = back.length ? back : devs;
+        if (list.length < 2) { row.style.display = 'none'; return; }
+        const cur = videoStream?.getVideoTracks?.()[0]?.getSettings?.().deviceId || '';
+        sel.innerHTML = list.map((d, i) =>
+            `<option value="${d.deviceId}"${d.deviceId === cur ? ' selected' : ''}>${_camLabel(d, i)}</option>`
+        ).join('');
+        row.style.display = 'flex';
+    } catch(e) { row.style.display = 'none'; }
+}
+
+async function switchCamera(deviceId) {
+    if (!deviceId) return;
+    localStorage.setItem('mtg_scan_camera', deviceId);
+    const wasAuto = document.getElementById('auto-scan-chk')?.checked;
+    try {
+        if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+        videoStream = null;
+        await startCamera();
+        if (!wasAuto) { const c = document.getElementById('auto-scan-chk'); if (c) { c.checked = false; toggleAutoScan(false); } }
+        toast('📷 Kamera skiftet');
+    } catch(e) { toast('Kunne ikke skifte kamera', '#e74c3c'); }
+}
+
+// ═══════════════════════════════════════════════
 //  KAMERA-ZOOM & RAMMEJUSTERING
 // ═══════════════════════════════════════════════
 let _camZoomCaps = null;
@@ -3666,46 +3721,79 @@ function restoreFrame() {
     applyFrame(w, t);
 }
 
-// Auto-tilpas: find kortets kanter i billedet og læg rammen præcist der
-function autoFitFrame() {
+// Find kortets kanter i det aktuelle kamerabillede (returnerer 0..1 i billedkoordinater)
+function _detectCardBounds() {
     const video = document.getElementById('camera-stream');
-    if (!videoStream || !video.videoWidth) return toast('Kamera ikke klar', '#e74c3c');
+    if (!videoStream || !video.videoWidth) return null;
     const W = 160, H = Math.round(W * video.videoHeight / video.videoWidth);
-    const c = _cv('autofit', W, H);
-    c.getContext('2d').drawImage(video, 0, 0, W, H);
-    const d = c.getContext('2d').getImageData(0, 0, W, H).data;
+    const c = _cv('detect', W, H);
+    const cx = c.getContext('2d');
+    cx.drawImage(video, 0, 0, W, H);
+    const d = cx.getImageData(0, 0, W, H).data;
     const g = new Float32Array(W*H);
     for (let i = 0; i < W*H; i++) g[i] = 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2];
-
-    // Kanttæthed pr. række/kolonne (Sobel-agtig gradient)
     const colE = new Float32Array(W), rowE = new Float32Array(H);
     for (let y = 1; y < H-1; y++) for (let x = 1; x < W-1; x++) {
-        const gx = Math.abs(g[y*W+x+1] - g[y*W+x-1]);
-        const gy = Math.abs(g[(y+1)*W+x] - g[(y-1)*W+x]);
-        const e = gx + gy;
+        const e = Math.abs(g[y*W+x+1] - g[y*W+x-1]) + Math.abs(g[(y+1)*W+x] - g[(y-1)*W+x]);
         colE[x] += e; rowE[y] += e;
     }
     const span = (arr, n) => {
-        const mx = Math.max(...arr);
-        if (mx <= 0) return null;
-        const th = mx * 0.28;
-        let a = -1, b = -1;
+        const mx = Math.max(...arr); if (mx <= 0) return null;
+        const th = mx * 0.28; let a = -1, b = -1;
         for (let i = 0; i < n; i++) if (arr[i] > th) { a = i; break; }
         for (let i = n-1; i >= 0; i--) if (arr[i] > th) { b = i; break; }
-        return (a < 0 || b <= a) ? null : [a, b];
+        return (a < 0 || b <= a) ? null : [a/n, b/n];
     };
     const cs = span(colE, W), rs = span(rowE, H);
-    if (!cs || !rs) return toast('Kunne ikke finde kortet — juster manuelt', '#e67e22');
+    if (!cs || !rs) return null;
+    return { x0: cs[0], x1: cs[1], y0: rs[0], y1: rs[1], w: cs[1]-cs[0], h: rs[1]-rs[0] };
+}
 
-    let wPct = (cs[1] - cs[0]) / W * 100;
-    let hPct = (rs[1] - rs[0]) / H * 100;
+// Auto-zoom: skru på kameraets egen zoom indtil kortet fylder rammen
+async function autoZoomToCard() {
+    const track = videoStream?.getVideoTracks?.()[0];
+    const caps = track?.getCapabilities?.();
+    if (!caps?.zoom || caps.zoom.max <= caps.zoom.min) return false;
+    const TARGET = 0.82; // kortets højde skal fylde ~82% af billedet
+    let zoom = track.getSettings?.().zoom || caps.zoom.min;
+    let moved = false;
+    for (let i = 0; i < 4; i++) {
+        const b = _detectCardBounds();
+        if (!b || b.h < 0.05) break;
+        const factor = TARGET / b.h;
+        if (factor > 0.93 && factor < 1.07) break; // tæt nok
+        zoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, zoom * factor));
+        try { await track.applyConstraints({ advanced: [{ zoom }] }); } catch(e) { break; }
+        moved = true;
+        await new Promise(r => setTimeout(r, 380)); // lad kameraet stille skarpt
+    }
+    if (moved) {
+        const sl = document.getElementById('zoom-slider');
+        if (sl) { sl.value = zoom; document.getElementById('zoom-val').innerText = (+zoom).toFixed(1) + '×'; }
+        localStorage.setItem('mtg_scan_zoom', zoom);
+    }
+    return moved;
+}
+
+// Auto-tilpas: find kortets kanter i billedet og læg rammen præcist der
+async function autoFitFrame() {
+    if (!videoStream) return toast('Kamera ikke klar', '#e74c3c');
+    const status = document.getElementById('scan-status');
+    status.innerText = '🎯 Finder kortet…'; status.style.color = 'var(--accent)';
+    await autoZoomToCard();          // zoom ind så kortet fylder billedet
+    const b = _detectCardBounds();   // find kanterne bagefter
+    status.innerText = '';
+    if (!b) return toast('Kunne ikke finde kortet — juster manuelt', '#e67e22');
+
+    let wPct = b.w * 100;
+    let hPct = b.h * 100;
     // Vælg den dimension der giver bedst 5:7-pasform, og udvid 3% for sikkerhedsmargin
     const cc = document.getElementById('camera-container');
     const wFromH = (hPct/100 * cc.clientHeight * 5/7) / (cc.clientWidth || 1) * 100;
     let finalW = Math.min(96, Math.max(wPct, wFromH) * 1.03);
     if (finalW < 25) return toast('Kunne ikke finde kortet — juster manuelt', '#e67e22');
 
-    const topPct = Math.max(1, (rs[0] / H * 100) - 1.5);
+    const topPct = Math.max(1, b.y0 * 100 - 1.5);
     document.getElementById('frame-slider').value = Math.round(finalW);
     applyFrame(finalW, topPct);
     vib(30);
@@ -4379,7 +4467,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
