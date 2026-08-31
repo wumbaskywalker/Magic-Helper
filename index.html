@@ -1310,7 +1310,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
+                <div><span style="color:var(--gold);font-weight:700;">v5.1</span> — Mindre aggressiv auto-zoom og mere præcis billedgenkendelse (art-crop)<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -2831,6 +2831,7 @@ async function searchCard(query) {
             const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
             return { id:c.id, name:c.name, set:c.set.toUpperCase(), setName:c.set_name||c.set.toUpperCase(), price, priceFoil,
                      released_at: c.released_at||'1900-01-01', img, thumb, imgBack,
+                     artCrop: c.image_uris?.art_crop ?? c.card_faces?.[0]?.image_uris?.art_crop ?? '',
                      cmc: c.cmc||0, colors: c.colors||[], colorIdentity: c.color_identity||[],
                      typeLine: c.type_line||'', manaCost: c.mana_cost||'',
                      cmLink: c.purchase_uris?.cardmarket||'#',
@@ -3801,7 +3802,12 @@ function _detectCardBounds() {
     };
     const cs = span(colE, W), rs = span(rowE, H);
     if (!cs || !rs) return null;
-    return { x0: cs[0], x1: cs[1], y0: rs[0], y1: rs[1], w: cs[1]-cs[0], h: rs[1]-rs[0] };
+    const w = cs[1]-cs[0], h = rs[1]-rs[0];
+    // Et kort er 5:7 — accepter 0.55–0.95 i bredde/højde-forhold (skæve vinkler medregnet)
+    const px = (w * W) / (h * H) * (W/H ? 1 : 1);
+    const ratio = (w * W) / (h * H);
+    const cardLike = h > 0.15 && w > 0.10 && ratio > 0.45 && ratio < 1.05;
+    return { x0: cs[0], x1: cs[1], y0: rs[0], y1: rs[1], w, h, ratio, cardLike };
 }
 
 // Auto-zoom: skru på kameraets egen zoom indtil kortet fylder rammen
@@ -3809,18 +3815,22 @@ async function autoZoomToCard() {
     const track = videoStream?.getVideoTracks?.()[0];
     const caps = track?.getCapabilities?.();
     if (!caps?.zoom || caps.zoom.max <= caps.zoom.min) return false;
-    const TARGET = 0.82; // kortets højde skal fylde ~82% af billedet
+    const TARGET = 0.62;              // kortet må fylde ~62% af højden — resten er luft
+    const ZOOM_CAP = Math.min(caps.zoom.max, (caps.zoom.min || 1) * 2.2); // aldrig ekstrem zoom
     let zoom = track.getSettings?.().zoom || caps.zoom.min;
     let moved = false;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
         const b = _detectCardBounds();
-        if (!b || b.h < 0.05) break;
-        const factor = TARGET / b.h;
-        if (factor > 0.93 && factor < 1.07) break; // tæt nok
-        zoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, zoom * factor));
+        if (!b || !b.cardLike) break;             // kun zoom hvis det faktisk ligner et kort
+        if (b.h > 0.55) break;                    // fylder allerede fint — lad være
+        const factor = Math.min(1.6, TARGET / b.h); // højst 1,6× pr. trin
+        if (factor < 1.08) break;                 // tæt nok
+        const next = Math.min(ZOOM_CAP, zoom * factor);
+        if (next <= zoom * 1.02) break;
+        zoom = next;
         try { await track.applyConstraints({ advanced: [{ zoom }] }); } catch(e) { break; }
         moved = true;
-        await new Promise(r => setTimeout(r, 380)); // lad kameraet stille skarpt
+        await new Promise(r => setTimeout(r, 420)); // lad kameraet stille skarpt
     }
     if (moved) {
         const sl = document.getElementById('zoom-slider');
@@ -4123,7 +4133,7 @@ function _scanArtHash() {
 }
 
 // Hash af kunst-området i et Scryfall-kortbillede
-function _artHashFromUrl(url) {
+function _artHashFromUrl(url, isArtCrop) {
     return new Promise(resolve => {
         if (!url) return resolve(null);
         const img = new Image();
@@ -4133,7 +4143,8 @@ function _artHashFromUrl(url) {
             clearTimeout(to);
             try {
                 const c = _cv('arthash', 90, 44);
-                c.getContext('2d').drawImage(img,
+                if (isArtCrop) c.getContext('2d').drawImage(img, 0, 0, 90, 44); // allerede kun kunsten
+                else c.getContext('2d').drawImage(img,
                     img.width*0.06, img.height*0.11, img.width*0.88, img.height*0.44,
                     0, 0, 90, 44);
                 resolve(_dhashFromCanvas(c));
@@ -4148,7 +4159,7 @@ function _artHashFromUrl(url) {
 async function _matchVariantByArt(artHash) {
     try {
         const cands = currentVariants.slice(0, 12);
-        const hashes = await Promise.all(cands.map(c => _artHashFromUrl(c.thumb)));
+        const hashes = await Promise.all(cands.map(c => _artHashFromUrl(c.artCrop || c.thumb, !!c.artCrop)));
         let best = -1, bd = 21; // accept-grænse: hamming ≤ 20/64
         hashes.forEach((h, i) => {
             if (!h) return;
@@ -4194,7 +4205,8 @@ async function _verifyScanByName(data, rawCollector, artHash) {
         if (nameSim !== null && nameSim >= 0.30) return true;
         // Signal 3: sammenlign artwork med Scryfalls billede af kortet
         if (artHash) {
-            const h = await _artHashFromUrl(data.image_uris?.small || data.card_faces?.[0]?.image_uris?.small || '');
+            const h = await _artHashFromUrl(data.image_uris?.art_crop || data.card_faces?.[0]?.image_uris?.art_crop
+                                         || data.image_uris?.small || '', true);
             if (h) return _hamming(artHash, h) <= 20;
         }
         return nameSim === null; // ingen signaler kunne afgøre → accepter kun hvis navnet var ulæseligt
@@ -4391,12 +4403,15 @@ async function autoTune(force) {
         await new Promise(r => setTimeout(r, 400));
         await autoZoomToCard();
         const b = _detectCardBounds();
-        if (b && b.h > 0.15) {
+        if (b && b.cardLike) {
             const cc = document.getElementById('camera-container');
-            const wFromH = (b.h*100/100 * cc.clientHeight * 5/7) / (cc.clientWidth || 1) * 100;
-            applyFrame(Math.min(96, Math.max(b.w*100, wFromH) * 1.03), Math.max(1, b.y0*100 - 1.5));
+            const wFromH = (b.h * cc.clientHeight * 5/7) / (cc.clientWidth || 1) * 100;
+            // 12% ekstra luft, så hele kortet med kanter altid er inde i rammen
+            const wPct = Math.min(94, Math.max(b.w*100, wFromH) * 1.12);
+            const topPct = Math.max(1, b.y0*100 - 4);
+            applyFrame(wPct, topPct);
         } else {
-            applyFrame(74);
+            applyFrame(80); // standard: rigelig plads
         }
     } catch(e) {}
     if (badge) badge.innerText = '⚙️ Automatisk';
@@ -4872,7 +4887,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '5.0';
+const APP_VERSION = '5.1';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
