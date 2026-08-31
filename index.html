@@ -1310,7 +1310,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v4.3</span> — Vælg mellem telefonens kameraer (makro/tele) og auto-zoom der tilpasser kortet i rammen</div>
+                <div><span style="color:var(--gold);font-weight:700;">v4.5</span> — Ny foto-scan: tag et skarpt billede, kortet findes og rettes op automatisk — langt mere præcist<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -1381,6 +1381,15 @@
     <button class="app-btn" onclick="searchCard(document.getElementById('manual-search').value);hideAC()">
         <i class="fa-solid fa-magnifying-glass"></i> Søg Scryfall
     </button>
+
+    <div id="recent-wrap" style="display:none;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);">SENESTE SØGNINGER</div>
+            <button onclick="clearRecentSearches()"
+                style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:2px 4px;">Ryd</button>
+        </div>
+        <div id="recent-list" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;"></div>
+    </div>
 
     <div id="status-msg" class="status-pill" style="display:none;"></div>
 
@@ -1571,9 +1580,24 @@
         <button class="scan-mini-btn" onclick="resetFrame()">↺</button>
     </div>
 
-    <button class="app-btn btn-purple" onclick="smartScan(false)">
-        <i class="fa-solid fa-camera"></i> Scan Kort
+    <button class="app-btn btn-gold" onclick="photoScan()" style="margin-bottom:8px;">
+        <i class="fa-solid fa-camera-retro"></i> Tag billede &amp; scan (bedst)
     </button>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(this)">
+
+    <button class="app-btn btn-purple" onclick="smartScan(false)">
+        <i class="fa-solid fa-camera"></i> Scan live-billede
+    </button>
+
+    <div id="photo-preview" style="display:none;margin-top:12px;background:var(--bg-card);border:1px solid var(--border-lit);
+         border-radius:var(--r-md);padding:10px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+            <canvas id="photo-canvas" style="width:78px;border-radius:6px;background:var(--bg-input);flex-shrink:0;"></canvas>
+            <div style="flex:1;min-width:0;">
+                <div id="photo-steps" style="font-size:11px;color:var(--muted);line-height:1.7;"></div>
+            </div>
+        </div>
+    </div>
     <div id="scan-status" style="text-align:center;margin-top:10px;font-weight:600;font-size:15px;min-height:22px;"></div>
 
     <div id="scan-history-wrap" style="display:none;margin-top:14px;">
@@ -2635,7 +2659,7 @@ function changeCurrency(v) {
         renderVariants();
         selectVariant(Math.max(0, currentVariants.findIndex(x => x.id === currentCard?.id)));
     }
-    updateListView(); updateTradeUI(); updateCollectionView();
+    updateListView(); updateTradeUI(); updateCollectionView(); renderRecentSearches();
 }
 
 // ═══════════════════════════════════════════════
@@ -2743,6 +2767,67 @@ document.addEventListener('visibilitychange', ()=>{
 });
 
 // ═══════════════════════════════════════════════
+//  SENESTE SØGNINGER
+// ═══════════════════════════════════════════════
+let recentSearches = [];
+try { recentSearches = JSON.parse(localStorage.getItem('mtg_recent') || '[]'); } catch(e) {}
+
+function addRecentSearch(card) {
+    if (!card?.name) return;
+    const key = card.name.toLowerCase();
+    recentSearches = recentSearches.filter(x => x.name.toLowerCase() !== key);
+    recentSearches.unshift({
+        name: card.name,
+        set: (card.set || '').toUpperCase(),
+        thumb: card.thumb || '',
+        price: card.price ?? -1,
+        at: Date.now()
+    });
+    if (recentSearches.length > 15) recentSearches.length = 15;
+    localStorage.setItem('mtg_recent', JSON.stringify(recentSearches));
+    renderRecentSearches();
+}
+
+function renderRecentSearches() {
+    const wrap = document.getElementById('recent-wrap');
+    const list = document.getElementById('recent-list');
+    if (!wrap || !list) return;
+    if (!recentSearches.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    list.innerHTML = recentSearches.map((c, i) => `
+        <div onclick="openRecentSearch(${i})" title="${c.name}"
+             style="flex-shrink:0;width:76px;cursor:pointer;">
+            <div style="position:relative;">
+                <img src="${c.thumb}" alt="${c.name}" loading="lazy"
+                     style="width:76px;aspect-ratio:5/7;object-fit:cover;border-radius:6px;display:block;
+                            background:var(--bg-input);border:1px solid var(--border);"
+                     onerror="this.style.opacity='.25'">
+            </div>
+            <div style="font-size:9px;font-weight:700;margin-top:3px;line-height:1.25;text-align:center;
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
+            <div style="font-size:9px;color:${c.price >= 0 ? 'var(--gold)' : 'var(--muted)'};font-weight:700;text-align:center;">
+                ${c.price >= 0 ? fmt(c.price) : c.set}
+            </div>
+        </div>`).join('');
+}
+
+function openRecentSearch(i) {
+    const c = recentSearches[i];
+    if (!c) return;
+    document.getElementById('manual-search').value = c.name;
+    document.getElementById('search-clear-btn').style.display = 'flex';
+    searchCard(c.name);
+}
+
+function clearRecentSearches() {
+    recentSearches = [];
+    localStorage.removeItem('mtg_recent');
+    renderRecentSearches();
+    toast('Historik ryddet');
+}
+renderRecentSearches();
+
+// ═══════════════════════════════════════════════
 //  SEARCH
 // ═══════════════════════════════════════════════
 async function searchCard(query) {
@@ -2782,6 +2867,7 @@ async function searchCard(query) {
         sortVariants();
         status.style.display = 'none'; res.style.display = 'block';
         document.getElementById('manual-search').value = currentVariants[0].name;
+        addRecentSearch(currentCard || currentVariants[0]);
     } catch(e) { status.innerText = '❌ Fandt ikke kortet — tjek stavningen og prøv igen.'; }
 }
 
@@ -4151,6 +4237,193 @@ async function _verifyScanByName(data, rawCollector, artHash) {
     } catch(e) { return true; }
 }
 
+// ═══════════════════════════════════════════════
+//  FOTO-SCAN — højopløst stillbillede, kortet findes og rettes op
+//  Meget mere præcist end videobilleder: skarpt, autofokus/makro, 12 MP
+// ═══════════════════════════════════════════════
+const CARD_W = 500, CARD_H = 700; // normaliseret kortstørrelse (5:7)
+
+function photoScan() {
+    const inp = document.getElementById('photo-input');
+    inp.value = '';
+    inp.click(); // åbner telefonens eget kamera (fuld opløsning + makro/autofokus)
+}
+
+function _photoStep(html, color) {
+    const el = document.getElementById('photo-steps');
+    if (el) el.innerHTML = html;
+    const st = document.getElementById('scan-status');
+    if (st && color) { st.style.color = color; }
+}
+
+// Find kortets kanter i et stillbillede og returnér normaliseret 500×700-canvas
+function _normalizeCardFromImage(img) {
+    // 1) Skalér ned til analyse-størrelse
+    const AW = 300, AH = Math.round(AW * img.height / img.width);
+    const a = _cv('pa', AW, AH);
+    const actx = a.getContext('2d');
+    actx.drawImage(img, 0, 0, AW, AH);
+    const d = actx.getImageData(0, 0, AW, AH).data;
+    const g = new Float32Array(AW*AH);
+    for (let i = 0; i < AW*AH; i++) g[i] = 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2];
+
+    // 2) Kanttæthed pr. kolonne/række
+    const colE = new Float32Array(AW), rowE = new Float32Array(AH);
+    for (let y = 1; y < AH-1; y++) for (let x = 1; x < AW-1; x++) {
+        const e = Math.abs(g[y*AW+x+1] - g[y*AW+x-1]) + Math.abs(g[(y+1)*AW+x] - g[(y-1)*AW+x]);
+        colE[x] += e; rowE[y] += e;
+    }
+    const span = (arr, n) => {
+        const mx = Math.max(...arr); if (mx <= 0) return [0, n-1];
+        const th = mx * 0.22; let s0 = 0, s1 = n-1;
+        for (let i = 0; i < n; i++) if (arr[i] > th) { s0 = i; break; }
+        for (let i = n-1; i >= 0; i--) if (arr[i] > th) { s1 = i; break; }
+        return (s1 - s0) < n*0.25 ? [0, n-1] : [s0, s1];   // for lille → brug hele billedet
+    };
+    let [x0, x1] = span(colE, AW), [y0, y1] = span(rowE, AH);
+
+    // 3) Ret til 5:7 — udvid den korte side i stedet for at klippe kortet
+    let bw = x1-x0, bh = y1-y0;
+    const ratio = bw / bh;
+    if (ratio > 5/7) { const need = bw*7/5; const c=(y0+y1)/2; y0 = c-need/2; y1 = c+need/2; }
+    else             { const need = bh*5/7; const c=(x0+x1)/2; x0 = c-need/2; x1 = c+need/2; }
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0);
+    x1 = Math.min(AW-1, x1); y1 = Math.min(AH-1, y1);
+
+    // 4) Beskær i fuld opløsning og normalisér til 500×700
+    const sx = img.width/AW, sy = img.height/AH;
+    const out = _cv('pcard', CARD_W, CARD_H);
+    out.getContext('2d').drawImage(img,
+        x0*sx, y0*sy, (x1-x0)*sx, (y1-y0)*sy, 0, 0, CARD_W, CARD_H);
+    return out;
+}
+
+// Udsnit af det normaliserede kort (faste koordinater — vi ved hvor tingene sidder)
+function _cardRegion(card, rx, ry, rw, rh, scale, key) {
+    const w = Math.round(rw*CARD_W*scale), h = Math.round(rh*CARD_H*scale);
+    const c = _cv(key, w, h);
+    c.getContext('2d').drawImage(card,
+        rx*CARD_W, ry*CARD_H, rw*CARD_W, rh*CARD_H, 0, 0, w, h);
+    return c;
+}
+
+async function handlePhotoFile(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    const status = document.getElementById('scan-status');
+    document.getElementById('photo-preview').style.display = 'block';
+    _photoStep('📷 Indlæser billede…');
+    status.innerText = '📷 Analyserer foto…'; status.style.color = 'var(--accent)';
+
+    const img = await new Promise((res, rej) => {
+        const im = new Image();
+        im.onload = () => res(im);
+        im.onerror = rej;
+        im.src = URL.createObjectURL(file);
+    }).catch(() => null);
+    if (!img) { status.innerText = '❌ Kunne ikke læse billedet'; status.style.color = 'var(--red)'; return; }
+
+    // Nedskalér meget store fotos (12 MP → max 2000px) for hukommelsens skyld
+    let src = img;
+    const maxSide = Math.max(img.width, img.height);
+    if (maxSide > 2000) {
+        const k = 2000 / maxSide;
+        const tmp = _cv('pdown', Math.round(img.width*k), Math.round(img.height*k));
+        tmp.getContext('2d').drawImage(img, 0, 0, tmp.width, tmp.height);
+        src = tmp;
+    }
+    URL.revokeObjectURL(img.src);
+
+    const card = _normalizeCardFromImage(src);
+    // Vis det fundne kort
+    const pv = document.getElementById('photo-canvas');
+    pv.width = CARD_W; pv.height = CARD_H;
+    pv.getContext('2d').drawImage(card, 0, 0);
+    _photoStep('✂️ Kort fundet og rettet op<br>🔎 Læser sæt-kode…');
+
+    let log = ['✂️ Kort fundet og rettet op'];
+    let data = null, w = null, rawCollector = '';
+    const artHash = _dhashFromCanvas(_cardRegion(card, 0.06, 0.11, 0.88, 0.44, 1, 'part'));
+
+    try {
+        w = await getOcrWorker();
+        _ocrBusy = true;
+
+        // ── 1) Collector-linjen: faste zoner på det normaliserede kort ──
+        await _setOcrParams(w, 'collector');
+        const ZONES = [
+            [0.03, 0.925, 0.55, 0.055],  // moderne
+            [0.03, 0.885, 0.55, 0.055],  // retro/showcase (højere)
+            [0.03, 0.945, 0.95, 0.048],  // hele bundkanten
+            [0.03, 0.900, 0.95, 0.090],  // bred bund
+        ];
+        let parsed = null;
+        outer:
+        for (const z of ZONES) {
+            const rc = _cardRegion(card, z[0], z[1], z[2], z[3], 3, 'pz');
+            const dark = _meanLuma(rc) < 128;
+            for (const inv of (dark ? [true, false] : [false, true])) {
+                const r = await w.recognize(_prepPolarity(rc, inv));
+                const txt = (r.data.text || '').toUpperCase();
+                const p = _parseCollector(txt);
+                if (p) { parsed = p; rawCollector = txt; break outer; }
+                if (txt.replace(/[^A-Z0-9]/g,'').length > rawCollector.replace(/[^A-Z0-9]/g,'').length) rawCollector = txt;
+            }
+        }
+
+        if (parsed) {
+            const read = parsed.set.toUpperCase();
+            const snapped = await _snapSetCode(read);
+            parsed.set = snapped.toLowerCase();
+            log.push(snapped !== read ? `🔎 Kode ${read} → <b>${snapped}</b> #${parsed.num}` : `🔎 Kode <b>${snapped}</b> #${parsed.num}`);
+            _photoStep(log.join('<br>') + '<br>🌐 Slår op…');
+            data = await _lookupCollector(parsed);
+            if (data) log.push(`✅ ${data.name}`);
+            else log.push('⚠️ Koden gav intet resultat');
+        } else { log.push('⚠️ Ingen sæt-kode fundet'); }
+
+        // ── 2) Navnefeltet — både som fallback og som kontrol ──
+        await _setOcrParams(w, 'name');
+        const nameCv = _cardRegion(card, 0.05, 0.035, 0.90, 0.075, 3, 'pn');
+        preprocess(nameCv);
+        const nr = await w.recognize(nameCv);
+        let nameTxt = (nr.data.text || '').trim().split('\n')[0] || '';
+        nameTxt = nameTxt.replace(/[^a-zA-Z0-9 '\-,]/g, '').replace(/\s+/g, ' ').trim();
+
+        if (data && nameTxt.replace(/[^a-zA-Z]/g,'').length >= 3) {
+            const sim = _nameSim(nameTxt, data.name.split('//')[0].trim());
+            const artistOk = _artistMatch(rawCollector, data.artist || data.card_faces?.[0]?.artist || '');
+            if (sim < 0.30 && !artistOk) { log.push(`↪️ Navnet "${nameTxt}" passer ikke — bruger navnet i stedet`); data = null; }
+        }
+
+        if (!data && nameTxt) {
+            log.push(`🔤 Læste navn: <b>${nameTxt}</b>`);
+            _photoStep(log.join('<br>') + '<br>🌐 Søger…');
+            const best = await resolveCardScored([nameTxt]);
+            if (best) {
+                log.push(`🎯 Match: <b>${best.name}</b> (${Math.round(best.sim*100)}%)`);
+                try {
+                    const r2 = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(best.name)}`);
+                    if (r2.ok) data = await r2.json();
+                } catch(e) {}
+            }
+        }
+    } catch(e) {
+        log.push('❌ Fejl under analyse');
+    } finally {
+        _ocrBusy = false;
+        try { if (w) await _setOcrParams(w, 'name'); } catch(e) {}
+    }
+
+    _photoStep(log.join('<br>'));
+    if (!data) {
+        status.innerText = '⚠️ Kunne ikke genkende kortet — prøv igen med bedre lys';
+        status.style.color = 'var(--red)';
+        return;
+    }
+    await _scanSuccess(data, false, artHash, true);
+}
+
 // Entry: prøv collector-linjen først, fald tilbage til navne-OCR
 let oldCardMode = false; // gamle kort uden collector-linje → kun navne-scanning
 let _regionTick = 0;      // roterer mellem bundtekst-placeringer (retro/showcase-rammer)
@@ -4467,7 +4740,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '4.3';
+const APP_VERSION = '4.5';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
