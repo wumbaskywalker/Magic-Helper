@@ -359,9 +359,10 @@
         #camera-container {
             position: relative; width: 100%; border-radius: var(--r-lg);
             overflow: hidden; background: #000; aspect-ratio: 3/4; margin-bottom: 14px;
+            /* aspect-ratio sættes til kameraets eget format i JS, så intet klippes væk */
             box-shadow: var(--shadow);
         }
-        #camera-stream { width: 100%; height: 100%; object-fit: cover; }
+        #camera-stream { width: 100%; height: 100%; object-fit: contain; background: #000; }
         #scan-overlay {
             position: absolute;
             top: var(--frame-top, 8%); left: var(--frame-left, 19%);
@@ -1310,7 +1311,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen + tryk på kortet for at låse scanområdet<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
+                <div><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -3228,6 +3229,8 @@ async function startCamera() {
             video.srcObject = videoStream;
         } catch(e2) { document.getElementById('scan-status').innerText='⚠️ Kamera ikke tilgængeligt.'; return; }
     }
+    video.onloadedmetadata = () => { fitCameraBox(); };
+    fitCameraBox();
     await populateCameraList();
     // Lommelygte-knap hvis kameraet understøtter torch
     try {
@@ -3922,6 +3925,34 @@ async function autoFitFrame() {
 //  (unik nøgle → præcis udgave via Scryfall /cards/:set/:number)
 // ═══════════════════════════════════════════════
 
+// ── Geometri: videoen vises med object-fit:contain, så billedet skaleres ind i boksen ──
+function _vidGeom() {
+    const v = document.getElementById('camera-stream');
+    const cc = document.getElementById('camera-container');
+    const cw = cc.clientWidth, ch = cc.clientHeight;
+    const vw = v.videoWidth, vh = v.videoHeight;
+    if (!cw || !ch || !vw || !vh) return null;
+    const sc = Math.min(cw/vw, ch/vh);          // contain
+    const dw = vw*sc, dh = vh*sc;
+    return { cw, ch, vw, vh, sc, dw, dh, offX: (cw-dw)/2, offY: (ch-dh)/2 };
+}
+// videokoordinat (0..1) → procent af visningsboksen
+function _vidToDisp(x, y) {
+    const g = _vidGeom(); if (!g) return { x: x*100, y: y*100 };
+    return { x: (g.offX + x*g.dw) / g.cw * 100, y: (g.offY + y*g.dh) / g.ch * 100 };
+}
+// tryk i visningsboksen (0..1) → videokoordinat (0..1)
+function _dispToVid(px, py) {
+    const g = _vidGeom(); if (!g) return { x: px, y: py };
+    return { x: (px*g.cw - g.offX) / g.dw, y: (py*g.ch - g.offY) / g.dh };
+}
+// Tilpas boksens højde til kameraets format, så intet klippes væk
+function fitCameraBox() {
+    const v = document.getElementById('camera-stream');
+    const cc = document.getElementById('camera-container');
+    if (v.videoWidth && v.videoHeight) cc.style.aspectRatio = (v.videoWidth / v.videoHeight);
+}
+
 // Genbrugte canvasser — nye allokeringer flere gange i sekundet får browseren til at crashe
 const _cvPool = {};
 function _cv(key, w, h) {
@@ -3935,25 +3966,24 @@ function _cv(key, w, h) {
 function _scanCropCanvas(rx, ry, rw, rh, scale, poolKey) {
     const video = document.getElementById('camera-stream');
     if (!videoStream || !video.videoWidth) return null;
-    const vr0 = video.getBoundingClientRect();
-    if (!vr0.width || !vr0.height) return null; // ikke synlig endnu
-    const vidW = video.videoWidth, vidH = video.videoHeight;
-    const vr = vr0;
+    const g = _vidGeom(); if (!g) return null;
+    const cc = document.getElementById('camera-container');
     const br = document.getElementById('scan-overlay').getBoundingClientRect();
-    const sc = Math.max(vr.width/vidW, vr.height/vidH);
-    // (video tegnes direkte i udsnittet nedenfor — intet fuldskærms-canvas)
-    const offX = (vidW*sc - vr.width)/2, offY = (vidH*sc - vr.height)/2;
-    const fx = ((br.left-vr.left)+offX)/sc, fy = ((br.top-vr.top)+offY)/sc;
-    const fw = br.width/sc, fh = br.height/sc;
-    const cX = Math.max(0, Math.round(fx + rx*fw)), cY = Math.max(0, Math.round(fy + ry*fh));
-    const cW = Math.min(Math.round(rw*fw), vidW-cX), cH = Math.min(Math.round(rh*fh), vidH-cY);
+    const cr = cc.getBoundingClientRect();
+    // Rammen (skærmkoordinater) → videokoordinater
+    const a = _dispToVid((br.left-cr.left)/cr.width, (br.top-cr.top)/cr.height);
+    const b = _dispToVid((br.right-cr.left)/cr.width, (br.bottom-cr.top)/cr.height);
+    const fx = Math.max(0, Math.min(1, a.x)), fy = Math.max(0, Math.min(1, a.y));
+    const fw = Math.max(0.02, Math.min(1, b.x) - fx), fh = Math.max(0.02, Math.min(1, b.y) - fy);
+    const cX = Math.max(0, Math.round((fx + rx*fw) * g.vw));
+    const cY = Math.max(0, Math.round((fy + ry*fh) * g.vh));
+    const cW = Math.min(Math.round(rw*fw*g.vw), g.vw-cX);
+    const cH = Math.min(Math.round(rh*fh*g.vh), g.vh-cY);
     if (cW < 8 || cH < 8) return null;
-    // Loft over størrelsen: meget store canvasser koster hukommelse uden at hjælpe OCR
     const outW = Math.min(Math.round(cW*scale), 1600), outH = Math.min(Math.round(cH*scale), 1600);
     const crop = _cv(poolKey || 'crop', outW, outH);
     const cx = crop.getContext('2d');
     cx.clearRect(0, 0, outW, outH);
-    // Tegn direkte fra videoen — ingen mellemliggende fuldskærms-canvas
     cx.drawImage(video, cX, cY, cW, cH, 0, 0, outW, outH);
     return crop;
 }
@@ -4531,6 +4561,9 @@ function startAutoPilot() {
         // Er billedet "tomt" (ingen kort)? — så nulstil, klar til næste
         const b = _detectCardBounds();
         // Et kort behøver ikke fylde rammen — vi beskærer digitalt ved analysen
+        if (b && (b.y1 > 0.985 || b.x1 > 0.985 || b.y0 < 0.015 || b.x0 < 0.015)) {
+            _setHint('↕️ Hele kortet er ikke med i billedet — flyt telefonen lidt tilbage');
+        }
         const hasCard = b && b.h > 0.12 && b.w > 0.08;
         if (!hasCard) {
             if (++_emptyFrames >= 2) { _lastDoneHash = null; _stableCount = 0; }
@@ -4549,15 +4582,8 @@ function startAutoPilot() {
         else _stableCount = 0;
         _prevHash = h;
 
-        // Vis rammen dér hvor kortet faktisk er
-        if (!_stickyROI && b && b.cardLike) {
-            const cc = document.getElementById('camera-container');
-            cc.style.setProperty('--frame-left', (b.x0*100)+'%');
-            cc.style.setProperty('--frame-top',  (b.y0*100)+'%');
-            cc.style.setProperty('--frame-w', (b.w*100)+'%');
-            cc.style.setProperty('--frame-h', (b.h*100)+'%');
-            cc.style.setProperty('--frame-bot', (b.y0*100 + b.h*100 - 4)+'%');
-        }
+        // Vis rammen dér hvor kortet faktisk er (omregnet til skærmen)
+        if (!_stickyROI && b && b.cardLike) _drawROI(b);
 
         if (_stableCount >= 1) {
             _autoBusy = true;
@@ -4584,8 +4610,11 @@ try { _stickyROI = JSON.parse(localStorage.getItem('mtg_scan_roi') || 'null'); }
 function tapCalibrate(ev) {
     const cc = document.getElementById('camera-container');
     const r = cc.getBoundingClientRect();
-    const px = (ev.clientX - r.left) / r.width;
-    const py = (ev.clientY - r.top) / r.height;
+    const dx = (ev.clientX - r.left) / r.width;
+    const dy = (ev.clientY - r.top) / r.height;
+    if (dx < 0 || dx > 1 || dy < 0 || dy > 1) return;
+    const vp = _dispToVid(dx, dy);   // → videokoordinater
+    const px = vp.x, py = vp.y;
     if (px < 0 || px > 1 || py < 0 || py > 1) return;
     // Prøv først at finde kortet automatisk omkring trykket
     const b = _detectCardBounds();
@@ -4593,7 +4622,8 @@ function tapCalibrate(ev) {
         _stickyROI = { ...b, cardLike: true };
     } else {
         // Ellers: antag et kort i 5:7 omkring fingeren, 45% af billedhøjden
-        const hh = 0.45, ww = hh * (5/7) * (cc.clientHeight / cc.clientWidth);
+        const g = _vidGeom();
+        const hh = 0.55, ww = hh * (5/7) * ((g ? g.vh : 3) / (g ? g.vw : 4));
         _stickyROI = { x0: Math.max(0, px-ww/2), x1: Math.min(1, px+ww/2),
                        y0: Math.max(0, py-hh/2), y1: Math.min(1, py+hh/2),
                        w: ww, h: hh, cardLike: true };
@@ -4604,16 +4634,18 @@ function tapCalibrate(ev) {
     vib(30);
     toast('🎯 Område låst — appen scanner her nu');
 }
-function _showROI() {
-    if (!_stickyROI) return;
-    const w = (_stickyROI.x1-_stickyROI.x0)*100, h = (_stickyROI.y1-_stickyROI.y0)*100;
+// Tegn en ramme ud fra videokoordinater
+function _drawROI(b) {
+    if (!b) return;
     const cc = document.getElementById('camera-container');
-    cc.style.setProperty('--frame-left', (_stickyROI.x0*100)+'%');
-    cc.style.setProperty('--frame-top',  (_stickyROI.y0*100)+'%');
-    cc.style.setProperty('--frame-w', w+'%');
-    cc.style.setProperty('--frame-h', h+'%');
-    cc.style.setProperty('--frame-bot', (_stickyROI.y0*100 + h - 4)+'%');
+    const p0 = _vidToDisp(b.x0, b.y0), p1 = _vidToDisp(b.x1, b.y1);
+    cc.style.setProperty('--frame-left', p0.x + '%');
+    cc.style.setProperty('--frame-top',  p0.y + '%');
+    cc.style.setProperty('--frame-w', Math.max(4, p1.x - p0.x) + '%');
+    cc.style.setProperty('--frame-h', Math.max(4, p1.y - p0.y) + '%');
+    cc.style.setProperty('--frame-bot', (p1.y - 4) + '%');
 }
+function _showROI() { _drawROI(_stickyROI); }
 function clearROI() {
     _stickyROI = null; localStorage.removeItem('mtg_scan_roi');
     applyFrame(80); toast('Område nulstillet — automatisk igen');
@@ -5061,7 +5093,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '5.4';
+const APP_VERSION = '5.5';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
