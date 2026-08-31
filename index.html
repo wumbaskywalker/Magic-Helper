@@ -1310,7 +1310,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v5.1</span> — Mindre aggressiv auto-zoom og mere præcis billedgenkendelse (art-crop)<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
+                <div><span style="color:var(--gold);font-weight:700;">v5.2</span> — Rettet kraftig over-zoom: appen zoomer nu ud og skifter til vidvinkel, når kortet er tæt på<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -3711,20 +3711,17 @@ function initCamZoom() {
             _camZoomCaps = caps.zoom;
             sl.min = caps.zoom.min; sl.max = caps.zoom.max;
             sl.step = caps.zoom.step || 0.1;
-            const saved = parseFloat(localStorage.getItem('mtg_scan_zoom') || '');
-            const val = (!isNaN(saved) && saved >= caps.zoom.min && saved <= caps.zoom.max)
-                ? saved : (track.getSettings?.().zoom ?? caps.zoom.min);
-            sl.value = val; row.style.display = 'flex';
-            setCamZoom(val);
+            // Start altid på laveste zoom — autopiloten justerer selv derfra
+            sl.value = caps.zoom.min; row.style.display = 'flex';
+            setCamZoom(caps.zoom.min);
             return;
         }
     } catch(e) {}
     // Ingen hardware-zoom: brug digital zoom via CSS-skalering af videoen
     _camZoomCaps = null;
     sl.min = 1; sl.max = 3; sl.step = 0.1;
-    sl.value = parseFloat(localStorage.getItem('mtg_scan_zoom') || '1') || 1;
-    row.style.display = 'flex';
-    setCamZoom(sl.value);
+    sl.value = 1; row.style.display = 'flex';
+    setCamZoom(1); // ingen digital zoom som udgangspunkt
 }
 
 function setCamZoom(v) {
@@ -3822,7 +3819,7 @@ async function autoZoomToCard() {
     for (let i = 0; i < 3; i++) {
         const b = _detectCardBounds();
         if (!b || !b.cardLike) break;             // kun zoom hvis det faktisk ligner et kort
-        if (b.h > 0.55) break;                    // fylder allerede fint — lad være
+        if (b.h > 0.50) break;                    // fylder allerede fint — lad være
         const factor = Math.min(1.6, TARGET / b.h); // højst 1,6× pr. trin
         if (factor < 1.08) break;                 // tæt nok
         const next = Math.min(ZOOM_CAP, zoom * factor);
@@ -3835,7 +3832,6 @@ async function autoZoomToCard() {
     if (moved) {
         const sl = document.getElementById('zoom-slider');
         if (sl) { sl.value = zoom; document.getElementById('zoom-val').innerText = (+zoom).toFixed(1) + '×'; }
-        localStorage.setItem('mtg_scan_zoom', zoom);
     }
     return moved;
 }
@@ -4331,6 +4327,12 @@ async function handlePhotoFile(input) {
 // ═══════════════════════════════════════════════
 //  AUTOPILOT — appen vælger selv kamera, zoom, ramme og metode
 // ═══════════════════════════════════════════════
+// Engangsoprydning: gamle gemte zoom/ramme-værdier gav kraftig over-zoom
+(function _resetOldScanPrefs() {
+    if (localStorage.getItem('mtg_scan_reset') === '2') return;
+    ['mtg_scan_zoom','mtg_scan_frame','mtg_scan_camera','mtg_scan_region'].forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('mtg_scan_reset', '2');
+})();
 let _autoTuned = false, _autoIv = null, _autoBusy = false;
 let _prevHash = null, _stableCount = 0, _lastDoneHash = null, _emptyFrames = 0;
 
@@ -4392,6 +4394,42 @@ async function _pickBestCamera() {
     }
 }
 
+// Fylder motivet hele billedet? (kortet er for tæt på → vi mangler synsfelt)
+function _frameOverflowing() {
+    const b = _detectCardBounds();
+    if (!b) return true;                       // ingen tydelige kanter = typisk for tæt på
+    return (b.w > 0.93 || b.h > 0.93);
+}
+
+// Skift til den bredeste linse (ultravid) — bruges når telefonen sidder tæt på kortet
+async function _useWidestCamera() {
+    try {
+        const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+        const ultra = devs.find(d => /ultra/i.test(d.label || ''));
+        if (!ultra) return false;
+        const cur = videoStream?.getVideoTracks?.()[0]?.getSettings?.().deviceId;
+        if (cur === ultra.deviceId) return false;
+        videoStream?.getTracks().forEach(t => t.stop());
+        videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId:{exact:ultra.deviceId}, width:{ideal:1920}, height:{ideal:1080} } });
+        document.getElementById('camera-stream').srcObject = videoStream;
+        localStorage.setItem('mtg_scan_camera', ultra.deviceId);
+        await new Promise(r => setTimeout(r, 900));
+        return true;
+    } catch(e) { return false; }
+}
+
+// Sæt kameraets zoom helt i bund
+async function _zoomOut() {
+    try {
+        const track = videoStream?.getVideoTracks?.()[0];
+        const caps = track?.getCapabilities?.();
+        if (caps?.zoom) await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min }] });
+        const v = document.getElementById('camera-stream');
+        if (v) v.style.transform = '';
+    } catch(e) {}
+}
+
 // Kør én gang pr. session: vælg kamera, zoom ind på kortet, sæt rammen
 async function autoTune(force) {
     if (_autoTuned && !force) return;
@@ -4400,7 +4438,14 @@ async function autoTune(force) {
     if (badge) badge.innerText = '⚙️ Indstiller kamera…';
     try {
         if (!localStorage.getItem('mtg_scan_camera') || force) await _pickBestCamera();
-        await new Promise(r => setTimeout(r, 400));
+        await _zoomOut();                       // altid tilbage til fuldt synsfelt først
+        await new Promise(r => setTimeout(r, 500));
+        // For tæt på? Så skal vi have en bredere linse — ikke mere zoom
+        if (_frameOverflowing()) {
+            if (badge) badge.innerText = '⚙️ Skifter til vidvinkel…';
+            if (await _useWidestCamera()) await _zoomOut();
+        }
+        await new Promise(r => setTimeout(r, 300));
         await autoZoomToCard();
         const b = _detectCardBounds();
         if (b && b.cardLike) {
@@ -4429,6 +4474,14 @@ function startAutoPilot() {
 
         // Er billedet "tomt" (ingen kort)? — så nulstil, klar til næste
         const b = _detectCardBounds();
+        // Kortet fylder hele billedet → vi ser kun en del af det. Zoom ud igen.
+        if (b && (b.w > 0.96 || b.h > 0.96)) {
+            _setHint('↔️ Kortet er for tæt på — justerer…');
+            await _zoomOut();
+            if (_frameOverflowing()) await _useWidestCamera();
+            applyFrame(88);
+            return;
+        }
         const hasCard = b && b.h > 0.30 && b.w > 0.20;
         if (!hasCard) {
             if (++_emptyFrames >= 2) { _lastDoneHash = null; _stableCount = 0; }
@@ -4887,7 +4940,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '5.1';
+const APP_VERSION = '5.2';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
