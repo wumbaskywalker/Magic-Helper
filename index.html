@@ -478,6 +478,35 @@
         }
         .player-box.dead { filter: grayscale(1); opacity: .22; }
 
+        /* ── Tryk hvor som helst: venstre halvdel = −1, højre halvdel = +1 ── */
+        .tap-zone {
+            position: absolute; top: 0; bottom: 0; width: 50%;
+            z-index: 1; cursor: pointer; -webkit-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .tap-zone.left  { left: 0;  border-radius: 18px 0 0 18px; }
+        .tap-zone.right { right: 0; border-radius: 0 18px 18px 0; }
+        .tap-zone::before {
+            content: ''; position: absolute; inset: 0; opacity: 0;
+            transition: opacity .18s;
+            background: radial-gradient(circle at var(--tx,50%) 50%, rgba(255,255,255,.20), transparent 62%);
+        }
+        .tap-zone:active::before { opacity: 1; transition: opacity .04s; }
+        /* Diskret vink om hvad der sker */
+        .tap-hint {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            font-size: clamp(15px, 3.4vw, 22px); font-weight: 900; color: #fff;
+            opacity: .13; pointer-events: none; transition: opacity .18s;
+        }
+        .tap-zone.left  .tap-hint { left: 9px; }
+        .tap-zone.right .tap-hint { right: 9px; }
+        .tap-zone:active .tap-hint { opacity: .6; }
+        /* Alt der skal kunne trykkes ligger over trykzonerne */
+        .player-header, .chip-row, .life-controls, .more-btn { position: relative; z-index: 3; }
+        .life-controls { pointer-events: none; }          /* selve rækken skal ikke sluge tryk */
+        .life-btn, .life-val { pointer-events: auto; }
+
         .player-header {
             width: 100%; padding: 4px 6px 5px;
             display: flex; justify-content: space-between;
@@ -1589,7 +1618,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v7.5</span> — Værten vælger nu også baggrund og melder klar på lige fod med de andre<br><span style="color:var(--gold);font-weight:700;">v7.4</span> — Vælg navn, farve og baggrund før du går ind — spillet starter automatisk hos alle når alle er klar<br><span style="color:var(--gold);font-weight:700;">v7.3</span> — Rettet “Genoptag spil”: værten genstarter nu sit eget rum, og klienter får besked hvis ingen vært svarer<br><span style="color:var(--gold);font-weight:700;">v7.2</span> — QR-kode så andre kan joine med kamera-appen + pladser huskes i 5 minutter hvis nogen falder ud<br><span style="color:var(--gold);font-weight:700;">v7.1</span> — Helt ny “Hvem starter?”: gnisten hopper mellem spillerne og slår ned hos vinderen — med ny lyd<br><span style="color:var(--gold);font-weight:700;">v7.0</span> — Tilbehør er totalt fornyet: D4–D100 i rigtige 3D-former, sum, konfetti, ny menu og pænere spillerflytning<br><span style="color:var(--gold);font-weight:700;">v6.9</span> — Ny animeret spilopsætning med bordvisning, mana-lys og opstart-fanfare<br><span style="color:var(--gold);font-weight:700;">v6.8</span> — Samlingens værdi vises nu som graf med udvikling over tid<br><span style="color:var(--gold);font-weight:700;">v6.7</span> — Kortkunst som spillerbaggrund + alle tællere (energi, erfaring, storm, monarch m.fl.) samlet i en skuffe — boardet viser kun det du bruger<br><span style="color:var(--gold);font-weight:700;">v6.6</span> — Ny “Hvad mangler jeg?” i dæk: se hvad du mangler, hvad det koster, og køb via Cardmarket eller Kelz0r<br><span style="color:var(--gold);font-weight:700;">v6.5</span> — CSV-import forstår nu ManaBox, Moxfield m.fl. med billeder og priser + store samlinger fryser ikke længere<br><span style="color:var(--gold);font-weight:700;">v6.4</span> — Stabil multiplayer: værten styrer spillet, så en der forlader eller genforbinder ikke længere kan nulstille liv<br><span style="color:var(--gold);font-weight:700;">v6.3</span> — Appen tager nu selv et skarpt stillbillede, når kortet ligger klar<br><span style="color:var(--gold);font-weight:700;">v6.2</span> — Hurtigere og skarpere live-scanning (fuld opløsning i stedet for nedskaleret)<br><span style="color:var(--gold);font-weight:700;">v6.1</span> — Scanneren rammer nu også den rigtige udgave: sæt-kode, kortnummer og kunst sammenlignes<br><span style="color:var(--gold);font-weight:700;">v6.0</span> — Ny scanner: fast sigtefelt + PaddleOCR<br><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
+                <div><span style="color:var(--gold);font-weight:700;">v7.6</span> — Tryk hvor som helst på dit felt for at ændre liv: venstre side trækker fra, højre lægger til<br><span style="color:var(--gold);font-weight:700;">v7.5</span> — Værten vælger nu også baggrund og melder klar på lige fod med de andre<br><span style="color:var(--gold);font-weight:700;">v7.4</span> — Vælg navn, farve og baggrund før du går ind — spillet starter automatisk hos alle når alle er klar<br><span style="color:var(--gold);font-weight:700;">v7.3</span> — Rettet “Genoptag spil”: værten genstarter nu sit eget rum, og klienter får besked hvis ingen vært svarer<br><span style="color:var(--gold);font-weight:700;">v7.2</span> — QR-kode så andre kan joine med kamera-appen + pladser huskes i 5 minutter hvis nogen falder ud<br><span style="color:var(--gold);font-weight:700;">v7.1</span> — Helt ny “Hvem starter?”: gnisten hopper mellem spillerne og slår ned hos vinderen — med ny lyd<br><span style="color:var(--gold);font-weight:700;">v7.0</span> — Tilbehør er totalt fornyet: D4–D100 i rigtige 3D-former, sum, konfetti, ny menu og pænere spillerflytning<br><span style="color:var(--gold);font-weight:700;">v6.9</span> — Ny animeret spilopsætning med bordvisning, mana-lys og opstart-fanfare<br><span style="color:var(--gold);font-weight:700;">v6.8</span> — Samlingens værdi vises nu som graf med udvikling over tid<br><span style="color:var(--gold);font-weight:700;">v6.7</span> — Kortkunst som spillerbaggrund + alle tællere (energi, erfaring, storm, monarch m.fl.) samlet i en skuffe — boardet viser kun det du bruger<br><span style="color:var(--gold);font-weight:700;">v6.6</span> — Ny “Hvad mangler jeg?” i dæk: se hvad du mangler, hvad det koster, og køb via Cardmarket eller Kelz0r<br><span style="color:var(--gold);font-weight:700;">v6.5</span> — CSV-import forstår nu ManaBox, Moxfield m.fl. med billeder og priser + store samlinger fryser ikke længere<br><span style="color:var(--gold);font-weight:700;">v6.4</span> — Stabil multiplayer: værten styrer spillet, så en der forlader eller genforbinder ikke længere kan nulstille liv<br><span style="color:var(--gold);font-weight:700;">v6.3</span> — Appen tager nu selv et skarpt stillbillede, når kortet ligger klar<br><span style="color:var(--gold);font-weight:700;">v6.2</span> — Hurtigere og skarpere live-scanning (fuld opløsning i stedet for nedskaleret)<br><span style="color:var(--gold);font-weight:700;">v6.1</span> — Scanneren rammer nu også den rigtige udgave: sæt-kode, kortnummer og kunst sammenlignes<br><span style="color:var(--gold);font-weight:700;">v6.0</span> — Ny scanner: fast sigtefelt + PaddleOCR<br><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -5557,7 +5586,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '7.5';
+const APP_VERSION = '7.6';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
@@ -5940,6 +5969,17 @@ function undoLast(){
     toast('↩ Fortrudt', '#555e7a');
 }
 
+// Tryk et vilkårligt sted i spillerens felt: venstre = −1, højre = +1
+function _zoneDown(ev, id, amt, el) {
+    // Placér lyseffekten der hvor fingeren rammer
+    try {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--tx', ((ev.clientX - r.left) / r.width * 100).toFixed(0) + '%');
+    } catch(e) {}
+    startLP(id, amt, el);
+    adjLife(id, amt);
+}
+
 // Per-spiller long-press timere: sikkert ved multi-touch (flere spillere trykker samtidig)
 function startLP(id, amt, el){
     endLP(id);
@@ -6061,7 +6101,20 @@ function renderBoard(){
         // Alt andet ligger i skuffen bag "⋯" — boardet viser kun liv + aktive tællere
         const moreBtn = `<button class="more-btn" onclick="openCounters(${p.id})" title="Tællere og baggrund">⋯</button>`;
 
-        box.innerHTML = moreBtn + headerHTML + lifeHTML + chipHTML;
+        // Trykzoner: hele venstre halvdel trækker fra, højre lægger til
+        const tapHTML = isMyPlayer ? `
+            <div class="tap-zone left"
+                 onpointerdown="_zoneDown(event,${p.id},-1,this)"
+                 onpointerup="endLP(${p.id})" onpointerleave="endLP(${p.id})" oncontextmenu="return false">
+                <span class="tap-hint">−</span>
+            </div>
+            <div class="tap-zone right"
+                 onpointerdown="_zoneDown(event,${p.id},1,this)"
+                 onpointerup="endLP(${p.id})" onpointerleave="endLP(${p.id})" oncontextmenu="return false">
+                <span class="tap-hint">+</span>
+            </div>` : '';
+
+        box.innerHTML = tapHTML + moreBtn + headerHTML + lifeHTML + chipHTML;
         board.appendChild(box);
     });
 }
