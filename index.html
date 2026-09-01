@@ -1326,7 +1326,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v6.5</span> — CSV-import forstår nu ManaBox, Moxfield m.fl. med billeder og priser + store samlinger fryser ikke længere<br><span style="color:var(--gold);font-weight:700;">v6.4</span> — Stabil multiplayer: værten styrer spillet, så en der forlader eller genforbinder ikke længere kan nulstille liv<br><span style="color:var(--gold);font-weight:700;">v6.3</span> — Appen tager nu selv et skarpt stillbillede, når kortet ligger klar<br><span style="color:var(--gold);font-weight:700;">v6.2</span> — Hurtigere og skarpere live-scanning (fuld opløsning i stedet for nedskaleret)<br><span style="color:var(--gold);font-weight:700;">v6.1</span> — Scanneren rammer nu også den rigtige udgave: sæt-kode, kortnummer og kunst sammenlignes<br><span style="color:var(--gold);font-weight:700;">v6.0</span> — Ny scanner: fast sigtefelt + PaddleOCR<br><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
+                <div><span style="color:var(--gold);font-weight:700;">v6.6</span> — Ny “Hvad mangler jeg?” i dæk: se hvad du mangler, hvad det koster, og køb via Cardmarket eller Kelz0r<br><span style="color:var(--gold);font-weight:700;">v6.5</span> — CSV-import forstår nu ManaBox, Moxfield m.fl. med billeder og priser + store samlinger fryser ikke længere<br><span style="color:var(--gold);font-weight:700;">v6.4</span> — Stabil multiplayer: værten styrer spillet, så en der forlader eller genforbinder ikke længere kan nulstille liv<br><span style="color:var(--gold);font-weight:700;">v6.3</span> — Appen tager nu selv et skarpt stillbillede, når kortet ligger klar<br><span style="color:var(--gold);font-weight:700;">v6.2</span> — Hurtigere og skarpere live-scanning (fuld opløsning i stedet for nedskaleret)<br><span style="color:var(--gold);font-weight:700;">v6.1</span> — Scanneren rammer nu også den rigtige udgave: sæt-kode, kortnummer og kunst sammenlignes<br><span style="color:var(--gold);font-weight:700;">v6.0</span> — Ny scanner: fast sigtefelt + PaddleOCR<br><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -2069,9 +2069,14 @@
         </div>
 
         <!-- Prøvehånd -->
-        <button onclick="drawOpeningHand(7)" style="width:100%;margin-bottom:10px;padding:10px;background:rgba(79,124,255,.1);border:1px solid rgba(79,124,255,.35);border-radius:var(--r-sm);color:#7fa8ff;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.03em;">
-            🃏 Træk prøvehånd
-        </button>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button onclick="drawOpeningHand(7)" style="flex:1;padding:10px;background:rgba(79,124,255,.1);border:1px solid rgba(79,124,255,.35);border-radius:var(--r-sm);color:#7fa8ff;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.03em;">
+                🃏 Prøvehånd
+            </button>
+            <button onclick="openMissingModal()" style="flex:1;padding:10px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.4);border-radius:var(--r-sm);color:var(--gold-lt);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.03em;">
+                🛒 Hvad mangler jeg?
+            </button>
+        </div>
 
         <!-- Card list sort -->
         <div id="deck-type-subsort" style="display:flex;gap:6px;margin-bottom:8px;">
@@ -2189,6 +2194,51 @@
                 style="flex:1;padding:12px;background:rgba(79,124,255,.12);border:1px solid rgba(79,124,255,.35);border-radius:10px;color:#7fa8ff;font-size:13px;font-weight:700;cursor:pointer;">
                 ↺ Ny hånd (7)
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Hvad mangler jeg? -->
+<div id="missing-modal" style="display:none;position:fixed;inset:0;background:var(--bg-body);z-index:1200;overflow-y:auto;padding:20px;">
+    <div style="max-width:520px;margin:0 auto;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <button onclick="document.getElementById('missing-modal').style.display='none'"
+                style="background:none;border:1px solid var(--border-lit);border-radius:8px;padding:8px 12px;color:var(--muted);cursor:pointer;">← Tilbage</button>
+            <h2 style="margin:0;font-size:18px;">🛒 Hvad mangler jeg?</h2>
+        </div>
+
+        <div style="background:var(--bg-card);border:1px solid var(--border-lit);border-radius:var(--r-md);padding:12px;margin-bottom:12px;">
+            <label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:8px;">
+                <input type="checkbox" id="miss-reserve" onchange="calcMissing()" style="width:auto;margin:0;">
+                Tæl kort brugt i mine andre dæk som optaget
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);cursor:pointer;">
+                <input type="checkbox" id="miss-lands" checked onchange="calcMissing()" style="width:auto;margin:0;">
+                Udelad basic lands
+            </label>
+        </div>
+
+        <div id="missing-summary" style="margin-bottom:12px;"></div>
+        <div id="missing-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;"></div>
+
+        <div id="missing-actions" style="display:none;">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;">KØB KORTENE</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <button class="app-btn" style="flex:1;margin:0;background:#142E54;border:1px solid #1e4080;" onclick="missingToStore('cardmarket')">
+                    <img src="image_a81806.png" style="height:18px;object-fit:contain;"> Cardmarket
+                </button>
+                <button class="app-btn" style="flex:1;margin:0;background:#fff;border:1px solid #ddd;" onclick="missingToStore('kelz0r')">
+                    <img src="image_a8185c.png" style="height:18px;object-fit:contain;"> Kelz0r
+                </button>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="app-btn btn-green" style="flex:1;margin:0;" onclick="missingToWishlist()">
+                    <i class="fa-solid fa-plus"></i> På ønskelisten
+                </button>
+                <button class="app-btn btn-dark" style="flex:1;margin:0;" onclick="missingCopyText()">
+                    <i class="fa-solid fa-copy"></i> Kopiér liste
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -5254,7 +5304,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '6.5';
+const APP_VERSION = '6.6';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
@@ -8117,6 +8167,184 @@ async function importDeckList() {
     } else {
         document.getElementById('deck-import-modal').style.display = 'none';
         toast(`Alle ${totalQty} kort importeret! ✓`);
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  HVAD MANGLER JEG? — dæk holdt op mod samlingen
+// ═══════════════════════════════════════════════
+const BASIC_LANDS = ['plains','island','swamp','mountain','forest','wastes',
+                     'snow-covered plains','snow-covered island','snow-covered swamp',
+                     'snow-covered mountain','snow-covered forest'];
+let _missingRows = [];
+
+function openMissingModal() {
+    const deck = getActiveDeck();
+    if (!deck || !deck.cards.length) return toast('Dækket er tomt!', '#e74c3c');
+    document.getElementById('missing-modal').style.display = 'block';
+    calcMissing();
+}
+
+// Hvor mange af kortet ejer jeg? (matcher på navn — enhver udgave kan spilles)
+function _ownedCount(name) {
+    const key = name.split('//')[0].trim().toLowerCase();
+    return collection.reduce((sum, c) =>
+        sum + (c.name.split('//')[0].trim().toLowerCase() === key ? c.qty : 0), 0);
+}
+// Hvor mange bruger jeg allerede i mine andre dæk?
+function _reservedCount(name, exceptDeckId) {
+    const key = name.split('//')[0].trim().toLowerCase();
+    return decks.reduce((sum, d) => d.id === exceptDeckId ? sum :
+        sum + d.cards.reduce((s2, c) =>
+            s2 + (c.name.split('//')[0].trim().toLowerCase() === key ? c.qty : 0), 0), 0);
+}
+
+async function calcMissing() {
+    const deck = getActiveDeck(); if (!deck) return;
+    const useReserve = document.getElementById('miss-reserve').checked;
+    const skipLands  = document.getElementById('miss-lands').checked;
+    const listEl = document.getElementById('missing-list');
+    const sumEl  = document.getElementById('missing-summary');
+    document.getElementById('missing-actions').style.display = 'none';
+    listEl.innerHTML = '';
+    sumEl.innerHTML = '<div class="status-pill">Sammenligner med din samling…</div>';
+
+    // Læg samme kort sammen på tværs af udgaver i dækket
+    const need = {};
+    deck.cards.forEach(c => {
+        const nm = c.name.split('//')[0].trim();
+        if (skipLands && BASIC_LANDS.includes(nm.toLowerCase())) return;
+        need[nm] = (need[nm] || 0) + c.qty;
+    });
+
+    const missing = [];
+    let ownedTotal = 0, needTotal = 0;
+    Object.entries(need).forEach(([nm, qty]) => {
+        needTotal += qty;
+        let owned = _ownedCount(nm);
+        if (useReserve) owned = Math.max(0, owned - _reservedCount(nm, deck.id));
+        ownedTotal += Math.min(owned, qty);
+        if (owned < qty) missing.push({ name: nm, qty: qty - owned, owned, price: -1, set: '' });
+    });
+
+    if (!missing.length) {
+        sumEl.innerHTML = `<div style="background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.4);
+            border-radius:var(--r-md);padding:16px;text-align:center;">
+            <div style="font-size:28px;margin-bottom:6px;">✅</div>
+            <div style="font-weight:800;">Du har alle kortene!</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">${needTotal} kort i dækket${skipLands?' (uden basic lands)':''}</div>
+        </div>`;
+        _missingRows = [];
+        return;
+    }
+
+    // Find billigste udgave af hvert manglende kort
+    sumEl.innerHTML = `<div class="status-pill">Finder billigste priser… (0/${missing.length})</div>`;
+    for (let i = 0; i < missing.length; i++) {
+        const m = missing[i];
+        try {
+            const r = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent('!"'+m.name+'" -is:digital')}&unique=prints`);
+            if (r.ok) {
+                const prints = (await r.json()).data || [];
+                let best = null;
+                prints.forEach(c => {
+                    const p = c.prices || {};
+                    let pr = p.eur ? +p.eur : (p.usd ? +p.usd / rates.USD : -1);
+                    if (pr >= 0 && (!best || pr < best.pr)) best = { pr, set: c.set.toUpperCase(), setName: c.set_name, thumb: c.image_uris?.small || '' };
+                });
+                if (best) { m.price = best.pr; m.set = best.set; m.setName = best.setName; m.thumb = best.thumb; }
+            }
+        } catch(e) {}
+        sumEl.innerHTML = `<div class="status-pill">Finder billigste priser… (${i+1}/${missing.length})</div>`;
+        await new Promise(r => setTimeout(r, 80));
+    }
+
+    missing.sort((a, b) => (b.price * b.qty) - (a.price * a.qty));
+    _missingRows = missing;
+
+    const totalCost = missing.reduce((s, m) => s + (m.price > 0 ? m.price * m.qty : 0), 0);
+    const missQty = missing.reduce((s, m) => s + m.qty, 0);
+    sumEl.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border-lit);border-radius:var(--r-md);padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;color:var(--muted);">Du ejer</span>
+            <span style="font-weight:800;">${ownedTotal} af ${needTotal} kort</span>
+        </div>
+        <div style="height:8px;background:var(--bg-input);border-radius:5px;overflow:hidden;margin-bottom:10px;">
+            <div style="height:100%;width:${Math.round(ownedTotal/Math.max(1,needTotal)*100)}%;background:linear-gradient(90deg,#27ae60,#2ecc71);"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;color:var(--red);font-weight:700;">Mangler ${missQty} kort</span>
+            <span class="price-text" style="font-size:19px;font-weight:800;">${fmt(totalCost)}</span>
+        </div>
+    </div>`;
+
+    listEl.innerHTML = missing.map(m => `
+        <div style="display:flex;align-items:center;gap:10px;background:var(--bg-card);border:1px solid var(--border);
+                    border-radius:var(--r-sm);padding:8px 10px;cursor:pointer;" onclick="missPreview('${m.name.replace(/'/g,"\\'")}')">
+            <img src="${m.thumb||''}" style="width:32px;height:44px;object-fit:cover;border-radius:3px;background:var(--bg-input);flex-shrink:0;" loading="lazy">
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.qty}× ${m.name}</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px;">
+                    ${m.owned > 0 ? `Du har ${m.owned} · ` : ''}Billigst: ${m.set || '—'}
+                </div>
+            </div>
+            <div class="price-text" style="font-size:14px;font-weight:800;white-space:nowrap;">
+                ${m.price >= 0 ? fmt(m.price * m.qty) : '–'}
+            </div>
+        </div>`).join('');
+    document.getElementById('missing-actions').style.display = 'block';
+}
+
+function missPreview(name) {
+    document.getElementById('missing-modal').style.display = 'none';
+    switchView('search', document.querySelector('nav div:nth-child(1)'));
+    document.getElementById('manual-search').value = name;
+    searchCard(name);
+}
+
+function _missingText(sep = '\n') {
+    return _missingRows.map(m => `${m.qty} ${m.name}`).join(sep);
+}
+
+function missingCopyText() {
+    if (!_missingRows.length) return;
+    const total = _missingRows.reduce((s,m)=>s+(m.price>0?m.price*m.qty:0),0);
+    navigator.clipboard.writeText(_missingText() + `\n\nI alt: ${fmt(total)}`)
+        .then(() => toast('Liste kopieret! ✓')).catch(() => toast('Kunne ikke kopiere', '#e74c3c'));
+}
+
+function missingToWishlist() {
+    if (!_missingRows.length) return;
+    document.getElementById('missing-modal').style.display = 'none';
+    showWishImport();
+    document.getElementById('wish-import-textarea').value = _missingText();
+    toast('Tryk "Importér" for at lægge dem på ønskelisten');
+}
+
+function missingToStore(store) {
+    if (!_missingRows.length) return;
+    const text = _missingText();
+    navigator.clipboard.writeText(text).catch(()=>{});
+    if (store === 'kelz0r') {
+        document.getElementById('kelz0r-guide').style.display = 'flex';
+    } else {
+        // Cardmarket har en indsæt-liste-funktion i deres "Want List"
+        const box = document.getElementById('missing-summary');
+        box.insertAdjacentHTML('afterbegin', `
+            <div style="background:rgba(20,46,84,.35);border:1px solid #1e4080;border-radius:var(--r-md);padding:14px;margin-bottom:10px;">
+                <div style="font-weight:800;font-size:14px;margin-bottom:8px;">📋 Listen er kopieret</div>
+                <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;">
+                    1. Tryk knappen herunder<br>
+                    2. Vælg <b>Want List</b> → <b>Add cards</b><br>
+                    3. Indsæt listen i tekstfeltet
+                </div>
+                <a href="https://www.cardmarket.com/en/Magic/Wants" target="_blank" rel="noopener"
+                   style="display:block;text-align:center;background:#142E54;border:1px solid #1e4080;color:#fff;
+                          padding:11px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
+                    Åbn Cardmarket →
+                </a>
+            </div>`);
+        toast('Liste kopieret — åbn Cardmarket');
     }
 }
 
