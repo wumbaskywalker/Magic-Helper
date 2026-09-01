@@ -1326,7 +1326,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v6.3</span> — Appen tager nu selv et skarpt stillbillede, når kortet ligger klar<br><span style="color:var(--gold);font-weight:700;">v6.2</span> — Hurtigere og skarpere live-scanning (fuld opløsning i stedet for nedskaleret)<br><span style="color:var(--gold);font-weight:700;">v6.1</span> — Scanneren rammer nu også den rigtige udgave: sæt-kode, kortnummer og kunst sammenlignes<br><span style="color:var(--gold);font-weight:700;">v6.0</span> — Ny scanner: fast sigtefelt + PaddleOCR<br><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
+                <div><span style="color:var(--gold);font-weight:700;">v6.5</span> — CSV-import forstår nu ManaBox, Moxfield m.fl. med billeder og priser + store samlinger fryser ikke længere<br><span style="color:var(--gold);font-weight:700;">v6.4</span> — Stabil multiplayer: værten styrer spillet, så en der forlader eller genforbinder ikke længere kan nulstille liv<br><span style="color:var(--gold);font-weight:700;">v6.3</span> — Appen tager nu selv et skarpt stillbillede, når kortet ligger klar<br><span style="color:var(--gold);font-weight:700;">v6.2</span> — Hurtigere og skarpere live-scanning (fuld opløsning i stedet for nedskaleret)<br><span style="color:var(--gold);font-weight:700;">v6.1</span> — Scanneren rammer nu også den rigtige udgave: sæt-kode, kortnummer og kunst sammenlignes<br><span style="color:var(--gold);font-weight:700;">v6.0</span> — Ny scanner: fast sigtefelt + PaddleOCR<br><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -5254,7 +5254,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '6.3';
+const APP_VERSION = '6.5';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
@@ -5569,8 +5569,14 @@ function adjLife(id,amt){doLife(id,amt);}
 function adjPoison(id,amt){const p=gamePlayers[id-1];const _b=p.poison;p.poison=Math.max(0,p.poison+amt);const _d=p.poison-_b;if(_d){_pushUndo({t:'poison',id,amt:_d});mpSendEvent({type:'adj',f:'poison',id,amt:_d});}checkDeath(p);renderBoard();showAccum(id,amt,'poison');}
 function adjTax(id,amt){const p=gamePlayers[id-1];const _b=p.tax;p.tax=Math.max(0,p.tax+amt);const _d=p.tax-_b;if(_d){_pushUndo({t:'tax',id,amt:_d});mpSendEvent({type:'adj',f:'tax',id,amt:_d});}renderBoard();showAccum(id,amt,'tax');}
 function adjCmd(tid,sid,amt){const p=gamePlayers[tid-1];const _b=p.cmdDmg[sid]||0;p.cmdDmg[sid]=Math.max(0,p.cmdDmg[sid]+amt);p.life-=amt;const _cd=p.cmdDmg[sid]-_b;_pushUndo({t:'cmd',id:tid,sid,cd:_cd,ld:-amt});mpSendEvent({type:'adj',f:'cmd',id:tid,sid,cd:_cd,ld:-amt});checkDeath(p);renderBoard();showAccum(tid,amt,'cmd');}
-function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.name=v;renderBoard();mpBroadcast();}
-function setColor(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.color=v;renderBoard();mpBroadcast();}
+function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.name=v;renderBoard();mpPushPlayer(id);}
+function setColor(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.color=v;renderBoard();mpPushPlayer(id);}
+// Værten broadcaster; klienter beder værten om at opdatere
+function mpPushPlayer(id){
+    const p=gamePlayers.find(x=>x.id===id); if(!p) return;
+    if (mpMode === 'host') mpBroadcast();
+    else mpSendEvent({ type:'setPlayer', id, name:p.name, color:p.color });
+}
 
 function renderBoard(){
     const board=document.getElementById('game-board');
@@ -6595,6 +6601,8 @@ function updateCollectionView(query = '') {
     }
 
     grid.innerHTML = '';
+    const totalMatches = filtered.length;
+    if (filtered.length > _colPageSize) filtered = filtered.slice(0, _colPageSize);
     filtered.forEach(item => {
         const lineTotal = item.price > 0 ? fmt(item.price * item.qty) : '–';
         const ck = item._colKey || item.id;
@@ -6622,7 +6630,21 @@ function updateCollectionView(query = '') {
             </div>`;
         grid.appendChild(el);
     });
+
+    // Vis flere-knap ved store samlinger
+    const oldMore = document.getElementById('col-show-more');
+    if (oldMore) oldMore.remove();
+    if (totalMatches > _colPageSize) {
+        const more = document.createElement('button');
+        more.id = 'col-show-more';
+        more.className = 'app-btn btn-dark';
+        more.style.cssText = 'grid-column:1/-1;margin-top:4px;';
+        more.innerHTML = `Vis flere (${_colPageSize} af ${totalMatches})`;
+        more.onclick = () => { _colPageSize += 120; updateCollectionView(document.getElementById('col-search').value); };
+        grid.appendChild(more);
+    }
 }
+let _colPageSize = 120;
 updateCollectionView();
 migrateCollectionData();
 
@@ -6698,45 +6720,176 @@ function setColPriceStatus(msg) {
     if (el) el.innerText = msg;
 }
 
+// ── CSV-import: forstår ManaBox, Moxfield, Deckbox, Delver Lens, Helvault m.fl. ──
+function _parseCSV(text) {
+    const rows = [];
+    let row = [], field = '', inQ = false;
+    text = text.replace(/^﻿/, '');
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQ) {
+            if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else inQ = false; }
+            else field += c;
+        } else if (c === '"') inQ = true;
+        else if (c === ',' || c === ';' || c === '\t') { row.push(field); field = ''; }
+        else if (c === '\n') { row.push(field); field = ''; if (row.some(x => x !== '')) rows.push(row); row = []; }
+        else if (c !== '\r') field += c;
+    }
+    row.push(field);
+    if (row.some(x => x !== '')) rows.push(row);
+    return rows;
+}
+
+function _csvColumns(header) {
+    const h = header.map(x => x.toLowerCase().trim().replace(/[_\s]+/g, ' '));
+    const find = (...names) => {
+        for (const n of names) { const i = h.indexOf(n); if (i >= 0) return i; }
+        for (const n of names) { const i = h.findIndex(x => x.includes(n)); if (i >= 0) return i; }
+        return -1;
+    };
+    return {
+        scryfallId: find('scryfall id', 'scryfall_id', 'id'),
+        name:       find('name', 'card name', 'card'),
+        setCode:    find('set code', 'setcode', 'edition code', 'set id'),
+        setName:    find('set name', 'set', 'edition'),
+        number:     find('collector number', 'card number', 'number', 'collectornumber'),
+        qty:        find('quantity', 'count', 'qty', 'amount', 'have'),
+        foil:       find('foil', 'printing', 'finish', 'is foil'),
+        condition:  find('condition', 'cond'),
+        language:   find('language', 'lang'),
+        price:      find('purchase price', 'price', 'value'),
+    };
+}
+
+function _importProgress(txt, pct) {
+    let el = document.getElementById('import-progress');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'import-progress';
+        el.style.cssText = 'position:fixed;inset:0;background:rgba(12,14,24,.94);z-index:9500;display:flex;'
+            + 'align-items:center;justify-content:center;padding:28px;';
+        el.innerHTML = `<div style="max-width:320px;width:100%;text-align:center;">
+            <div style="font-size:34px;margin-bottom:10px;">📥</div>
+            <div id="imp-txt" style="font-size:15px;font-weight:700;margin-bottom:14px;"></div>
+            <div style="height:8px;background:var(--bg-input);border-radius:6px;overflow:hidden;">
+                <div id="imp-bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--accent),#7a5fff);transition:width .2s;"></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:10px;">Luk ikke appen imens</div>
+        </div>`;
+        document.body.appendChild(el);
+    }
+    if (txt === null) { el.remove(); return; }
+    document.getElementById('imp-txt').innerHTML = txt;
+    if (pct != null) document.getElementById('imp-bar').style.width = Math.round(pct*100) + '%';
+}
+
 function importCollectionCSV(input) {
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => {
-        const lines = e.target.result.split('\n').map(l => l.trim()).filter(l => l);
-        // Skip header row
-        const dataLines = lines.slice(1);
-        let imported = 0, skipped = 0;
-        dataLines.forEach(line => {
-            // Parse CSV (handles quoted fields)
-            const cols = line.match(/(".*?"|[^,]+)(?=,|$)/g);
-            if (!cols || cols.length < 3) return;
-            const name  = cols[0].replace(/^"|"$/g,'').replace(/""/g,'"').trim();
-            const set   = cols[1].replace(/^"|"$/g,'').replace(/""/g,'"').trim();
-            const qty   = parseInt(cols[2]) || 1;
-            const price = parseFloat(cols[3]) || 0;
-            if (!name) { skipped++; return; }
-            // Use name as unique key for imported cards (no Scryfall id)
-            const key = name.toLowerCase() + '|' + set.toLowerCase();
-            const ex = collection.find(x => (x.name.toLowerCase()+'|'+(x.setName||x.set).toLowerCase()) === key);
-            if (ex) {
-                ex.qty += qty;
-            } else {
-                collection.push({
-                    id: 'import_' + Date.now() + '_' + imported,
-                    name, set: set.substring(0,4).toUpperCase(),
-                    setName: set, qty, price,
-                    img: '', addedAt: Date.now()
-                });
-            }
-            imported++;
-        });
-        saveCollection();
-        updateCollectionView();
-        input.value = '';
-        toast(`${imported} kort importeret!${skipped ? ' ' + skipped + ' sprunget over.' : ''}`);
-    };
+    reader.onload = e => { _runCsvImport(String(e.target.result)).finally(() => { input.value = ''; }); };
     reader.readAsText(file, 'UTF-8');
+}
+
+async function _runCsvImport(text) {
+    const rows = _parseCSV(text);
+    if (rows.length < 2) { toast('Filen ser tom ud', '#e74c3c'); return; }
+    const cols = _csvColumns(rows[0]);
+    if (cols.name < 0 && cols.scryfallId < 0) {
+        toast('Kunne ikke genkende kolonnerne i filen', '#e74c3c'); return;
+    }
+    _importProgress('Læser fil…', 0);
+    await new Promise(r => setTimeout(r, 30));
+
+    // Byg poster
+    const entries = [];
+    for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const get = k => (cols[k] >= 0 ? (r[cols[k]] || '').trim() : '');
+        const name = get('name');
+        const sid  = get('scryfallId');
+        if (!name && !sid) continue;
+        const foilRaw = get('foil').toLowerCase();
+        const foil = ['foil','true','yes','1','etched','normal foil'].includes(foilRaw) && foilRaw !== 'normal';
+        entries.push({
+            sid, name,
+            set: get('setCode').toUpperCase(),
+            setName: get('setName'),
+            num: get('number'),
+            qty: Math.max(1, parseInt(get('qty')) || 1),
+            foil,
+            condition: (get('condition') || 'NM').toUpperCase().slice(0, 3).replace('NEA','NM').replace('MIN','NM'),
+        });
+    }
+    if (!entries.length) { _importProgress(null); toast('Ingen kort fundet i filen', '#e74c3c'); return; }
+
+    // Hent kortdata fra Scryfall i portioner à 75
+    const BATCH = 75;
+    const byId = {}, byName = {};
+    let done = 0, failed = 0;
+    for (let i = 0; i < entries.length; i += BATCH) {
+        const batch = entries.slice(i, i + BATCH);
+        const ids = batch.map(e => {
+            if (e.sid) return { id: e.sid };
+            if (e.set && e.num) return { set: e.set.toLowerCase(), collector_number: e.num };
+            return { name: e.name };
+        });
+        try {
+            const r = await fetch('https://api.scryfall.com/cards/collection', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifiers: ids })
+            });
+            if (r.ok) {
+                const res = await r.json();
+                (res.data || []).forEach(c => {
+                    byId[c.id] = c;
+                    byName[c.name.toLowerCase()] = c;
+                    if (c.set && c.collector_number) byId[c.set + '/' + c.collector_number] = c;
+                });
+                failed += (res.not_found || []).length;
+            }
+        } catch(err) { failed += batch.length; }
+        done = Math.min(entries.length, i + BATCH);
+        _importProgress(`Henter kortdata…<br><b>${done}</b> af ${entries.length}`, done / entries.length * 0.9);
+        await new Promise(r => setTimeout(r, 90)); // respektér Scryfalls hastighedsgrænse
+    }
+
+    // Læg i samlingen
+    _importProgress('Gemmer i samlingen…', 0.95);
+    await new Promise(r => setTimeout(r, 30));
+    let added = 0, skipped = 0;
+    entries.forEach(e => {
+        const c = byId[e.sid] || byId[(e.set||'').toLowerCase() + '/' + e.num] || byName[(e.name||'').toLowerCase()];
+        if (!c) { skipped += e.qty; return; }
+        const p = c.prices || {};
+        let price = -1;
+        if (e.foil) { if (p.eur_foil) price = +p.eur_foil; else if (p.usd_foil) price = +p.usd_foil / rates.USD; }
+        if (price < 0) { if (p.eur) price = +p.eur; else if (p.usd) price = +p.usd / rates.USD; }
+        const key = e.foil ? c.id + '_foil' : c.id;
+        const ex = collection.find(x => (x._colKey || x.id) === key);
+        if (ex) { ex.qty += e.qty; }
+        else {
+            collection.push({
+                id: c.id, _colKey: key, name: c.name,
+                set: c.set.toUpperCase(), setName: c.set_name || c.set.toUpperCase(),
+                qty: e.qty, price, foil: e.foil,
+                condition: ['NM','LP','MP','HP','DMG'].includes(e.condition) ? e.condition : 'NM',
+                img:     c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || '',
+                thumb:   c.image_uris?.small  || c.card_faces?.[0]?.image_uris?.small  || '',
+                imgBack: c.card_faces?.[1]?.image_uris?.normal || '',
+                addedAt: Date.now(),
+                colorIdentity: c.color_identity || [], colors: c.colors || [],
+                typeLine: c.type_line || '', manaCost: c.mana_cost || '', cmc: c.cmc || 0,
+            });
+        }
+        added += e.qty;
+    });
+
+    saveCollection();
+    _colPageSize = 120;
+    updateCollectionView();
+    _importProgress(null);
+    toast(skipped ? `${added} kort importeret · ${skipped} ikke fundet` : `✅ ${added} kort importeret!`);
 }
 
 function openExportModal() {
@@ -8312,7 +8465,14 @@ function _mpConnect(code, role) {
         mpUpdateBtn();
         // Heartbeat: fortæl de andre at denne enhed stadig er her
         clearInterval(_mpHbIv);
-        _mpHbIv = setInterval(() => mpSendEvent({ type: 'hb' }), 10000);
+        _mpHbIv = setInterval(() => {
+            mpSendEvent({ type: 'hb' });
+            if (mpMode === 'host') mpBroadcast();          // fast synk, så intet driver fra hinanden
+            else if (_lastHostState && Date.now() - _lastHostState > 30000 && !_hostGoneWarned) {
+                _hostGoneWarned = true;
+                toast('⚠️ Ingen kontakt til værten — spillet fortsætter lokalt', '#e67e22');
+            }
+        }, 8000);
         clearInterval(_mpSweepIv);
         if (role === 'host') _mpSweepIv = setInterval(_mpSweepStaleClaims, 15000);
     });
@@ -8366,10 +8526,13 @@ function mpJoin() {
 
 function mpDisconnect() {
     // Frigiv min plads så andre kan tage den
-    if (mpMode !== 'local' && mpMyPlayer >= 0 && gamePlayers[mpMyPlayer]?.claimedBy === _mpClientId) {
-        gamePlayers[mpMyPlayer].claimedBy = null;
+    if (mpMode === 'host') {
+        if (mpMyPlayer >= 0 && gamePlayers[mpMyPlayer]) gamePlayers[mpMyPlayer].claimedBy = null;
         mpBroadcast();
+    } else if (mpMode === 'client') {
+        mpSendEvent({ type:'release' });
     }
+    _lastSeqSeen = -1;
     clearInterval(_mpHbIv); clearInterval(_mpSweepIv); _mpHbIv = _mpSweepIv = null;
     if (_mpClient) { try { _mpClient.end(true); } catch(e){} _mpClient = null; }
     mpMode = 'local'; _mpCode = ''; mpMyPlayer = -1;
@@ -8469,11 +8632,16 @@ function mpSendEvent(event) {
 }
 
 // ── Broadcast & modtag ────────────────────────
+let _stateSeq = 0, _lastSeqSeen = -1, _lastHostState = 0, _hostGoneWarned = false;
+
+// Kun værten må sende hele spiltilstanden. Klienter sender kun hændelser.
+// Det forhindrer at en der genforbinder overskriver alles liv.
 function mpBroadcast() {
-    if (mpMode === 'local' || _mpReceiving || !_mpClient?.connected) return;
+    if (mpMode !== 'host' || _mpReceiving || !_mpClient?.connected) return;
     const data = {
         players: JSON.parse(JSON.stringify(gamePlayers)),
         gameConfig: { playerCount: currentPC, format: gameFormat, startLife },
+        seq: ++_stateSeq,
         _sender: _mpClientId
     };
     try { _mpClient.publish('mtghelper/' + _mpCode + '/state', JSON.stringify(data), { qos: 0 }); } catch(e) {}
@@ -8595,6 +8763,8 @@ function mpConfirmSetup() {
         gamePlayers[mpMyPlayer].name  = name;
         gamePlayers[mpMyPlayer].color = _mpPickedColor;
     }
+    // Værten afgør og fordeler pladsen
+    mpSendEvent({ type:'claim', slot:_mpPickedSlot, name, color:_mpPickedColor });
     // Opdater "forbundet" panel til fremtidig modal-åbning
     document.getElementById('mp-client-status').textContent = `Du spiller som ${name} (Spiller ${mpMyPlayer + 1})`;
     _mpShowPanel('client');
@@ -8626,6 +8796,56 @@ function mpApplyState(data) {
         return;
     }
     if (data.type === 'hb') return;
+    // ── Værtens ansvar: pladser og spillerdata ──
+    if (data.type === 'claim') {
+        if (mpMode !== 'host') return;
+        const i = data.slot;
+        const p = gamePlayers[i];
+        if (!p) return;
+        if (p.claimedBy && p.claimedBy !== data._sender) {
+            // Optaget → giv den første ledige plads i stedet
+            const free = gamePlayers.findIndex((x, idx) => idx > 0 && !x.claimedBy);
+            if (free < 0) { mpSendEvent({ type:'claimDenied', to:data._sender }); return; }
+            gamePlayers[free].claimedBy = data._sender;
+            if (data.name)  gamePlayers[free].name  = data.name;
+            if (data.color) gamePlayers[free].color = data.color;
+            mpSendEvent({ type:'claimMoved', to:data._sender, slot:free });
+        } else {
+            p.claimedBy = data._sender;
+            if (data.name)  p.name  = data.name;
+            if (data.color) p.color = data.color;
+        }
+        renderBoard(); mpBroadcast();
+        return;
+    }
+    if (data.type === 'release') {
+        if (mpMode !== 'host') return;
+        gamePlayers.forEach(p => { if (p.claimedBy === data._sender) p.claimedBy = null; });
+        renderBoard(); mpBroadcast();
+        return;
+    }
+    if (data.type === 'setPlayer') {
+        if (mpMode !== 'host') return;
+        const p = gamePlayers.find(x => x.id === data.id);
+        if (p && (!p.claimedBy || p.claimedBy === data._sender)) {
+            if (data.name)  p.name  = data.name;
+            if (data.color) p.color = data.color;
+            renderBoard(); mpBroadcast();
+        }
+        return;
+    }
+    if (data.type === 'claimMoved' && data.to === _mpClientId) {
+        mpMyPlayer = data.slot;
+        toast(`Pladsen var optaget — du er nu Spiller ${data.slot + 1}`, '#e67e22');
+        _mpShowPanel('client'); closeMpModal(); renderBoard();
+        return;
+    }
+    if (data.type === 'claimDenied' && data.to === _mpClientId) {
+        mpMyPlayer = -1;
+        toast('Alle pladser er optaget', '#e74c3c');
+        mpPopulateClientSetup(gamePlayers.length); openMpModal();
+        return;
+    }
     if (data.type === 'adj') {
         const p = gamePlayers.find(x => x.id === data.id);
         if (!p) return;
@@ -8658,30 +8878,39 @@ function mpApplyState(data) {
         return;
     }
     if (!data.players) return;
+    // Ignorér gamle/forsinkede tilstande
+    if (typeof data.seq === 'number') {
+        if (data.seq <= _lastSeqSeen) return;
+        _lastSeqSeen = data.seq;
+    }
+    _lastHostState = Date.now(); _hostGoneWarned = false;
     _mpReceiving = true;
 
-    // Auto-start med host's konfiguration (altid for klienter — selv hvis lokalt spil kørte)
     if (data.gameConfig) {
         const { playerCount, format, startLife: sl } = data.gameConfig;
-        // Reinitialiser hvis konfigurationen ikke matcher det nuværende spil
-        if (gamePlayers.length !== playerCount || currentPC !== playerCount ||
-            gameFormat !== format ||
-            document.getElementById('view-play')?.classList.contains('setup-mode')) {
-            gameFormat = format; startLife = sl;
-            initGame(playerCount);
-            document.getElementById('view-play')?.classList.remove('setup-mode');
+        currentPC = playerCount; gameFormat = format; startLife = sl;
+        // Byg spillerlisten fra værtens data — uden at nulstille noget
+        if (gamePlayers.length !== data.players.length) {
+            gamePlayers = data.players.map(p => ({
+                id: p.id, name: p.name, color: p.color, life: p.life,
+                poison: p.poison || 0, tax: p.tax || 0, dead: !!p.dead,
+                cmdDmg: p.cmdDmg || {}, claimedBy: p.claimedBy || null
+            }));
+            playerDisplayOrder = [];
         }
+        document.getElementById('view-play')?.classList.remove('setup-mode');
+
         // Genoptag automatisk min gamle plads (samme enhed = samme gemte id)
         if (mpMyPlayer === -1) {
             const mine = gamePlayers.findIndex(pl => pl.claimedBy === _mpClientId);
-            if (mine > 0) {
+            if (mine >= 0) {
                 mpMyPlayer = mine;
                 const el = document.getElementById('mp-client-status');
                 if (el) el.textContent = `Du spiller som ${gamePlayers[mine].name} (Spiller ${mine + 1})`;
                 _mpShowPanel('client');
                 closeMpModal();
                 toast(`Velkommen tilbage — du er ${gamePlayers[mine].name}`);
-            } else {
+            } else if (mpMode === 'client') {
                 mpPopulateClientSetup(playerCount);
             }
         }
@@ -8722,28 +8951,6 @@ function mpApplyState(data) {
     pendingAccums.forEach(([pid, amt, type]) => showAccum(pid, amt, type));
     _mpReceiving = false;
 
-    // Pladskonflikt / mistet claim
-    if (mpMode === 'client' && mpMyPlayer >= 0 && gamePlayers[mpMyPlayer]) {
-        const cb = gamePlayers[mpMyPlayer].claimedBy;
-        if (!cb) {
-            // Min plads blev frigivet mens jeg var væk — tag den stille tilbage
-            gamePlayers[mpMyPlayer].claimedBy = _mpClientId;
-            mpBroadcast();
-        } else if (cb !== _mpClientId) {
-            const free = gamePlayers.findIndex((pl, idx) => idx > 0 && !pl.claimedBy);
-            if (free > 0) {
-                mpMyPlayer = free;
-                gamePlayers[free].claimedBy = _mpClientId;
-                toast(`Pladsen var optaget — du har fået Spiller ${free + 1}`, '#e67e22');
-                renderBoard(); mpBroadcast();
-            } else {
-                mpMyPlayer = -1;
-                toast('Din plads blev taget — vælg en ny', '#e74c3c');
-                mpPopulateClientSetup(gamePlayers.length);
-                openMpModal();
-            }
-        }
-    }
 }
 
 // ═══════════════════════════════════════════════
