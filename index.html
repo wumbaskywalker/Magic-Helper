@@ -1326,7 +1326,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v6.0</span> — Ny scanner: fast sigtefelt + PaddleOCR (langt bedre tekstgenkendelse)<br><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
+                <div><span style="color:var(--gold);font-weight:700;">v6.3</span> — Appen tager nu selv et skarpt stillbillede, når kortet ligger klar<br><span style="color:var(--gold);font-weight:700;">v6.2</span> — Hurtigere og skarpere live-scanning (fuld opløsning i stedet for nedskaleret)<br><span style="color:var(--gold);font-weight:700;">v6.1</span> — Scanneren rammer nu også den rigtige udgave: sæt-kode, kortnummer og kunst sammenlignes<br><span style="color:var(--gold);font-weight:700;">v6.0</span> — Ny scanner: fast sigtefelt + PaddleOCR<br><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -4173,8 +4173,8 @@ async function _scanSuccess(data, isAuto, artHash, exact) {
         batchAdd(card);
         const n = batchItems.reduce((s,x) => s + x.qty, 0);
         status.innerText = bigHit
-            ? `💰 ${card.name} — ${fmt(card.price)}! (${n} scannet)`
-            : `✅ ${card.name} tilføjet (${n} scannet)`;
+            ? `💰 ${card.name} (${(card.set||'').toUpperCase()}) — ${fmt(card.price)}! (${n} scannet)`
+            : `✅ ${card.name} (${(card.set||'').toUpperCase()}) tilføjet (${n} scannet)`;
         status.style.color = bigHit ? 'var(--gold-lt)' : 'var(--green)';
         return;
     }
@@ -4197,7 +4197,9 @@ async function _scanSuccess(data, isAuto, artHash, exact) {
         } else {
             currentCard = card;
             openScanColModal(card);
-            status.innerText = bigHit ? `💰 ${card.name} — ${fmt(card.price)}!` : `✅ ${card.name}`;
+            status.innerText = bigHit
+                ? `💰 ${card.name} (${(card.set||'').toUpperCase()}) — ${fmt(card.price)}!`
+                : `✅ ${card.name} (${(card.set||'').toUpperCase()})`;
             status.style.color = bigHit ? 'var(--gold-lt)' : 'var(--green)';
         }
     } else {
@@ -4370,18 +4372,20 @@ function _normalizeCardFromImage(img) {
 
     // 4) Beskær i fuld opløsning og normalisér til 500×700
     const sx = img.width/AW, sy = img.height/AH;
-    const out = _cv('pcard', CARD_W, CARD_H);
+    const outW = Math.min(1400, Math.max(CARD_W, Math.round((x1-x0)*sx)));
+    const out = _cv('pcard', outW, Math.round(outW*7/5));
     out.getContext('2d').drawImage(img,
-        x0*sx, y0*sy, (x1-x0)*sx, (y1-y0)*sy, 0, 0, CARD_W, CARD_H);
+        x0*sx, y0*sy, (x1-x0)*sx, (y1-y0)*sy, 0, 0, out.width, out.height);
     return out;
 }
 
 // Udsnit af det normaliserede kort (faste koordinater — vi ved hvor tingene sidder)
 function _cardRegion(card, rx, ry, rw, rh, scale, key) {
-    const w = Math.round(rw*CARD_W*scale), h = Math.round(rh*CARD_H*scale);
+    const CW = card.width, CH = card.height;   // brug kortets faktiske opløsning
+    const w = Math.max(8, Math.round(rw*CW*scale)), h = Math.max(8, Math.round(rh*CH*scale));
     const c = _cv(key, w, h);
     c.getContext('2d').drawImage(card,
-        rx*CARD_W, ry*CARD_H, rw*CARD_W, rh*CARD_H, 0, 0, w, h);
+        rx*CW, ry*CH, rw*CW, rh*CH, 0, 0, w, h);
     return c;
 }
 
@@ -4414,7 +4418,7 @@ async function handlePhotoFile(input) {
 
     const card = _normalizeCardFromImage(src);
     const pv = document.getElementById('photo-canvas');
-    pv.width = CARD_W; pv.height = CARD_H;
+    pv.width = card.width; pv.height = card.height;
     pv.getContext('2d').drawImage(card, 0, 0);
     _photoStep('✂️ Kort fundet og rettet op<br>🔎 Analyserer…');
 
@@ -4523,7 +4527,7 @@ async function readCardText(card) {
     localStorage.setItem('mtg_scan_reset', '2');
 })();
 let _autoTuned = false, _autoIv = null, _autoBusy = false;
-let _prevHash = null, _stableCount = 0, _lastDoneHash = null, _emptyFrames = 0;
+let _prevHash = null, _stableCount = 0, _lastDoneHash = null, _emptyFrames = 0, _liveFails = 0;
 
 function _setHint(txt, color) {
     const el = document.getElementById('scan-status');
@@ -4655,8 +4659,8 @@ function startAutoPilot() {
             _setHint('⏸ Kortet er scannet — læg det næste i rammen');
             return;
         }
-        // Ligger kortet stille?
-        if (_prevHash && _hamming(h, _prevHash) <= 6) _stableCount++;
+        // Ligger kortet stille? (én stabil måling er nok — kortet ligger i en holder)
+        if (_prevHash && _hamming(h, _prevHash) <= 8) _stableCount++;
         else _stableCount = 0;
         _prevHash = h;
 
@@ -4666,15 +4670,20 @@ function startAutoPilot() {
             try {
                 _setHint('🔎 Læser kortet…', 'var(--accent)');
                 const ok = await analyzeFromVideo(false);
-                if (ok) _lastDoneHash = _scanArtHash() || h;
-                else _setHint('👀 Kunne ikke læse — ret kortet ind i rammen, eller tryk “Scan nu”');
+                if (ok) { _lastDoneHash = _scanArtHash() || h; _liveFails = 0; }
+                else {
+                    _liveFails++;
+                    _setHint(_liveFails >= 2
+                        ? '📷 Svært at læse live — tryk “Tag billede i stedet” for et skarpt foto'
+                        : '👀 Kunne ikke læse — ret kortet ind i rammen…');
+                }
             } catch(e) {}
             document.getElementById('scan-overlay').classList.remove('locked');
             _autoBusy = false;
         } else {
             _setHint('👀 Hold kortet stille…');
         }
-    }, 750);
+    }, 420);
 }
 function stopAutoPilot() { clearInterval(_autoIv); _autoIv = null; _prevHash = null; _lastDoneHash = null; _stableCount = 0; }
 
@@ -4731,7 +4740,7 @@ function clearROI() {
 // Vælger selv metode: collector-linje → navn. Gamle kort opdages automatisk.
 async function analyzeCardCanvas(card, log) {
     const artHash = _dhashFromCanvas(_cardRegion(card, 0.06, 0.11, 0.88, 0.44, 1, 'part'));
-    let data = null;
+    let data = null, hintSet = '', hintNum = '';
 
     const items = await readCardText(card);
     if (!items.length) { log && log.push('⚠️ Ingen tekst fundet'); return { data: null, artHash }; }
@@ -4752,6 +4761,7 @@ async function analyzeCardCanvas(card, log) {
         const read = parsed.set.toUpperCase();
         const snapped = await _snapSetCode(read);
         parsed.set = snapped.toLowerCase();
+        hintSet = parsed.set; hintNum = parsed.num;
         log && log.push(`🔎 Kode <b>${snapped}</b> #${parsed.num}`);
         data = await _lookupCollector(parsed);
     } else if (log) {
@@ -4780,22 +4790,132 @@ async function analyzeCardCanvas(card, log) {
             } catch(e) {}
         }
     }
+    // Vælg den rigtige udgave ud fra kode, nummer og kunst
+    if (data) {
+        const before = data;
+        data = await _refinePrinting(data, { set: hintSet, num: hintNum, artHash });
+        if (log && data.id !== before.id)
+            log.push(`🖼 Udgave rettet til <b>${(data.set||'').toUpperCase()} #${data.collector_number}</b>`);
+    }
     return { data, artHash };
 }
+
+// ── VÆLG RIGTIG UDGAVE ──────────────────────────────────────────
+// Samme kort findes i mange tryk. Vi bruger alt vi læste: sæt-kode,
+// collector-nummer og selve kunsten, til at pege på det rigtige.
+async function _refinePrinting(data, hints) {
+    if (!data?.oracle_id) return data;
+    const setHint = (hints?.set || '').toLowerCase();
+    const numHint = (hints?.num || '').toLowerCase().replace(/^0+(?=\d)/, '');
+    const artHash = hints?.artHash;
+    if (!setHint && !numHint && !artHash) return data;
+
+    let prints = [];
+    try {
+        const r = await fetch(`https://api.scryfall.com/cards/search?q=oracle_id:${data.oracle_id}&unique=prints&order=released`);
+        if (!r.ok) return data;
+        prints = (await r.json()).data || [];
+    } catch(e) { return data; }
+    if (prints.length < 2) return data;
+
+    // Hurtig vej: sæt-kode + nummer passer præcist
+    if (setHint && numHint) {
+        const exact = prints.find(c => c.set === setHint &&
+            (c.collector_number || '').toLowerCase().replace(/^0+(?=\d)/, '') === numHint);
+        if (exact) return exact;
+    }
+
+    // Ellers: pointgiv hver udgave
+    const scored = prints.map(c => {
+        let score = 0;
+        const cn = (c.collector_number || '').toLowerCase().replace(/^0+(?=\d)/, '');
+        if (setHint && c.set === setHint) score += 60;
+        if (numHint && cn === numHint) score += 45;
+        return { c, score };
+    });
+    scored.sort((a, b) => b.score - a.score);
+
+    // Sammenlign kunsten på de bedste kandidater
+    if (artHash) {
+        const cands = scored.slice(0, 20);
+        const hashes = await Promise.all(cands.map(x =>
+            _artHashFromUrl(x.c.image_uris?.art_crop || x.c.card_faces?.[0]?.image_uris?.art_crop || '', true)));
+        hashes.forEach((h, i) => {
+            if (!h) return;
+            const dist = _hamming(artHash, h);      // 0 = identisk, 64 = intet til fælles
+            cands[i].score += Math.max(0, 40 - dist * 1.6);
+        });
+        cands.sort((a, b) => b.score - a.score);
+        if (cands[0] && cands[0].score > 0) return cands[0].c;
+    }
+    return scored[0].score > 0 ? scored[0].c : data;
+}
+
+// Tag et rigtigt stillbillede af kameraet UDEN brugerhandling.
+// ImageCapture.takePhoto() giver fuld sensoropløsning (Android/Chrome);
+// ellers bruges det nuværende videobillede, som allerede er i 4K.
+async function _grabStill() {
+    const video = document.getElementById('camera-stream');
+    const track = videoStream?.getVideoTracks?.()[0];
+    const vAspect = video.videoWidth / video.videoHeight;
+
+    if (track && typeof window.ImageCapture === 'function') {
+        try {
+            if (!_imgCap || _imgCapTrack !== track) { _imgCap = new ImageCapture(track); _imgCapTrack = track; }
+            const blob = await Promise.race([
+                _imgCap.takePhoto(),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1500))
+            ]);
+            const bmp = await createImageBitmap(blob);
+            // Brug kun fotoet hvis det har samme billedformat som forhåndsvisningen
+            if (Math.abs((bmp.width/bmp.height) - vAspect) / vAspect < 0.06 && bmp.width >= video.videoWidth) {
+                const c = _cv('still', bmp.width, bmp.height);
+                c.getContext('2d').drawImage(bmp, 0, 0);
+                bmp.close?.();
+                return c;
+            }
+            bmp.close?.();
+        } catch(e) { /* ikke understøttet (bl.a. iOS) — brug videobilledet */ }
+    }
+    const c = _cv('still', video.videoWidth, video.videoHeight);
+    c.getContext('2d').drawImage(video, 0, 0);
+    return c;
+}
+let _imgCap = null, _imgCapTrack = null;
 
 // Tag det skarpest mulige stillbillede af kortet fra videoen og analysér
 async function analyzeFromVideo(showPreview) {
     const video = document.getElementById('camera-stream');
     if (!videoStream || !video.videoWidth) return false;
     // Beskær præcis dét sigtefeltet dækker — brugeren har lagt kortet i rammen
-    const grab = _scanCropCanvas(0, 0, 1, 1, 2, 'grab');
+    // Tag et skarpt stillbillede og klip sigtefeltet ud af det
+    const still = await _grabStill();
+    const g = _vidGeom();
+    let grab = null;
+    if (still && g) {
+        const cc = document.getElementById('camera-container');
+        const br = document.getElementById('scan-overlay').getBoundingClientRect();
+        const cr = cc.getBoundingClientRect();
+        const a = _dispToVid((br.left-cr.left)/cr.width, (br.top-cr.top)/cr.height);
+        const b2 = _dispToVid((br.right-cr.left)/cr.width, (br.bottom-cr.top)/cr.height);
+        const x0 = Math.max(0, Math.min(1, a.x)) * still.width;
+        const y0 = Math.max(0, Math.min(1, a.y)) * still.height;
+        const x1 = Math.max(0, Math.min(1, b2.x)) * still.width;
+        const y1 = Math.max(0, Math.min(1, b2.y)) * still.height;
+        const w = Math.max(40, x1-x0), h = Math.max(40, y1-y0);
+        grab = _cv('grabc', Math.round(w), Math.round(h));
+        grab.getContext('2d').drawImage(still, x0, y0, w, h, 0, 0, grab.width, grab.height);
+    }
+    if (!grab) grab = _scanCropCanvas(0, 0, 1, 1, 2, 'grab');
     if (!grab) return false;
-    const card = _cv('cardn', CARD_W, CARD_H);
-    card.getContext('2d').drawImage(grab, 0, 0, CARD_W, CARD_H);
+    // Bevar opløsningen — bundteksten er kun ~1% af kortets højde
+    const cw = Math.min(1400, Math.max(CARD_W, grab.width));
+    const card = _cv('cardn', Math.round(cw), Math.round(cw * 7/5));
+    card.getContext('2d').drawImage(grab, 0, 0, card.width, card.height);
     if (showPreview) {
         document.getElementById('photo-preview').style.display = 'block';
         const pv = document.getElementById('photo-canvas');
-        pv.width = CARD_W; pv.height = CARD_H;
+        pv.width = card.width; pv.height = card.height;
         pv.getContext('2d').drawImage(card, 0, 0);
     }
     const log = [];
@@ -5134,7 +5254,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '6.0';
+const APP_VERSION = '6.3';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
