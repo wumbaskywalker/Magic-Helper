@@ -370,6 +370,21 @@
             border: 2px solid var(--gold); border-radius: 10px;
             box-shadow: 0 0 0 9999px rgba(0,0,0,.52); pointer-events: none;
         }
+        .aim-corner {
+            position: absolute; width: 26px; height: 26px;
+            border: 3px solid var(--gold-lt); pointer-events: none;
+        }
+        .aim-tl { top:-3px; left:-3px;  border-right:none; border-bottom:none; border-radius: 8px 0 0 0; }
+        .aim-tr { top:-3px; right:-3px; border-left:none;  border-bottom:none; border-radius: 0 8px 0 0; }
+        .aim-bl { bottom:-3px; left:-3px;  border-right:none; border-top:none; border-radius: 0 0 0 8px; }
+        .aim-br { bottom:-3px; right:-3px; border-left:none;  border-top:none; border-radius: 0 0 8px 0; }
+        #scan-overlay.locked { border-color: var(--green); }
+        #ocr-badge {
+            position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+            background:rgba(12,14,24,.72); border:1px solid rgba(255,255,255,.15);
+            border-radius:20px; padding:4px 12px; font-size:10px; font-weight:700;
+            color:var(--muted); z-index:6; white-space:nowrap; backdrop-filter:blur(6px);
+        }
         #collector-zone {
             position: absolute; left: 1%; bottom: 1%; width: 60%; height: 13%;
             border: 1.5px dashed rgba(232,197,106,.85); border-radius: 5px;
@@ -1311,7 +1326,7 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">SENESTE ÆNDRINGER</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
-                <div><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
+                <div><span style="color:var(--gold);font-weight:700;">v6.0</span> — Ny scanner: fast sigtefelt + PaddleOCR (langt bedre tekstgenkendelse)<br><span style="color:var(--gold);font-weight:700;">v5.5</span> — Rettet at kamerabilledet blev beskåret: rammen og tryk-kalibrering rammer nu rigtigt<br><span style="color:var(--gold);font-weight:700;">v5.4</span> — Ny kortgenkendelse der finder kortet frem for holderen<br><span style="color:var(--gold);font-weight:700;">v5.3</span> — Scanner nu i 4K og beskærer digitalt ind på kortet — virker uanset hvor stort kortet er i billedet<br><span style="color:var(--gold);font-weight:700;">v5.0</span> — Scanneren er nu helt automatisk: vælger selv kamera, zoom, ramme og metode, og scanner af sig selv når du lægger et kort frem<br><span style="color:var(--gold);font-weight:700;">v4.4</span> — Seneste søgninger vises på søgesiden · Vælg mellem telefonens kameraer og auto-zoom i scanneren</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.9</span> — Masse-scan venter nu på næste kort i stedet for at tælle det samme igen + tilstand til gamle kort</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.8</span> — Masse-scan: scan mange kort i træk til samling eller ønskeliste med live-liste og fortryd</div>
                 <div><span style="color:var(--gold);font-weight:700;">v3.7</span> — Zoom på kameraet, justerbar scan-ramme og auto-tilpasning til kortholder</div>
@@ -1493,7 +1508,7 @@
 
 <!-- ══ SCAN ══ -->
 <main id="view-scan" class="view-section">
-    <p class="scan-header" id="scan-headline">Læg et kort foran kameraet — appen finder det selv</p>
+    <p class="scan-header" id="scan-headline">Læg kortet i rammen — det scannes automatisk</p>
 
     <div class="scan-target-row">
         <button class="scan-target-btn active" id="scan-target-search" onclick="setScanTarget('search')">
@@ -1534,11 +1549,16 @@
         </div>
     </div>
 
-    <div id="camera-container" onclick="tapCalibrate(event)">
+    <div id="camera-container">
         <video id="camera-stream" autoplay playsinline muted></video>
-        <div id="scan-overlay"><div id="collector-zone"></div></div>
+        <div id="scan-overlay">
+            <div class="aim-corner aim-tl"></div><div class="aim-corner aim-tr"></div>
+            <div class="aim-corner aim-bl"></div><div class="aim-corner aim-br"></div>
+            <div id="collector-zone"></div>
+        </div>
         <div id="scan-line"></div>
-        <div id="scan-guide">Rammer den forkert? Tryk på kortet i billedet</div>
+        <div id="scan-guide">Fyld rammen ud med kortet — mørk baggrund virker bedst</div>
+        <div id="ocr-badge">Tekstlæser: standard</div>
         <button id="torch-btn" onclick="toggleTorch()" title="Lys"
             style="display:none;position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;
                    background:rgba(12,14,24,.6);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:17px;
@@ -1550,10 +1570,10 @@
         </div>
     </div>
 
-    <button class="app-btn btn-gold" onclick="event.stopPropagation();manualScanNow()">
+    <button class="app-btn btn-gold" onclick="manualScanNow()">
         <i class="fa-solid fa-camera-retro"></i> Scan nu
     </button>
-    <button class="scan-mini-btn" style="width:100%;margin-bottom:10px;" onclick="clearROI()">↺ Nulstil scanområde</button>
+    <button class="scan-mini-btn" style="width:100%;margin-bottom:10px;" onclick="photoScan()">📷 Tag billede i stedet (skarpest)</button>
     <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(this)">
 
     <div id="scan-status" style="text-align:center;margin-top:10px;font-weight:600;font-size:15px;min-height:22px;"></div>
@@ -4411,6 +4431,89 @@ async function handlePhotoFile(input) {
 }
 
 // ═══════════════════════════════════════════════
+//  TEKSTLÆSER — PaddleOCR (PP-OCRv6) med Tesseract som reserve
+//  Læser hele kortet i ét hug og giver tekstlinjer MED position,
+//  så navn og sæt/nummer kan plukkes ud fra hvor de står.
+// ═══════════════════════════════════════════════
+let _paddle = null, _paddleTried = false, _paddleLoading = null;
+
+function _ocrBadge(txt, color) {
+    const b = document.getElementById('ocr-badge');
+    if (b) { b.textContent = txt; if (color) b.style.color = color; }
+}
+
+async function getPaddle() {
+    if (_paddle) return _paddle;
+    if (_paddleTried) return null;
+    if (_paddleLoading) return _paddleLoading;
+    _paddleLoading = (async () => {
+        const urls = [
+            'https://esm.sh/ppu-paddle-ocr@6.4.3/web',
+            'https://esm.sh/ppu-paddle-ocr@6/web',
+            'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.3/web/index.js/+esm',
+        ];
+        for (const u of urls) {
+            try {
+                _ocrBadge('Henter forbedret tekstlæser…', 'var(--accent)');
+                const mod = await import(/* @vite-ignore */ u);
+                const svc = new mod.PaddleOcrService({
+                    recognition: { mainThreadYieldMs: 24 },
+                    debugging: { debug: false, verbose: false }
+                });
+                await svc.initialize();
+                _paddle = svc;
+                _ocrBadge('Tekstlæser: PaddleOCR ✓', 'var(--green)');
+                return svc;
+            } catch(e) { console.warn('PaddleOCR kunne ikke indlæses fra', u, e); }
+        }
+        _paddleTried = true;
+        _ocrBadge('Tekstlæser: standard');
+        return null;
+    })();
+    const r = await _paddleLoading;
+    _paddleLoading = null;
+    return r;
+}
+
+// Læs alt tekst på et kort-canvas → [{text, x, y, w, h, conf}] i 0..1-koordinater
+async function readCardText(card) {
+    const p = await getPaddle();
+    if (p) {
+        try {
+            const res = await p.recognize(card, { flatten: true });
+            const items = res.results || (res.lines || []).flat() || [];
+            return items.map(it => ({
+                text: (it.text || '').trim(),
+                x: it.box.x / card.width, y: it.box.y / card.height,
+                w: it.box.width / card.width, h: it.box.height / card.height,
+                conf: it.confidence ?? 1
+            })).filter(t => t.text);
+        } catch(e) { console.warn('PaddleOCR-fejl, bruger reserve:', e); }
+    }
+    // Reserve: Tesseract på de to vigtige zoner
+    const out = [];
+    try {
+        const w = await getOcrWorker();
+        await _setOcrParams(w, 'name');
+        const nm = _cardRegion(card, 0.05, 0.03, 0.90, 0.085, 3, 'pn');
+        preprocess(nm);
+        const r1 = await w.recognize(nm);
+        const t1 = (r1.data.text || '').trim().split('\n')[0] || '';
+        if (t1.trim()) out.push({ text: t1.trim(), x: .05, y: .04, w: .9, h: .08, conf: (r1.data.confidence||60)/100 });
+        await _setOcrParams(w, 'collector');
+        for (const z of [[0.03,0.925,0.55,0.055],[0.03,0.885,0.55,0.055]]) {
+            const rc = _cardRegion(card, z[0], z[1], z[2], z[3], 3, 'pz');
+            const dark = _meanLuma(rc) < 128;
+            const r2 = await w.recognize(_prepPolarity(rc, dark));
+            const t2 = (r2.data.text || '').trim();
+            if (t2) out.push({ text: t2, x: z[0], y: z[1], w: z[2], h: z[3], conf: (r2.data.confidence||60)/100 });
+        }
+        await _setOcrParams(w, 'name');
+    } catch(e) {}
+    return out;
+}
+
+// ═══════════════════════════════════════════════
 //  AUTOPILOT — appen vælger selv kamera, zoom, ramme og metode
 // ═══════════════════════════════════════════════
 // Engangsoprydning: gamle gemte zoom/ramme-værdier gav kraftig over-zoom
@@ -4520,32 +4623,9 @@ async function _zoomOut() {
 async function autoTune(force) {
     if (_autoTuned && !force) return;
     _autoTuned = true;
-    const badge = document.getElementById('auto-badge');
-    if (badge) badge.innerText = '⚙️ Indstiller kamera…';
-    try {
-        if (!localStorage.getItem('mtg_scan_camera') || force) await _pickBestCamera();
-        await _zoomOut();                       // start med fuldt synsfelt
-        await new Promise(r => setTimeout(r, 500));
-        // Kun hvis motivet er så tæt på at kortet ikke er helt med: gå til bredere linse
-        if (_frameOverflowing() && _detectCardBounds() === null) {
-            if (badge) badge.innerText = '⚙️ Skifter til vidvinkel…';
-            if (await _useWidestCamera()) await _zoomOut();
-        }
-        await new Promise(r => setTimeout(r, 300));
-        await autoZoomToCard();
-        const b = _detectCardBounds();
-        if (b && b.cardLike) {
-            const cc = document.getElementById('camera-container');
-            const wFromH = (b.h * cc.clientHeight * 5/7) / (cc.clientWidth || 1) * 100;
-            // 12% ekstra luft, så hele kortet med kanter altid er inde i rammen
-            const wPct = Math.min(94, Math.max(b.w*100, wFromH) * 1.12);
-            const topPct = Math.max(1, b.y0*100 - 4);
-            applyFrame(wPct, topPct);
-        } else {
-            applyFrame(80); // standard: rigelig plads
-        }
-    } catch(e) {}
-    if (badge) badge.innerText = '⚙️ Automatisk';
+    await _zoomOut();                 // ingen kunstig zoom — brugeren sigter selv
+    applyFrame(76);                   // fast 5:7-sigtefelt midt i billedet
+    getPaddle().catch(()=>{});        // hent den gode tekstlæser i baggrunden
 }
 
 // Overvåger billedet: er der lagt et nyt kort frem, og ligger det stille?
@@ -4558,47 +4638,43 @@ function startAutoPilot() {
         const h = _scanArtHash();
         if (!h) return;
 
-        // Er billedet "tomt" (ingen kort)? — så nulstil, klar til næste
-        const b = _detectCardBounds();
-        // Et kort behøver ikke fylde rammen — vi beskærer digitalt ved analysen
-        if (b && (b.y1 > 0.985 || b.x1 > 0.985 || b.y0 < 0.015 || b.x0 < 0.015)) {
-            _setHint('↕️ Hele kortet er ikke med i billedet — flyt telefonen lidt tilbage');
-        }
-        const hasCard = b && b.h > 0.12 && b.w > 0.08;
-        if (!hasCard) {
-            if (++_emptyFrames >= 2) { _lastDoneHash = null; _stableCount = 0; }
+        // Er der overhovedet noget i rammen? (ensfarvet flade = tomt)
+        const busy = _sharpness();
+        if (busy < 3.5) {
+            _emptyFrames++;
+            if (_emptyFrames >= 2) { _lastDoneHash = null; _stableCount = 0; }
             _prevHash = null;
+            document.getElementById('scan-overlay').classList.remove('locked');
+            _setHint('Læg et kort i rammen');
             return;
         }
         _emptyFrames = 0;
 
-        // Samme kort som sidst scannet? Vent på et nyt
+        // Samme kort som sidst? Vent på et nyt
         if (_lastDoneHash && _hamming(h, _lastDoneHash) <= 12) {
-            _setHint('⏸ Kortet er scannet — læg det næste frem');
+            _setHint('⏸ Kortet er scannet — læg det næste i rammen');
             return;
         }
-        // Ligger kortet stille? (to ens billeder i træk)
+        // Ligger kortet stille?
         if (_prevHash && _hamming(h, _prevHash) <= 6) _stableCount++;
         else _stableCount = 0;
         _prevHash = h;
 
-        // Vis rammen dér hvor kortet faktisk er (omregnet til skærmen)
-        if (!_stickyROI && b && b.cardLike) _drawROI(b);
-
         if (_stableCount >= 1) {
-            _autoBusy = true;
-            _stableCount = 0;
+            _autoBusy = true; _stableCount = 0;
+            document.getElementById('scan-overlay').classList.add('locked');
             try {
-                _setHint('🔎 Scanner kortet…', 'var(--accent)');
-                const ok = await analyzeFromVideo();
-                if (ok) { _lastDoneHash = _scanArtHash() || h; }
-                else _setHint('👀 Kan ikke læse kortet — flyt det lidt, eller tryk “Scan nu”');
+                _setHint('🔎 Læser kortet…', 'var(--accent)');
+                const ok = await analyzeFromVideo(false);
+                if (ok) _lastDoneHash = _scanArtHash() || h;
+                else _setHint('👀 Kunne ikke læse — ret kortet ind i rammen, eller tryk “Scan nu”');
             } catch(e) {}
+            document.getElementById('scan-overlay').classList.remove('locked');
             _autoBusy = false;
         } else {
-            _setHint('👀 Kort fundet — hold det stille…');
+            _setHint('👀 Hold kortet stille…');
         }
-    }, 700);
+    }, 750);
 }
 function stopAutoPilot() { clearInterval(_autoIv); _autoIv = null; _prevHash = null; _lastDoneHash = null; _stableCount = 0; }
 
@@ -4654,73 +4730,55 @@ function clearROI() {
 // ── Fælles analyse af ét kort-canvas (bruges af både live og foto) ──
 // Vælger selv metode: collector-linje → navn. Gamle kort opdages automatisk.
 async function analyzeCardCanvas(card, log) {
-    let data = null, w = null, rawCollector = '';
     const artHash = _dhashFromCanvas(_cardRegion(card, 0.06, 0.11, 0.88, 0.44, 1, 'part'));
-    try {
-        w = await getOcrWorker();
-        _ocrBusy = true;
-        // 1) Collector-linjen i faste zoner på det opretede kort
-        await _setOcrParams(w, 'collector');
-        const ZONES = [
-            [0.03, 0.925, 0.55, 0.055],
-            [0.03, 0.885, 0.55, 0.055],
-            [0.03, 0.945, 0.95, 0.048],
-            [0.03, 0.900, 0.95, 0.090],
-        ];
-        let parsed = null;
-        outer:
-        for (const z of ZONES) {
-            const rc = _cardRegion(card, z[0], z[1], z[2], z[3], 3, 'pz');
-            const dark = _meanLuma(rc) < 128;
-            for (const inv of (dark ? [true, false] : [false, true])) {
-                const r = await w.recognize(_prepPolarity(rc, inv));
-                const txt = (r.data.text || '').toUpperCase();
-                const p = _parseCollector(txt);
-                if (p) { parsed = p; rawCollector = txt; break outer; }
-                if (txt.replace(/[^A-Z0-9]/g,'').length > rawCollector.replace(/[^A-Z0-9]/g,'').length) rawCollector = txt;
-            }
-        }
-        if (parsed) {
-            const read = parsed.set.toUpperCase();
-            const snapped = await _snapSetCode(read);
-            parsed.set = snapped.toLowerCase();
-            log && log.push(`🔎 Kode <b>${snapped}</b> #${parsed.num}`);
-            data = await _lookupCollector(parsed);
-        } else {
-            log && log.push('🕰 Ingen sæt-kode (ældre kort) — bruger navnet');
-        }
+    let data = null;
 
-        // 2) Navnet: som kontrol af koden, ellers som metode
-        await _setOcrParams(w, 'name');
-        for (const ny of [0.035, 0.055]) { // moderne og ældre rammer
-            const nameCv = _cardRegion(card, 0.05, ny, 0.90, 0.075, 3, 'pn');
-            preprocess(nameCv);
-            const nr = await w.recognize(nameCv);
-            let nameTxt = (nr.data.text || '').trim().split('\n')[0] || '';
-            nameTxt = nameTxt.replace(/[^a-zA-Z0-9 '\-,]/g, '').replace(/\s+/g, ' ').trim();
-            if (nameTxt.replace(/[^a-zA-Z]/g,'').length < 3) continue;
+    const items = await readCardText(card);
+    if (!items.length) { log && log.push('⚠️ Ingen tekst fundet'); return { data: null, artHash }; }
 
-            if (data) {
-                const sim = _nameSim(nameTxt, data.name.split('//')[0].trim());
-                const artistOk = _artistMatch(rawCollector, data.artist || data.card_faces?.[0]?.artist || '');
-                if (sim >= 0.30 || artistOk) { log && log.push(`✅ ${data.name}`); break; }
-                log && log.push(`↪️ Navnet passer ikke — bruger “${nameTxt}”`);
-                data = null;
-            }
-            const best = await resolveCardScored([nameTxt]);
-            if (best && best.sim >= 0.35) {
-                log && log.push(`🎯 <b>${best.name}</b> (${Math.round(best.sim*100)}%)`);
-                try {
-                    const r2 = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(best.name)}`);
-                    if (r2.ok) data = await r2.json();
-                } catch(e) {}
-                if (data) break;
-            }
+    // Navn: øverste tekstlinje i kortets titelfelt
+    const nameCands = items
+        .filter(t => t.y < 0.16 && t.text.replace(/[^A-Za-z]/g,'').length >= 3)
+        .sort((a,b) => (a.y - b.y) || (b.w - a.w));
+    const nameTxt = nameCands.length
+        ? nameCands[0].text.replace(/[^a-zA-Z0-9 ',\-\/]/g,'').replace(/\s+/g,' ').trim() : '';
+
+    // Bundtekst: alt i nederste del — indeholder sæt, nummer og kunstner
+    const bottom = items.filter(t => t.y > 0.86);
+    const bottomTxt = bottom.map(t => t.text).join(' ').toUpperCase();
+    const parsed = _parseCollector(bottom.map(t => t.text.toUpperCase()).join('\n')) || _parseCollector(bottomTxt);
+
+    if (parsed) {
+        const read = parsed.set.toUpperCase();
+        const snapped = await _snapSetCode(read);
+        parsed.set = snapped.toLowerCase();
+        log && log.push(`🔎 Kode <b>${snapped}</b> #${parsed.num}`);
+        data = await _lookupCollector(parsed);
+    } else if (log) {
+        log.push('🕰 Ingen sæt-kode (ældre kort) — bruger navnet');
+    }
+
+    // Krydstjek koden mod navnet / kunstneren
+    if (data && nameTxt) {
+        const sim = _nameSim(nameTxt, data.name.split('//')[0].trim());
+        const artistOk = _artistMatch(bottomTxt, data.artist || data.card_faces?.[0]?.artist || '');
+        if (sim < 0.30 && !artistOk) {
+            log && log.push(`↪️ Navnet “${nameTxt}” passer ikke — bruger navnet i stedet`);
+            data = null;
+        } else if (log) log.push(`✅ ${data.name}`);
+    }
+
+    // Navnesøgning som metode, hvis koden ikke gav noget
+    if (!data && nameTxt) {
+        log && log.push(`🔤 Læste navn: <b>${nameTxt}</b>`);
+        const best = await resolveCardScored([nameTxt]);
+        if (best && best.sim >= 0.35) {
+            log && log.push(`🎯 <b>${best.name}</b> (${Math.round(best.sim*100)}%)`);
+            try {
+                const r2 = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(best.name)}`);
+                if (r2.ok) data = await r2.json();
+            } catch(e) {}
         }
-    } catch(e) {
-    } finally {
-        _ocrBusy = false;
-        try { if (w) await _setOcrParams(w, 'name'); } catch(e) {}
     }
     return { data, artHash };
 }
@@ -4729,28 +4787,11 @@ async function analyzeCardCanvas(card, log) {
 async function analyzeFromVideo(showPreview) {
     const video = document.getElementById('camera-stream');
     if (!videoStream || !video.videoWidth) return false;
-    const VW = video.videoWidth, VH = video.videoHeight;
-
-    // Find kortet i billedet og beskær DIGITALT i fuld opløsning omkring det.
-    // Det er bedre end at zoome optisk: vi bevarer alle pixels og rammer altid rigtigt.
-    let b = _stickyROI || _detectCardBounds();   // låst område har forrang
-    if (!b || !b.cardLike) b = _detectCardBounds() || _stickyROI;
-    const grab = _cv('grab', VW, VH);
-    const gctx = grab.getContext('2d');
-    if (b && b.cardLike !== false && b.h > 0.08) {
-        const pad = 0.10;                        // lidt luft, så kanterne er med
-        const x0 = Math.max(0, (b.x0 - pad*b.w) * VW);
-        const y0 = Math.max(0, (b.y0 - pad*b.h) * VH);
-        const x1 = Math.min(VW, (b.x1 + pad*b.w) * VW);
-        const y1 = Math.min(VH, (b.y1 + pad*b.h) * VH);
-        const cw = Math.max(40, x1-x0), ch = Math.max(40, y1-y0);
-        grab.width = Math.round(cw); grab.height = Math.round(ch);
-        gctx.drawImage(video, x0, y0, cw, ch, 0, 0, grab.width, grab.height);
-    } else {
-        grab.width = VW; grab.height = VH;
-        gctx.drawImage(video, 0, 0);
-    }
-    const card = _normalizeCardFromImage(grab);
+    // Beskær præcis dét sigtefeltet dækker — brugeren har lagt kortet i rammen
+    const grab = _scanCropCanvas(0, 0, 1, 1, 2, 'grab');
+    if (!grab) return false;
+    const card = _cv('cardn', CARD_W, CARD_H);
+    card.getContext('2d').drawImage(grab, 0, 0, CARD_W, CARD_H);
     if (showPreview) {
         document.getElementById('photo-preview').style.display = 'block';
         const pv = document.getElementById('photo-canvas');
@@ -5093,7 +5134,7 @@ async function importWishList() {
     toast(`${addedQty} kort tilføjet til ønskelisten!`);
 }
 
-const APP_VERSION = '5.5';
+const APP_VERSION = '6.0';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
