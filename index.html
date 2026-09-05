@@ -2089,6 +2089,651 @@ input:checked + .toggle-slider { border-color: rgba(127,184,201,.45); background
     to { transform: none; opacity: 1; }
 }
 
+/* Rules Library 2.0 */
+#rules-panel { padding-bottom: 28px; }
+.rules-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: 54px minmax(0,1fr);
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 13px;
+    padding: 17px;
+    overflow: hidden;
+    border: 1px solid rgba(242,214,147,.16);
+    border-radius: 22px;
+    background:
+        radial-gradient(circle at 92% 0%, rgba(199,167,104,.14), transparent 36%),
+        radial-gradient(circle at 8% 100%, rgba(73,145,139,.14), transparent 42%),
+        linear-gradient(145deg, rgba(29,36,44,.9), rgba(13,18,24,.94));
+    box-shadow: inset 0 1px rgba(255,255,255,.05), 0 14px 32px rgba(0,0,0,.2);
+}
+.rules-hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,228,158,.72), transparent);
+}
+.rules-hero-icon {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    border: 1px solid rgba(126,204,195,.24);
+    border-radius: 17px;
+    color: #b9eee6;
+    font-size: 20px;
+    background: linear-gradient(145deg, rgba(65,137,133,.32), rgba(30,59,67,.3));
+    box-shadow: inset 0 1px rgba(255,255,255,.08), 0 8px 24px rgba(50,124,119,.12);
+}
+.rules-hero-kicker {
+    margin-bottom: 3px;
+    color: #bca971;
+    font-size: 8px;
+    font-weight: 850;
+    letter-spacing: .22em;
+}
+.rules-hero h2 {
+    margin: 0 0 3px;
+    color: #fff7e6;
+    font: 700 25px/1 'Goudy Arcane', Georgia, serif;
+}
+.rules-hero p { margin: 0; color: #8f99a2; font-size: 11px; line-height: 1.45; }
+.rules-search-shell {
+    display: grid;
+    grid-template-columns: 19px minmax(0,1fr) 34px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 0 9px 0 14px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 17px;
+    background: rgba(7,11,15,.62);
+    box-shadow: inset 0 1px rgba(255,255,255,.035);
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+.rules-search-shell:focus-within {
+    border-color: rgba(115,201,192,.5);
+    box-shadow: 0 0 0 4px rgba(77,167,158,.09), inset 0 1px rgba(255,255,255,.045);
+}
+.rules-search-shell > i { color: #71968f; font-size: 13px; }
+.rules-search-shell input {
+    width: 100%;
+    height: 47px;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #f4f2ea;
+    font-size: 13px;
+}
+.rules-search-shell button {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    color: #79838c;
+    background: rgba(255,255,255,.045);
+    cursor: pointer;
+}
+.rules-quick-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 15px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.rules-quick-row::-webkit-scrollbar { display: none; }
+.rules-quick-row > span {
+    flex: 0 0 auto;
+    margin-right: 2px;
+    color: #6f7b83;
+    font-size: 7px;
+    font-weight: 850;
+    letter-spacing: .16em;
+}
+.rules-quick-row button {
+    flex: 0 0 auto;
+    padding: 6px 9px;
+    border: 1px solid rgba(255,255,255,.085);
+    border-radius: 999px;
+    color: #aeb6bc;
+    font-size: 9px;
+    background: rgba(255,255,255,.035);
+    cursor: pointer;
+}
+.rules-quick-row button:hover { color: #fff1c7; border-color: rgba(242,214,147,.27); }
+.rules-home-heading,
+.rules-result-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 4px 2px 9px;
+    color: #a8b0b6;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.rules-home-heading b,
+.rules-result-heading b {
+    padding: 4px 7px;
+    border-radius: 999px;
+    color: #7dcfc5;
+    font-size: 8px;
+    background: rgba(84,170,160,.09);
+}
+.rules-category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 8px;
+}
+.rules-category-grid button {
+    display: grid;
+    grid-template-columns: 34px minmax(0,1fr) 12px;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 11px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 15px;
+    color: #d9ddd9;
+    text-align: left;
+    background: linear-gradient(145deg, rgba(30,37,45,.78), rgba(17,22,28,.84));
+    cursor: pointer;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+.rules-category-grid button:hover {
+    transform: translateY(-2px);
+    border-color: rgba(127,201,193,.27);
+    background: linear-gradient(145deg, rgba(36,48,55,.86), rgba(18,25,31,.9));
+}
+.rules-category-grid button > i:first-child {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    color: #9bdcd4;
+    background: rgba(72,151,143,.12);
+}
+.rules-category-grid button > i:last-child { color: #5f6970; font-size: 8px; }
+.rules-category-grid span { min-width: 0; display: flex; flex-direction: column; }
+.rules-category-grid strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.rules-category-grid small { margin-top: 2px; color: #737e86; font-size: 8px; }
+.rules-source-note {
+    display: flex;
+    gap: 8px;
+    margin-top: 11px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,.055);
+    border-radius: 13px;
+    color: #737d85;
+    font-size: 9px;
+    line-height: 1.45;
+    background: rgba(255,255,255,.02);
+}
+.rules-source-note i { margin-top: 2px; color: #a38e5a; }
+.rules-library-list { display: grid; gap: 8px; }
+.rules-library-card.rules-result {
+    position: relative;
+    margin: 0;
+    padding: 13px 14px 14px;
+    border-color: rgba(255,255,255,.08);
+    border-radius: 16px;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(199,167,104,.07), transparent 32%),
+        linear-gradient(145deg, rgba(28,35,43,.82), rgba(15,20,26,.88));
+    box-shadow: inset 0 1px rgba(255,255,255,.035);
+}
+.rules-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.rules-category-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #7fcfc5;
+    font-size: 7px;
+    font-weight: 850;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+.rules-copy-btn {
+    width: 27px;
+    height: 27px;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 9px;
+    color: #727d84;
+    background: rgba(255,255,255,.025);
+    cursor: pointer;
+}
+.rules-library-card .rules-keyword {
+    margin-bottom: 5px;
+    color: #fff0c8;
+    font: 700 18px/1.12 'Goudy Arcane', Georgia, serif;
+}
+.rules-library-card .rules-text { color: #b5bbc0; font-size: 11px; line-height: 1.55; }
+.rules-searching,
+.rules-empty-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 30px 20px;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 18px;
+    color: #78838b;
+    text-align: center;
+    background: rgba(255,255,255,.025);
+}
+.rules-searching i,
+.rules-empty-card > i { margin-bottom: 3px; color: #75cabe; font-size: 20px; }
+.rules-searching strong,
+.rules-empty-card strong { color: #d9ddd8; font-size: 13px; }
+.rules-searching span,
+.rules-empty-card span { max-width: 34ch; font-size: 10px; line-height: 1.5; }
+.rules-card-result-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    background: rgba(255,255,255,.03);
+}
+.rules-card-result-head img { width: 47px; height: 66px; border-radius: 6px; object-fit: cover; }
+.rules-card-result-head div { display: flex; flex-direction: column; min-width: 0; }
+.rules-card-result-head span { color: #75cabe; font-size: 7px; font-weight: 850; letter-spacing: .15em; }
+.rules-card-result-head strong { margin-top: 3px; color: #f4f0e5; font-size: 14px; }
+.rules-card-result-head small { margin-top: 3px; color: #748089; font-size: 9px; }
+#rules-results .rules-ruling {
+    margin: 0 0 8px;
+    padding: 11px 12px;
+    border: 1px solid rgba(255,255,255,.07);
+    border-left: 3px solid #569e95;
+    border-radius: 0 13px 13px 0;
+    color: #b5bbc0;
+    font-size: 10px;
+    background: rgba(255,255,255,.022);
+}
+
+/* Card Interaction */
+.rules-tool-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    margin: 0 0 13px;
+    padding: 4px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    background: rgba(5,9,13,.68);
+    box-shadow: inset 0 1px rgba(255,255,255,.03);
+}
+.rules-tool-switch button {
+    min-height: 42px;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 12px;
+    color: #77828a;
+    font-size: 10px;
+    font-weight: 820;
+    background: transparent;
+    cursor: pointer;
+    transition: color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.rules-tool-switch button i { margin-right: 6px; }
+.rules-tool-switch button:hover { color: #d8dedc; }
+.rules-tool-switch button.active {
+    color: #fff3cf;
+    background: linear-gradient(145deg, rgba(91,113,114,.38), rgba(45,56,62,.52));
+    box-shadow: inset 0 1px rgba(255,255,255,.08), 0 5px 16px rgba(0,0,0,.18);
+}
+#rules-library-view[hidden],
+#rules-interaction-view[hidden] { display: none !important; }
+.interaction-intro {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(111,198,188,.12);
+    border-radius: 14px;
+    background: linear-gradient(90deg, rgba(50,126,119,.1), rgba(255,255,255,.018));
+}
+.interaction-live-dot {
+    position: relative;
+    flex: 0 0 auto;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #76d5c9;
+    box-shadow: 0 0 13px rgba(118,213,201,.62);
+}
+.interaction-live-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 1px solid rgba(118,213,201,.3);
+    border-radius: 50%;
+    animation: interaction-pulse 2s ease-out infinite;
+}
+@keyframes interaction-pulse { 70%,100% { transform: scale(1.55); opacity: 0; } }
+.interaction-intro div { display: flex; flex-direction: column; min-width: 0; }
+.interaction-intro strong { color: #dfe7e4; font-size: 10px; }
+.interaction-intro small { margin-top: 2px; color: #77858b; font-size: 8px; line-height: 1.35; }
+.interaction-pickers {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 32px minmax(0,1fr);
+    align-items: stretch;
+    gap: 7px;
+}
+.interaction-picker {
+    position: relative;
+    min-width: 0;
+    padding: 11px;
+    border: 1px solid rgba(255,255,255,.085);
+    border-radius: 17px;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(190,158,92,.075), transparent 40%),
+        linear-gradient(145deg, rgba(27,34,42,.83), rgba(12,17,22,.9));
+    box-shadow: inset 0 1px rgba(255,255,255,.035);
+    transition: border-color .22s ease, box-shadow .22s ease;
+}
+.interaction-picker:focus-within {
+    border-color: rgba(111,201,190,.38);
+    box-shadow: 0 0 0 3px rgba(75,162,153,.07), inset 0 1px rgba(255,255,255,.04);
+}
+.interaction-picker.has-card { border-color: rgba(211,183,117,.22); }
+.interaction-picker-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 25px;
+    margin-bottom: 7px;
+}
+.interaction-picker-label span { color: #a79362; font-size: 7px; font-weight: 900; letter-spacing: .18em; }
+.interaction-picker-label button {
+    display: grid;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 8px;
+    color: #6e7980;
+    background: rgba(255,255,255,.025);
+    cursor: pointer;
+}
+.interaction-picker:not(.has-card) .interaction-picker-label button { visibility: hidden; }
+.interaction-search {
+    display: grid;
+    grid-template-columns: 15px minmax(0,1fr);
+    align-items: center;
+    gap: 7px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 12px;
+    background: rgba(4,8,12,.52);
+}
+.interaction-search > i { color: #668b86; font-size: 10px; }
+.interaction-search input {
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    outline: 0 !important;
+    color: #ecf0ec;
+    font-size: 10px;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+.interaction-search input::placeholder { color: #5f6970; }
+.interaction-suggestions {
+    position: absolute;
+    z-index: 30;
+    top: 88px;
+    right: 11px;
+    left: 11px;
+    overflow: hidden;
+    border: 1px solid rgba(147,208,200,.2);
+    border-radius: 13px;
+    background: rgba(12,18,24,.985);
+    box-shadow: 0 18px 40px rgba(0,0,0,.58), inset 0 1px rgba(255,255,255,.05);
+}
+.interaction-suggestions:empty { display: none; }
+.interaction-suggestions button {
+    display: grid;
+    grid-template-columns: 17px minmax(0,1fr) 9px;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    padding: 10px;
+    border: 0;
+    border-bottom: 1px solid rgba(255,255,255,.055);
+    color: #cfd6d3;
+    text-align: left;
+    background: transparent;
+    cursor: pointer;
+}
+.interaction-suggestions button:last-child { border-bottom: 0; }
+.interaction-suggestions button:hover { color: #fff1c9; background: rgba(102,177,169,.1); }
+.interaction-suggestions button i:first-child { color: #76bfb7; font-size: 9px; }
+.interaction-suggestions button i:last-child { color: #5e686f; font-size: 7px; }
+.interaction-suggestions button span { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.interaction-suggestion-state { padding: 11px; color: #79858c; font-size: 9px; text-align: center; }
+.interaction-suggestion-state i { margin-right: 5px; }
+.interaction-suggestion-state.error { color: #d9958d; }
+.interaction-selected {
+    display: grid;
+    grid-template-columns: 49px minmax(0,1fr);
+    gap: 9px;
+    margin-top: 9px;
+}
+.interaction-selected:empty {
+    display: grid;
+    place-items: center;
+    min-height: 68px;
+    border: 1px dashed rgba(255,255,255,.065);
+    border-radius: 12px;
+}
+.interaction-selected:empty::before { content: 'No card selected'; color: #556068; font-size: 8px; }
+.interaction-selected img,
+.interaction-card-placeholder {
+    width: 49px;
+    height: 68px;
+    border-radius: 6px;
+    object-fit: cover;
+    box-shadow: 0 7px 15px rgba(0,0,0,.36);
+}
+.interaction-card-placeholder { display: grid; place-items: center; color: #69747a; background: #1d252c; }
+.interaction-selected-copy { display: flex; flex-direction: column; min-width: 0; padding-top: 1px; }
+.interaction-selected-copy strong { overflow: hidden; color: #f6edd7; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.interaction-selected-copy > span { margin: 2px 0; color: #bca96f; font-size: 7px; }
+.interaction-selected-copy small { overflow: hidden; color: #77828a; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
+.interaction-selected-copy p {
+    display: -webkit-box;
+    margin: 5px 0 0;
+    overflow: hidden;
+    color: #929ca1;
+    font-size: 7px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+.interaction-swap {
+    align-self: center;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid rgba(229,202,137,.18);
+    border-radius: 11px;
+    color: #b8a66f;
+    background: rgba(39,44,47,.82);
+    box-shadow: inset 0 1px rgba(255,255,255,.05);
+    cursor: pointer;
+    transition: transform .2s ease, color .2s ease;
+}
+.interaction-swap:hover { transform: rotate(180deg); color: #fff0c0; }
+.interaction-analyse {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 47px;
+    margin-top: 10px;
+    border: 1px solid rgba(146,220,211,.32);
+    border-radius: 15px;
+    color: #f4fffd;
+    font-size: 11px;
+    font-weight: 850;
+    background:
+        radial-gradient(circle at 30% 0%, rgba(167,238,229,.2), transparent 45%),
+        linear-gradient(135deg, #397d78, #315c69);
+    box-shadow: 0 10px 25px rgba(30,103,99,.2), inset 0 1px rgba(255,255,255,.13);
+    cursor: pointer;
+}
+.interaction-analyse:disabled { color: #606b70; border-color: rgba(255,255,255,.06); background: #161c21; box-shadow: none; cursor: default; }
+.interaction-analyse.loading i { animation: interaction-wand 1.1s ease-in-out infinite; }
+@keyframes interaction-wand { 50% { transform: rotate(12deg) scale(1.12); filter: drop-shadow(0 0 6px #a6eee5); } }
+.interaction-result { margin-top: 11px; scroll-margin-top: 16px; }
+.interaction-empty,
+.interaction-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 140px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,.065);
+    border-radius: 17px;
+    color: #758188;
+    text-align: center;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(62,139,133,.08), transparent 52%),
+        rgba(255,255,255,.018);
+}
+.interaction-empty > i { margin-bottom: 9px; color: #70bfb6; font-size: 21px; }
+.interaction-empty strong,
+.interaction-loading strong { color: #d4dcda; font-size: 12px; }
+.interaction-empty span,
+.interaction-loading small { max-width: 33ch; margin-top: 4px; font-size: 9px; line-height: 1.45; }
+.interaction-empty button {
+    margin-top: 13px;
+    padding: 8px 12px;
+    border: 1px solid rgba(214,189,126,.22);
+    border-radius: 10px;
+    color: #d9c48e;
+    font-size: 9px;
+    font-weight: 750;
+    background: rgba(194,161,89,.08);
+    cursor: pointer;
+}
+.interaction-empty button i { margin-right: 5px; }
+.interaction-loading > span {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 10px;
+    border: 2px solid rgba(110,207,196,.15);
+    border-top-color: #77d2c7;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+.interaction-verdict,
+.interaction-steps,
+.interaction-concepts,
+.interaction-published {
+    margin-bottom: 8px;
+    padding: 13px;
+    border: 1px solid rgba(255,255,255,.075);
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(27,34,42,.84), rgba(13,18,23,.9));
+    box-shadow: inset 0 1px rgba(255,255,255,.035);
+}
+.interaction-verdict { position: relative; overflow: hidden; padding: 15px; }
+.interaction-verdict::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: #b89b5f; }
+.interaction-verdict.synergy { background: radial-gradient(circle at 100% 0%, rgba(63,165,139,.18), transparent 45%), linear-gradient(145deg, rgba(25,43,41,.92), rgba(12,20,22,.94)); }
+.interaction-verdict.synergy::after { background: #54c6a3; }
+.interaction-verdict.blocked { background: radial-gradient(circle at 100% 0%, rgba(184,77,68,.17), transparent 44%), linear-gradient(145deg, rgba(43,29,31,.92), rgba(21,17,21,.94)); }
+.interaction-verdict.blocked::after { background: #d66d62; }
+.interaction-verdict.depends::after { background: #c6a866; }
+.interaction-verdict-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.interaction-verdict-top > span { color: #bca36d; font-size: 7px; font-weight: 900; letter-spacing: .17em; }
+.interaction-verdict-top b { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 999px; color: #83cfc6; font-size: 7px; background: rgba(89,173,164,.09); }
+.interaction-verdict h3 { margin: 8px 0 5px; color: #fff1ce; font: 700 18px/1.15 'Goudy Arcane', Georgia, serif; }
+.interaction-verdict p { margin: 0; color: #adb6ba; font-size: 10px; line-height: 1.55; }
+.interaction-section-title { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; color: #d0d7d3; font-size: 9px; font-weight: 850; }
+.interaction-section-title i { color: #7bc8bf; }
+.interaction-steps > div:not(.interaction-section-title) { display: grid; grid-template-columns: 23px minmax(0,1fr); gap: 8px; align-items: start; margin-top: 7px; }
+.interaction-steps > div > b { display: grid; place-items: center; width: 23px; height: 23px; border: 1px solid rgba(121,204,194,.16); border-radius: 8px; color: #79c8bf; font-size: 8px; background: rgba(71,150,142,.08); }
+.interaction-steps > div > p { margin: 2px 0 0; color: #aab3b7; font-size: 9px; line-height: 1.48; }
+.interaction-concepts > div:last-child { display: flex; flex-wrap: wrap; gap: 6px; }
+.interaction-concepts button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 9px;
+    border: 1px solid rgba(120,203,193,.14);
+    border-radius: 10px;
+    color: #99d4cc;
+    font-size: 8px;
+    background: rgba(64,145,137,.07);
+    cursor: pointer;
+}
+.interaction-concepts button i { color: #587f7a; font-size: 6px; }
+.interaction-rulings { overflow: hidden; margin-top: 7px; border: 1px solid rgba(255,255,255,.065); border-radius: 12px; background: rgba(0,0,0,.13); }
+.interaction-rulings summary { display: grid; grid-template-columns: minmax(0,1fr) auto 9px; align-items: center; gap: 8px; padding: 10px; color: #c7cecb; font-size: 9px; font-weight: 750; list-style: none; cursor: pointer; }
+.interaction-rulings summary::-webkit-details-marker { display: none; }
+.interaction-rulings summary b { padding: 3px 6px; border-radius: 999px; color: #77838a; font-size: 7px; background: rgba(255,255,255,.04); }
+.interaction-rulings summary i { color: #5f6a71; font-size: 7px; transition: transform .2s ease; }
+.interaction-rulings[open] summary i { transform: rotate(180deg); }
+.interaction-rulings-body { padding: 0 10px 10px; }
+.interaction-rulings-body article { padding: 9px 0; border-top: 1px solid rgba(255,255,255,.055); }
+.interaction-rulings-body article p { margin: 0; color: #9ca6aa; font-size: 8px; line-height: 1.5; }
+.interaction-rulings-body article time { display: block; margin-top: 4px; color: #5f6a70; font-size: 7px; }
+.interaction-rulings-body > a { display: block; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.055); color: #75c7bd; font-size: 8px; text-decoration: none; }
+.interaction-rulings-body > a i { margin-left: 4px; }
+.interaction-no-rulings { padding: 10px 0; border-top: 1px solid rgba(255,255,255,.055); color: #68747b; font-size: 8px; }
+.interaction-disclaimer { display: flex; align-items: flex-start; gap: 8px; padding: 9px 11px; color: #68737a; font-size: 8px; line-height: 1.45; }
+.interaction-disclaimer i { margin-top: 2px; color: #8b7b56; }
+@media (max-width: 480px) {
+    .rules-hero { grid-template-columns: 47px minmax(0,1fr); gap: 11px; padding: 14px; border-radius: 18px; }
+    .rules-hero-icon { width: 47px; height: 47px; border-radius: 14px; }
+    .rules-hero h2 { font-size: 22px; }
+    .rules-category-grid { grid-template-columns: 1fr; }
+    .interaction-pickers { grid-template-columns: 1fr; }
+    .interaction-swap { justify-self: center; transform: rotate(90deg); }
+    .interaction-swap:hover { transform: rotate(270deg); }
+    .interaction-picker { padding: 12px; }
+    .interaction-selected { grid-template-columns: 57px minmax(0,1fr); }
+    .interaction-selected img,
+    .interaction-card-placeholder { width: 57px; height: 79px; }
+    .interaction-selected-copy strong { font-size: 11px; }
+    .interaction-selected-copy p { font-size: 8px; -webkit-line-clamp: 4; }
+    .interaction-analyse { min-height: 51px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .interaction-live-dot::after,
+    .interaction-analyse.loading i,
+    .interaction-loading > span { animation: none; }
+}
+
 /* Multiplayer — Arcane Link */
 #mp-modal {
     padding: clamp(14px, 4vh, 38px) 16px !important;
@@ -2692,12 +3337,12 @@ input:checked + .toggle-slider { border-color: rgba(127,184,201,.45); background
     z-index: 7;
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px;
+    gap: 6px;
+    padding: 6px;
     border: 1px solid rgba(255,255,255,.105);
-    border-radius: 12px;
-    background: rgba(3,6,8,.52);
-    box-shadow: 0 7px 18px rgba(0,0,0,.27), inset 0 1px rgba(255,255,255,.055);
+    border-radius: 15px;
+    background: rgba(3,6,8,.68);
+    box-shadow: 0 9px 24px rgba(0,0,0,.34), inset 0 1px rgba(255,255,255,.07);
     backdrop-filter: blur(14px) saturate(1.2);
     -webkit-backdrop-filter: blur(14px) saturate(1.2);
 }
@@ -2705,9 +3350,9 @@ input:checked + .toggle-slider { border-color: rgba(127,184,201,.45); background
     align-self: stretch;
     display: grid;
     place-items: center;
-    padding: 0 2px;
-    color: rgba(255,255,255,.36);
-    font-size: 6px;
+    padding: 0 3px;
+    color: rgba(255,255,255,.48);
+    font-size: 7px;
     font-weight: 900;
     letter-spacing: .06em;
     writing-mode: vertical-rl;
@@ -2715,11 +3360,11 @@ input:checked + .toggle-slider { border-color: rgba(127,184,201,.45); background
 }
 .cmd-map {
     display: grid;
-    grid-template-columns: repeat(2, minmax(24px, 29px));
-    grid-auto-rows: 23px;
-    gap: 3px;
+    grid-template-columns: repeat(2, minmax(41px, 47px));
+    grid-auto-rows: 34px;
+    gap: 4px;
 }
-.cmd-map.players-2 { grid-template-columns: minmax(26px,31px); }
+.cmd-map.players-2 { grid-template-columns: minmax(43px,49px); }
 .cmd-seat-wide { grid-column: span 2; }
 .cmd-map.players-2 .cmd-seat-wide { grid-column: auto; }
 .cmd-seat {
@@ -2729,11 +3374,11 @@ input:checked + .toggle-slider { border-color: rgba(127,184,201,.45); background
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 5px;
     overflow: hidden;
-    padding: 0 3px;
+    padding: 0 5px;
     border: 1px solid color-mix(in srgb, var(--source-color) 55%, rgba(255,255,255,.13));
-    border-radius: 7px;
+    border-radius: 10px;
     background-color: color-mix(in srgb, var(--source-color) 34%, rgba(7,10,12,.9));
     background-position: center;
     background-size: cover;
@@ -2754,21 +3399,21 @@ input:checked + .toggle-slider { border-color: rgba(127,184,201,.45); background
 .cmd-seat:active { transform: scale(.88); filter: brightness(1.45); }
 .cmd-seat:disabled { cursor: default; opacity: .56; }
 .cmd-source-mark {
-    width: 12px;
-    height: 12px;
+    width: 18px;
+    height: 18px;
     display: grid;
     place-items: center;
     flex: 0 0 auto;
     border: 1px solid rgba(255,255,255,.22);
-    border-radius: 4px;
+    border-radius: 6px;
     background: var(--source-color);
-    font-size: 6px;
+    font-size: 8px;
     font-weight: 900;
     text-shadow: 0 1px 3px #000;
 }
 .cmd-seat strong {
     position: relative;
-    font-size: 10px;
+    font-size: 14px;
     font-variant-numeric: tabular-nums;
     line-height: 1;
     text-shadow: 0 1px 4px #000;
@@ -2780,7 +3425,7 @@ input:checked + .toggle-slider { border-color: rgba(127,184,201,.45); background
     color: rgba(255,255,255,.42);
     cursor: default;
 }
-.cmd-self-mark { font-size: 7px; font-weight: 800; letter-spacing: .02em; }
+.cmd-self-mark { font-size: 9px; font-weight: 850; letter-spacing: .02em; }
 .cmd-source.danger {
     border-color: rgba(255,177,101,.7);
     color: #ffd49c;
@@ -2794,14 +3439,26 @@ input:checked + .toggle-slider { border-color: rgba(127,184,201,.45); background
 }
 @keyframes commander-danger { 50% { filter: brightness(1.32); } }
 .player-box.has-commanders .tap-zone.left .tap-hint { display: none; }
-.player-box.has-commanders .life-controls { padding-bottom: 24px; }
+.player-box.has-commanders .life-controls { padding-bottom: 42px; }
 .player-box.has-commanders .chip-row {
     position: absolute;
     right: 9px;
     bottom: 8px;
     z-index: 6;
-    max-width: calc(100% - 92px);
+    max-width: calc(100% - 132px);
     justify-content: flex-end;
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
+    .cmd-dock { bottom: 5px; left: 6px; gap: 4px; padding: 4px; border-radius: 12px; }
+    .cmd-map { grid-template-columns: repeat(2, minmax(34px, 39px)); grid-auto-rows: 28px; gap: 3px; }
+    .cmd-map.players-2 { grid-template-columns: minmax(36px,41px); }
+    .cmd-source-mark { width: 15px; height: 15px; font-size: 7px; }
+    .cmd-seat { gap: 3px; padding: 0 3px; border-radius: 8px; }
+    .cmd-seat strong { font-size: 12px; }
+    .cmd-self-mark { font-size: 8px; }
+    .player-box.has-commanders .life-controls { padding-bottom: 31px; }
+    .player-box.has-commanders .chip-row { max-width: calc(100% - 108px); }
 }
 
 /* Living board ambience */
@@ -5737,14 +6394,68 @@ body.fs-mode #view-play {
 
     <!-- ══ REGLER PANEL ══ -->
     <div id="rules-panel">
-        <div class="search-container">
-            <input type="text" id="rules-search" placeholder="Search an MTG keyword, e.g. trample or hexproof…"
-                   oninput="searchRules(this.value)"
-                   onkeypress="if(event.key==='Enter')searchRules(this.value)">
+        <div class="rules-hero">
+            <div class="rules-hero-icon"><i class="fa-solid fa-book-open"></i></div>
+            <div>
+                <div class="rules-hero-kicker">TABLE REFERENCE</div>
+                <h2>Rules Library</h2>
+                <p>Plain-English answers for keywords, zones, game actions and Commander rules.</p>
+            </div>
         </div>
-        <div id="rules-results">
-            <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">
-                Search for an MTG keyword to see an explanation — e.g. <em>trample</em>, <em>hexproof</em> or <em>deathtouch</em>.
+        <div class="rules-tool-switch" role="tablist" aria-label="Rules tools">
+            <button id="rules-tool-library" class="active" role="tab" aria-selected="true" onclick="setRulesTool('library')"><i class="fa-solid fa-book-open"></i> Rules Library</button>
+            <button id="rules-tool-interaction" role="tab" aria-selected="false" onclick="setRulesTool('interaction')"><i class="fa-solid fa-link"></i> Card Interaction</button>
+        </div>
+
+        <div id="rules-library-view">
+            <div class="rules-search-shell">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="text" id="rules-search" placeholder="Search an MTG keyword, e.g. trample or hexproof…"
+                       oninput="searchRules(this.value)"
+                       onkeypress="if(event.key==='Enter')searchRules(this.value)">
+                <button type="button" onclick="clearRulesSearch()" aria-label="Clear rules search"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="rules-quick-row" aria-label="Popular rule lookups">
+                <span>QUICK LOOKUP</span>
+                <button onclick="ruleQuickSearch('Exile')">Exile</button>
+                <button onclick="ruleQuickSearch('The City’s Blessing')">City’s Blessing</button>
+                <button onclick="ruleQuickSearch('Priority')">Priority</button>
+                <button onclick="ruleQuickSearch('Commander Damage')">Commander Damage</button>
+            </div>
+            <div id="rules-results"></div>
+        </div>
+
+        <div id="rules-interaction-view" hidden>
+            <div class="interaction-intro">
+                <span class="interaction-live-dot"></span>
+                <div><strong>Compare two cards</strong><small>We combine Oracle text, table rules and published card rulings.</small></div>
+            </div>
+            <div class="interaction-pickers">
+                <section class="interaction-picker" data-side="a">
+                    <div class="interaction-picker-label"><span>CARD A</span><button onclick="clearInteractionCard('a')" aria-label="Clear Card A"><i class="fa-solid fa-xmark"></i></button></div>
+                    <div class="interaction-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input id="interaction-search-a" autocomplete="off" placeholder="Search first card…" oninput="interactionSuggest('a',this.value)" onkeydown="interactionSearchKey(event,'a')">
+                    </div>
+                    <div id="interaction-suggestions-a" class="interaction-suggestions"></div>
+                    <div id="interaction-selected-a" class="interaction-selected"></div>
+                </section>
+
+                <button class="interaction-swap" onclick="swapInteractionCards()" aria-label="Swap cards"><i class="fa-solid fa-arrow-right-arrow-left"></i></button>
+
+                <section class="interaction-picker" data-side="b">
+                    <div class="interaction-picker-label"><span>CARD B</span><button onclick="clearInteractionCard('b')" aria-label="Clear Card B"><i class="fa-solid fa-xmark"></i></button></div>
+                    <div class="interaction-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input id="interaction-search-b" autocomplete="off" placeholder="Search second card…" oninput="interactionSuggest('b',this.value)" onkeydown="interactionSearchKey(event,'b')">
+                    </div>
+                    <div id="interaction-suggestions-b" class="interaction-suggestions"></div>
+                    <div id="interaction-selected-b" class="interaction-selected"></div>
+                </section>
+            </div>
+            <button id="interaction-analyse" class="interaction-analyse" onclick="analyseCardInteraction()" disabled><i class="fa-solid fa-wand-magic-sparkles"></i><span>Analyse interaction</span></button>
+            <div id="interaction-result" class="interaction-result">
+                <div class="interaction-empty"><i class="fa-solid fa-link"></i><strong>Choose two cards</strong><span>Their relevant rules and interactions will appear here.</span></div>
             </div>
         </div>
     </div>
@@ -9641,7 +10352,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.7 · Arcane';
+const APP_VERSION = '8.9 · Arcane';
 // Vis version med det samme (ikke først når info-modal åbnes)
 document.getElementById('info-version').textContent = 'VERSION ' + APP_VERSION;
 (() => { const hv = document.getElementById('header-version'); if (hv) hv.textContent = 'v' + APP_VERSION; })();
@@ -15788,6 +16499,635 @@ function showAccum(id, amt, type) {
     </div>
 </div>
 
+<script data-bundled-source="rules-enhanced.js">
+/* Magic Helper — Rules Library 2.0
+   Extends the compact original glossary with table essentials, Commander,
+   zones, turn structure and common game actions. */
+(() => {
+    'use strict';
+
+    const extraRules = [
+        {k:'Exile', c:'Zones', a:['exiled','exile zone'], d:'Exile is a game zone. A card in exile can only be used when a rule or effect specifically allows it.'},
+        {k:'Battlefield', c:'Zones', a:['in play'], d:'The shared zone where permanents exist. Creatures, artifacts, enchantments, lands, planeswalkers and battles enter the battlefield.'},
+        {k:'Graveyard', c:'Zones', a:['discard pile','yard'], d:'Each player has a graveyard. Cards that are destroyed, discarded, milled or finish resolving usually go there unless an effect changes their destination.'},
+        {k:'Hand', c:'Zones', d:'The cards a player has drawn and may normally play or cast. Opponents may know the number of cards in your hand, but not their identities unless they are revealed.'},
+        {k:'Library', c:'Zones', a:['deck'], d:'A player’s face-down deck during the game. If you must draw from an empty library, you lose the game the next time state-based actions are checked.'},
+        {k:'Stack', c:'Essentials', a:['the stack'], d:'Spells and most activated or triggered abilities wait on the stack before resolving. The most recently added object resolves first.'},
+        {k:'Priority', c:'Essentials', a:['respond','response'], d:'Priority is permission to cast a spell, activate an ability or take certain special actions. The top object resolves after every player passes priority in succession.'},
+        {k:'Resolve', c:'Essentials', a:['resolves','resolution'], d:'Follow a spell or ability’s instructions in order, then put it in the appropriate zone. Players do not receive priority in the middle of resolution.'},
+        {k:'State-Based Actions', c:'Essentials', a:['SBA','state based'], d:'Automatic game checks made whenever a player would receive priority. Examples include losing at 0 life and a creature dying with 0 toughness or lethal damage.'},
+        {k:'Target', c:'Essentials', a:['targets','targeting'], d:'A spell or ability targets only when its text or the rule creating it uses the word “target.” Targets are chosen as it is put on the stack.'},
+        {k:'Owner', c:'Essentials', d:'The owner of a card is the player who began the game with it in their deck. A token is owned by the player who created it.'},
+        {k:'Controller', c:'Essentials', a:['control'], d:'A spell, permanent or ability is controlled by a player. Changing control does not change ownership.'},
+        {k:'Permanent', c:'Essentials', d:'A card or token on the battlefield. Lands, creatures, artifacts, enchantments, planeswalkers and battles are permanent types.'},
+        {k:'Spell', c:'Casting', d:'A nonland card is a spell while it is on the stack. A resolved permanent spell enters the battlefield; an instant or sorcery normally goes to its owner’s graveyard.'},
+        {k:'Cast', c:'Casting', a:['casting'], d:'Move a spell to the stack, make its required choices, determine and pay its total cost, then give players a chance to respond.'},
+        {k:'Play', c:'Casting', d:'To play a card means to play it as a land or cast it as a spell, whichever is appropriate. An effect that says “cast” does not let you play a land.'},
+        {k:'Mana Value', c:'Casting', a:['converted mana cost','CMC'], d:'The total amount of mana in a mana cost, regardless of color. X uses its chosen value while that spell is on the stack and is normally 0 elsewhere.'},
+        {k:'Additional Cost', c:'Casting', d:'An extra cost paid while casting a spell, such as discarding a card or sacrificing a permanent. Casting without paying the mana cost does not remove additional costs.'},
+        {k:'Alternative Cost', c:'Casting', d:'A different way to pay for a spell. Only one alternative cost can be applied, although additional costs and cost increases may still apply.'},
+        {k:'Activated Ability', c:'Essentials', a:['activate'], d:'Written as “cost: effect.” Pay everything before the colon to activate it. Most activated abilities use the stack independently of their source.'},
+        {k:'Triggered Ability', c:'Essentials', a:['trigger','triggered'], d:'Usually begins with “when,” “whenever” or “at.” It triggers automatically and is put on the stack the next time a player would receive priority.'},
+        {k:'Mana Ability', c:'Essentials', d:'An activated or triggered ability that produces mana and meets the mana-ability rules. Mana abilities normally resolve immediately and do not use the stack.'},
+        {k:'Replacement Effect', c:'Essentials', a:['instead'], d:'Changes how an event happens, often using “instead,” “with” or “as.” It does not use the stack.'},
+        {k:'Counter a Spell or Ability', c:'Casting', a:['counterspell','countered'], d:'Remove a spell or ability from the stack without letting it resolve. A countered spell normally goes to its owner’s graveyard.'},
+        {k:'Copy a Spell', c:'Casting', a:['spell copy'], d:'A spell copy is created directly on the stack and is not cast unless an effect says to cast it. New targets may be chosen only when the copy effect allows it.'},
+        {k:'Dies', c:'Essentials', a:['die','died'], d:'A creature dies when it is put into a graveyard from the battlefield. Exiling it or returning it to hand is not dying.'},
+        {k:'Destroy', c:'Essentials', a:['destroyed'], d:'Put a permanent into its owner’s graveyard from the battlefield. Indestructible stops destruction, but not sacrifice, exile or having 0 toughness.'},
+        {k:'Sacrifice', c:'Essentials', a:['sac'], d:'A permanent’s controller moves it from the battlefield to its owner’s graveyard. Sacrificing is not destroying and requires a rule, cost or effect.'},
+        {k:'Discard', c:'Essentials', d:'Move a card from its owner’s hand to their graveyard. A card moved from another zone to a graveyard was not discarded.'},
+        {k:'Draw', c:'Actions', a:['draw a card'], d:'Put the top card of your library into your hand. Multiple cards are drawn one at a time.'},
+        {k:'Mill', c:'Actions', a:['milled'], d:'Put the stated number of cards from the top of your library into your graveyard.'},
+        {k:'Fight', c:'Combat', d:'Two creatures each deal damage equal to their power to the other at the same time. Fighting is not combat and does not deal combat damage.'},
+        {k:'Excess Damage', c:'Combat', d:'Damage beyond what is lethal to a creature or beyond a planeswalker’s loyalty.'},
+        {k:'Combat Damage', c:'Combat', d:'Damage dealt by attacking and blocking creatures during a combat damage step. Damage from spells and abilities is not combat damage.'},
+        {k:'Summoning Sickness', c:'Combat', a:['sick'], d:'A creature cannot attack or use an ability with the tap or untap symbol unless its controller has controlled it continuously since their most recent turn began. Haste ignores this.'},
+        {k:'Attack', c:'Combat', a:['attacking'], d:'During the declare attackers step, the active player chooses which eligible creatures attack and what each one attacks.'},
+        {k:'Block', c:'Combat', a:['blocking'], d:'During the declare blockers step, the defending player assigns eligible untapped creatures to block attackers.'},
+        {k:'Tap', c:'Actions', a:['tapped'], d:'Turn a permanent sideways to mark it as tapped. Tapping is often part of a cost.'},
+        {k:'Untap', c:'Actions', a:['untapped'], d:'Turn a tapped permanent upright. Permanents normally untap during their controller’s untap step.'},
+        {k:'The Legendary Rule', c:'Essentials', a:['legend rule','legendary rule'], d:'If one player controls two or more legendary permanents with the same name, that player chooses one and puts the rest into their owners’ graveyards.'},
+        {k:'Mulligan', c:'Essentials', a:['London mulligan'], d:'Shuffle your opening hand into your library and draw seven again. When you keep, put one card on the bottom for each mulligan taken.'},
+        {k:'Color Identity', c:'Commander', a:['commander colors'], d:'A Commander deck may contain only cards whose color identities are within the commander’s color identity.'},
+        {k:'Command Zone', c:'Commander', d:'A special zone used for commanders and certain other game objects. A commander may be cast from here with commander tax added.'},
+        {k:'Commander Tax', c:'Commander', a:['tax'], d:'A commander costs {2} more to cast from the command zone for each previous time that commander was cast from the command zone this game.'},
+        {k:'Commander Damage', c:'Commander', a:['cmd damage','21 damage'], d:'A player dealt 21 or more combat damage by the same commander over the course of the game loses. Track each commander separately.'},
+        {k:'Commander Zone Change', c:'Commander', a:['commander dies','move commander'], d:'After a commander goes to a graveyard or exile, its owner may move it to the command zone as a state-based action. A move to hand or library can be replaced by moving it there instead.'},
+        {k:'Partner', c:'Commander', d:'Partner allows two commanders when both have an appropriate partner ability. Their color identities combine, while commander tax and damage are tracked separately.'},
+        {k:'Monarch', c:'Multiplayer', a:['the monarch'], d:'The monarch draws a card at the beginning of their end step. A player becomes the monarch by dealing combat damage to the current monarch or through an effect.'},
+        {k:'The Initiative', c:'Multiplayer', a:['initiative','undercity'], d:'Taking the initiative makes you venture into Undercity. At your upkeep you venture again, and a player who deals combat damage to you takes the initiative.'},
+        {k:'Goad', c:'Multiplayer', a:['goaded'], d:'Until your next turn, a goaded creature attacks each combat if able and attacks a player other than the player who goaded it if able.'},
+        {k:'Ascend', c:'Mechanics', a:['ascending'], d:'Ascend can give you the city’s blessing if you control ten or more permanents. On a permanent it is checked continuously; on an instant or sorcery it is checked as that spell resolves.'},
+        {k:'The City’s Blessing', c:'Mechanics', a:["city's blessing",'city blessing','citys blessing'], d:'A designation gained through ascend. Once you have it, you keep it for the rest of the game. It is not a permanent, emblem or counter, and multiple players may have it.'},
+        {k:'Venture into the Dungeon', c:'Actions', a:['venture','dungeon'], d:'If you are not in a dungeon, enter its first room. Otherwise, move to a connected next room and trigger that room’s ability.'},
+        {k:'Take the Initiative', c:'Actions', a:['take initiative'], d:'If you do not have the initiative, you take it and venture into Undercity. If you already have it, you still venture into Undercity.'},
+        {k:'Create a Token', c:'Tokens', a:['token'], d:'Create a token with the stated characteristics on the battlefield. A token that leaves the battlefield cannot return and soon ceases to exist.'},
+        {k:'Treasure Token', c:'Tokens', a:['treasure'], d:'An artifact token with “{T}, Sacrifice this artifact: Add one mana of any color.”'},
+        {k:'Food Token', c:'Tokens', a:['food'], d:'An artifact token with “{2}, {T}, Sacrifice this artifact: You gain 3 life.”'},
+        {k:'Clue Token', c:'Tokens', a:['clue'], d:'An artifact token with “{2}, Sacrifice this artifact: Draw a card.”'},
+        {k:'Blood Token', c:'Tokens', a:['blood'], d:'An artifact token with “{1}, {T}, Discard a card, Sacrifice this artifact: Draw a card.”'},
+        {k:'Populate', c:'Actions', d:'Create a token that is a copy of a creature token you control. Populate does not target.'},
+        {k:'Explore', c:'Actions', d:'Reveal the top card of your library. Put it into your hand if it is a land; otherwise put a +1/+1 counter on the exploring creature and keep or mill the card.'},
+        {k:'Discover', c:'Mechanics', d:'Exile cards from the top of your library until you exile a nonland card within the discover value. You may cast it without paying its mana cost or put it into your hand.'},
+        {k:'Plot', c:'Mechanics', d:'During your main phase while the stack is empty, pay a card’s plot cost to exile it face up. You may cast it without paying its mana cost on a later turn.'},
+        {k:'Bargain', c:'Mechanics', d:'As an additional cost to cast a spell, you may sacrifice an artifact, enchantment or token. The spell is bargained if that cost was paid.'},
+        {k:'Backup', c:'Mechanics', d:'When this creature enters, put the stated number of +1/+1 counters on a target creature. Another creature also gains the abilities printed after backup until end of turn.'},
+        {k:'Prototype', c:'Mechanics', d:'You may cast this card using its prototype mana cost, color, power and toughness. It keeps its other abilities and characteristics.'},
+        {k:'Reconfigure', c:'Mechanics', d:'Attach or unattach this permanent to a creature you control for its reconfigure cost at sorcery speed. While attached, it is not a creature.'},
+        {k:'Transform', c:'Actions', a:['double-faced card','DFC'], d:'Turn a transforming double-faced permanent over to its other face. Transforming does not cause it to leave the battlefield.'},
+        {k:'Manifest', c:'Actions', d:'Put a card onto the battlefield face down as a 2/2 creature. If it is a creature card, its controller may turn it face up by paying its mana cost.'},
+        {k:'Cloak', c:'Actions', d:'Put a card onto the battlefield face down as a 2/2 creature with ward {2}. A creature card can be turned face up by paying its mana cost.'},
+        {k:'Untap Step', c:'Turn Structure', d:'The active player phases in and untaps their permanents. Players do not receive priority during this step.'},
+        {k:'Upkeep', c:'Turn Structure', a:['upkeep step'], d:'The second step of the beginning phase. Upkeep abilities trigger here, then players receive priority.'},
+        {k:'Draw Step', c:'Turn Structure', d:'The active player draws a card as a turn-based action, then players receive priority.'},
+        {k:'Main Phase', c:'Turn Structure', d:'The active player may normally play a land and cast permanent or sorcery spells while the stack is empty and they have priority.'},
+        {k:'Combat Phase', c:'Turn Structure', d:'The phase containing beginning of combat, declare attackers, declare blockers, combat damage and end of combat steps.'},
+        {k:'End Step', c:'Turn Structure', d:'The first step of the ending phase. Beginning-of-end-step abilities trigger here, then players receive priority.'},
+        {k:'Cleanup Step', c:'Turn Structure', d:'The active player discards down to maximum hand size, damage is removed and “until end of turn” effects end. Players normally do not receive priority.'}
+    ];
+
+    GLOSSARY.push(...extraRules);
+
+    const categoryGroups = {
+        Combat: new Set(['Flying','Trample','Deathtouch','First Strike','Double Strike','Lifelink','Vigilance','Haste','Menace','Reach','Defender','Protection','Infect','Wither']),
+        Casting: new Set(['Flash','Flashback','Cycling','Kicker','Cascade','Convoke','Delve','Storm','Morph','Equip','Escape','Companion','Mutate','Foretell','Blitz','Overload','Bestow']),
+        Actions: new Set(['Surveil','Scry','Amass','Connive','Investigate','Proliferate']),
+        Mechanics: new Set(['Hexproof','Shroud','Indestructible','Prowess','Ward','Undying','Persist','Annihilator','Landfall','Devotion','Toxic','Phasing','Regenerate','Exalted','Extort','Heroic','Renown'])
+    };
+
+    GLOSSARY.forEach(entry => {
+        if (!entry.c) entry.c = Object.entries(categoryGroups).find(([, names]) => names.has(entry.k))?.[0] || 'Mechanics';
+        if (!entry.a) entry.a = [];
+    });
+
+    const categoryIcons = {
+        Essentials:'fa-compass', Combat:'fa-shield-halved', Zones:'fa-layer-group', Casting:'fa-wand-magic-sparkles',
+        Commander:'fa-crown', Multiplayer:'fa-user-group', Actions:'fa-bolt', Mechanics:'fa-gears',
+        Tokens:'fa-coins', 'Turn Structure':'fa-clock'
+    };
+
+    const normalise = value => String(value || '')
+        .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[’'`]/g, '').replace(/[^a-zA-Z0-9]+/g, ' ')
+        .trim().toLowerCase();
+
+    const editDistance = (a, b) => {
+        const row = Array.from({length:b.length + 1}, (_, index) => index);
+        for (let i = 1; i <= a.length; i += 1) {
+            let previous = row[0]; row[0] = i;
+            for (let j = 1; j <= b.length; j += 1) {
+                const saved = row[j];
+                row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
+                previous = saved;
+            }
+        }
+        return row[b.length];
+    };
+
+    const scoreRule = (entry, rawQuery) => {
+        const query = normalise(rawQuery);
+        const key = normalise(entry.k);
+        const aliases = entry.a.map(normalise);
+        const description = normalise(entry.d);
+        if (key === query) return 0;
+        if (aliases.includes(query)) return 1;
+        if (key.startsWith(query)) return 2;
+        if (key.includes(query) || aliases.some(alias => alias.includes(query))) return 3;
+        const words = query.split(' ').filter(Boolean);
+        if (words.every(word => `${key} ${aliases.join(' ')} ${description}`.includes(word))) return 4;
+        if (query.length >= 5 && editDistance(key, query) <= 2) return 5;
+        return Infinity;
+    };
+
+    const ruleCard = entry => `
+        <article class="rules-result rules-library-card">
+            <div class="rules-card-top">
+                <span class="rules-category-badge"><i class="fa-solid ${categoryIcons[entry.c] || 'fa-book'}"></i>${entry.c}</span>
+                <button type="button" class="rules-copy-btn" onclick="copyRuleText('${entry.k.replace(/'/g, "\\'")}')" aria-label="Copy ${entry.k}"><i class="fa-regular fa-copy"></i></button>
+            </div>
+            <div class="rules-keyword">${entry.k}</div>
+            <div class="rules-text">${entry.d}</div>
+        </article>`;
+
+    const renderRuleList = (entries, heading) => {
+        const container = document.getElementById('rules-results');
+        container.innerHTML = `
+            <div class="rules-result-heading"><span>${heading}</span><b>${entries.length}</b></div>
+            <div class="rules-library-list">${entries.map(ruleCard).join('')}</div>`;
+    };
+
+    window.renderRulesHome = () => {
+        const container = document.getElementById('rules-results');
+        if (!container) return;
+        const categories = Object.keys(categoryIcons).map(category => ({
+            name: category,
+            count: GLOSSARY.filter(entry => entry.c === category).length,
+            icon: categoryIcons[category]
+        })).filter(category => category.count);
+        container.innerHTML = `
+            <div class="rules-home-heading"><span>Browse the library</span><b>${GLOSSARY.length} entries</b></div>
+            <div class="rules-category-grid">
+                ${categories.map(category => `<button onclick="filterRulesCategory('${category.name}')">
+                    <i class="fa-solid ${category.icon}"></i><span><strong>${category.name}</strong><small>${category.count} entries</small></span><i class="fa-solid fa-chevron-right"></i>
+                </button>`).join('')}
+            </div>
+            <div class="rules-source-note"><i class="fa-solid fa-circle-info"></i><span>Plain-English table help. For tournament edge cases, consult the official Comprehensive Rules.</span></div>`;
+    };
+
+    window.ruleQuickSearch = query => {
+        const input = document.getElementById('rules-search');
+        input.value = query;
+        window.searchRules(query);
+        input.focus();
+    };
+
+    window.clearRulesSearch = () => {
+        const input = document.getElementById('rules-search');
+        input.value = '';
+        window.renderRulesHome();
+        input.focus();
+    };
+
+    window.filterRulesCategory = category => {
+        document.getElementById('rules-search').value = '';
+        const entries = GLOSSARY.filter(entry => entry.c === category).sort((a,b) => a.k.localeCompare(b.k));
+        renderRuleList(entries, category);
+    };
+
+    window.copyRuleText = async key => {
+        const entry = GLOSSARY.find(rule => rule.k === key);
+        if (!entry) return;
+        try {
+            await navigator.clipboard.writeText(`${entry.k}: ${entry.d}`);
+            if (typeof toast === 'function') toast('Rule copied');
+        } catch (_) {}
+    };
+
+    const searchCardRulings = async query => {
+        const container = document.getElementById('rules-results');
+        container.innerHTML = `<div class="rules-searching"><i class="fa-solid fa-circle-notch fa-spin"></i><strong>Searching card rulings</strong><span>Looking for “${query}” on Scryfall…</span></div>`;
+        try {
+            let response = await fetch('https://api.scryfall.com/cards/named?fuzzy=' + encodeURIComponent(query));
+            if (!response.ok) throw new Error('not found');
+            const card = await response.json();
+            response = await fetch(`https://api.scryfall.com/cards/${card.id}/rulings`);
+            const rulings = await response.json();
+            container.innerHTML = `
+                <div class="rules-card-result-head">
+                    ${card.image_uris?.small ? `<img src="${card.image_uris.small}" alt="${card.name}">` : ''}
+                    <div><span>CARD RULINGS</span><strong>${card.name}</strong><small>${rulings.data?.length || 0} official rulings</small></div>
+                </div>
+                ${rulings.data?.length ? rulings.data.map(ruling => `<div class="rules-ruling"><div>${ruling.comment}</div><div class="rules-ruling-date">${ruling.published_at}</div></div>`).join('') : '<div class="rules-empty-card">This card has no specific published rulings.</div>'}`;
+        } catch (_) {
+            container.innerHTML = `<div class="rules-empty-card"><i class="fa-solid fa-book-open"></i><strong>No rule or card found</strong><span>Try another spelling, a shorter keyword or the full card name.</span></div>`;
+        }
+    };
+
+    window.searchRules = async rawQuery => {
+        const query = String(rawQuery || '').trim();
+        if (query.length < 2) return window.renderRulesHome();
+        const matches = GLOSSARY
+            .map(entry => ({entry, score:scoreRule(entry, query)}))
+            .filter(result => Number.isFinite(result.score))
+            .sort((a,b) => a.score - b.score || a.entry.k.localeCompare(b.entry.k))
+            .slice(0, 24)
+            .map(result => result.entry);
+        if (matches.length) renderRuleList(matches, `Results for “${query}”`);
+        else await searchCardRulings(query);
+    };
+
+    window.renderRulesHome();
+})();
+
+</script>
+<script data-bundled-source="card-interactions.js">
+/* Magic Helper — Card Interaction
+   Deterministic table assistance built from Oracle text, the local rules
+   library and Scryfall's published card rulings. */
+(() => {
+    'use strict';
+
+    const state = {
+        a: null,
+        b: null,
+        suggestions: { a: [], b: [] },
+        timers: { a: 0, b: 0 },
+        requests: { a: null, b: null }
+    };
+
+    const cardCache = new Map();
+    const rulingsCache = new Map();
+
+    const esc = value => String(value ?? '')
+        .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+
+    const oracleText = card => card.oracle_text || (card.card_faces || []).map(face => face.oracle_text || '').filter(Boolean).join('\n//\n');
+    const cardImage = card => card.image_uris?.normal || card.image_uris?.small || card.card_faces?.find(face => face.image_uris)?.image_uris?.normal || '';
+    const manaCost = card => card.mana_cost || (card.card_faces || []).map(face => face.mana_cost || '').filter(Boolean).join(' // ');
+
+    const setResultEmpty = () => {
+        const result = document.getElementById('interaction-result');
+        if (!result) return;
+        result.innerHTML = `<div class="interaction-empty">
+            <i class="fa-solid fa-link"></i><strong>Choose two cards</strong>
+            <span>Their relevant rules and interactions will appear here.</span>
+            <button onclick="loadInteractionExample()"><i class="fa-solid fa-flask"></i> Try an example</button>
+        </div>`;
+    };
+
+    window.setRulesTool = tool => {
+        const interaction = tool === 'interaction';
+        document.getElementById('rules-library-view').hidden = interaction;
+        document.getElementById('rules-interaction-view').hidden = !interaction;
+        ['library', 'interaction'].forEach(name => {
+            const button = document.getElementById(`rules-tool-${name}`);
+            const active = name === tool;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-selected', String(active));
+        });
+        if (interaction) document.getElementById('interaction-search-a')?.focus();
+        else document.getElementById('rules-search')?.focus();
+    };
+
+    const resetAnalysis = () => {
+        setResultEmpty();
+        const analyse = document.getElementById('interaction-analyse');
+        if (analyse) analyse.disabled = !(state.a && state.b);
+    };
+
+    const renderSelected = side => {
+        const card = state[side];
+        const container = document.getElementById(`interaction-selected-${side}`);
+        const picker = container?.closest('.interaction-picker');
+        if (!container || !picker) return;
+        picker.classList.toggle('has-card', !!card);
+        if (!card) {
+            container.innerHTML = '';
+            return;
+        }
+        const image = cardImage(card);
+        container.innerHTML = `
+            ${image ? `<img src="${esc(image)}" alt="${esc(card.name)}">` : '<div class="interaction-card-placeholder"><i class="fa-solid fa-image"></i></div>'}
+            <div class="interaction-selected-copy">
+                <strong>${esc(card.name)}</strong>
+                <span>${esc(manaCost(card))}</span>
+                <small>${esc(card.type_line || '')}</small>
+                <p>${esc(oracleText(card))}</p>
+            </div>`;
+    };
+
+    const selectCard = (side, card) => {
+        state[side] = card;
+        cardCache.set(card.name.toLowerCase(), card);
+        const input = document.getElementById(`interaction-search-${side}`);
+        if (input) input.value = card.name;
+        document.getElementById(`interaction-suggestions-${side}`).innerHTML = '';
+        renderSelected(side);
+        resetAnalysis();
+    };
+
+    const fetchCard = async (query, exact = false) => {
+        const cached = cardCache.get(query.toLowerCase());
+        if (cached) return cached;
+        const mode = exact ? 'exact' : 'fuzzy';
+        const response = await fetch(`https://api.scryfall.com/cards/named?${mode}=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Card not found');
+        const card = await response.json();
+        cardCache.set(query.toLowerCase(), card);
+        cardCache.set(card.name.toLowerCase(), card);
+        return card;
+    };
+
+    const loadCard = async (side, query, exact = false) => {
+        const input = document.getElementById(`interaction-search-${side}`);
+        const suggestions = document.getElementById(`interaction-suggestions-${side}`);
+        if (!query?.trim()) return;
+        suggestions.innerHTML = '<div class="interaction-suggestion-state"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading card…</div>';
+        input?.closest('.interaction-search')?.classList.add('loading');
+        try {
+            const card = await fetchCard(query.trim(), exact);
+            selectCard(side, card);
+        } catch (_) {
+            suggestions.innerHTML = '<div class="interaction-suggestion-state error"><i class="fa-solid fa-circle-exclamation"></i> Card not found</div>';
+        } finally {
+            input?.closest('.interaction-search')?.classList.remove('loading');
+        }
+    };
+
+    const renderSuggestions = side => {
+        const container = document.getElementById(`interaction-suggestions-${side}`);
+        const names = state.suggestions[side];
+        container.innerHTML = names.length ? names.map((name, index) => `
+            <button type="button" onclick="selectInteractionSuggestion('${side}',${index})">
+                <i class="fa-solid fa-wand-magic-sparkles"></i><span>${esc(name)}</span><i class="fa-solid fa-chevron-right"></i>
+            </button>`).join('') : '<div class="interaction-suggestion-state">No matching cards</div>';
+    };
+
+    window.interactionSuggest = (side, rawQuery) => {
+        clearTimeout(state.timers[side]);
+        state.requests[side]?.abort();
+        const query = rawQuery.trim();
+        const container = document.getElementById(`interaction-suggestions-${side}`);
+        if (state[side] && query !== state[side].name) {
+            state[side] = null;
+            renderSelected(side);
+            resetAnalysis();
+        }
+        if (query.length < 2) {
+            container.innerHTML = '';
+            return;
+        }
+        state.timers[side] = setTimeout(async () => {
+            const controller = new AbortController();
+            state.requests[side] = controller;
+            container.innerHTML = '<div class="interaction-suggestion-state"><i class="fa-solid fa-circle-notch fa-spin"></i> Finding cards…</div>';
+            try {
+                const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`, {signal:controller.signal});
+                if (!response.ok) throw new Error('Search failed');
+                const data = await response.json();
+                state.suggestions[side] = (data.data || []).slice(0, 7);
+                renderSuggestions(side);
+            } catch (error) {
+                if (error.name !== 'AbortError') container.innerHTML = '<div class="interaction-suggestion-state error">Could not search right now</div>';
+            }
+        }, 260);
+    };
+
+    window.selectInteractionSuggestion = (side, index) => {
+        const name = state.suggestions[side][index];
+        if (name) loadCard(side, name, true);
+    };
+
+    window.interactionSearchKey = (event, side) => {
+        if (event.key === 'Escape') {
+            document.getElementById(`interaction-suggestions-${side}`).innerHTML = '';
+            return;
+        }
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        const first = state.suggestions[side][0];
+        loadCard(side, first || event.currentTarget.value, !!first);
+    };
+
+    window.clearInteractionCard = side => {
+        state[side] = null;
+        state.suggestions[side] = [];
+        const input = document.getElementById(`interaction-search-${side}`);
+        if (input) input.value = '';
+        document.getElementById(`interaction-suggestions-${side}`).innerHTML = '';
+        renderSelected(side);
+        resetAnalysis();
+        input?.focus();
+    };
+
+    window.swapInteractionCards = () => {
+        [state.a, state.b] = [state.b, state.a];
+        ['a', 'b'].forEach(side => {
+            const input = document.getElementById(`interaction-search-${side}`);
+            input.value = state[side]?.name || '';
+            renderSelected(side);
+        });
+        resetAnalysis();
+    };
+
+    window.loadInteractionExample = async () => {
+        window.setRulesTool('interaction');
+        await Promise.all([
+            loadCard('a', 'Rest in Peace', true),
+            loadCard('b', 'Blood Artist', true)
+        ]);
+        if (state.a && state.b) window.analyseCardInteraction();
+    };
+
+    const has = (card, pattern) => pattern.test(`${oracleText(card)} ${(card.keywords || []).join(' ')}`.toLowerCase());
+    const either = (a, b, pattern) => has(a, pattern) || has(b, pattern);
+
+    const conceptDetectors = [
+        ['Exile', /\bexile|exiled\b/], ['Graveyard', /\bgraveyard\b/], ['Dies', /\bdies|died\b/],
+        ['Replacement Effect', /\binstead\b|\bwould\b/], ['Target', /\btarget\b/], ['Stack', /\bcast|spell|ability\b/],
+        ['Triggered Ability', /\bwhen |\bwhenever |\bat the beginning\b/], ['Activated Ability', /:\s/],
+        ['Combat Damage', /\bcombat damage\b/], ['Destroy', /\bdestroy/], ['Sacrifice', /\bsacrifice/],
+        ['Counter a Spell or Ability', /\bcounter target|can.t be countered/], ['Create a Token', /\bcreate .* token/],
+        ['Commander Damage', /\bcommander damage\b/], ['Priority', /\brespond|priority\b/]
+    ];
+
+    const detectConcepts = (a, b) => conceptDetectors
+        .filter(([, pattern]) => either(a, b, pattern))
+        .map(([name]) => name)
+        .slice(0, 7);
+
+    const interactionVerdict = (a, b) => {
+        const cards = [a, b];
+        const textA = oracleText(a).toLowerCase();
+        const textB = oracleText(b).toLowerCase();
+        const concepts = detectConcepts(a, b);
+        const cardWith = pattern => cards.find(card => has(card, pattern));
+
+        const graveExiler = cardWith(/if .*would be put into a graveyard[\s\S]*exile.*instead|would be put into a graveyard[\s\S]*exile it instead/);
+        const deathTrigger = cardWith(/whenever .*\bdies\b|when .*\bdies\b/);
+        if (graveExiler && deathTrigger && graveExiler.id !== deathTrigger.id) return {
+            tone:'blocked', eyebrow:'REPLACEMENT EFFECT', title:'The death trigger is normally prevented',
+            summary:`${graveExiler.name} replaces the move to the graveyard with exile. The creature therefore does not “die,” so ${deathTrigger.name} does not trigger from that event.`,
+            steps:[`Apply ${graveExiler.name}’s replacement effect before the card changes zones.`, 'The card moves from the battlefield to exile instead of the graveyard.', `Because it never entered a graveyard from the battlefield, ${deathTrigger.name} sees no creature die.`],
+            concepts:[...new Set(['Replacement Effect','Exile','Dies',...concepts])].slice(0,7), confidence:'High'
+        };
+
+        const indestructible = cardWith(/\bindestructible\b/);
+        const destroyer = cardWith(/\bdestroy target|destroy all|destroy each/);
+        if (indestructible && destroyer && indestructible.id !== destroyer.id) return {
+            tone:'blocked', eyebrow:'DESTRUCTION', title:'Indestructible stops the destroy effect',
+            summary:`If ${destroyer.name} tries to destroy ${indestructible.name}, indestructible keeps it on the battlefield. Exile, sacrifice and 0 toughness can still remove it.`,
+            steps:['Choose legal targets and pay all costs.', 'The destroy instruction resolves.', 'Indestructible prevents that permanent from being destroyed.'],
+            concepts:[...new Set(['Indestructible','Destroy',...concepts])].slice(0,7), confidence:'High'
+        };
+
+        const uncounterable = cardWith(/can.t be countered/);
+        const counterspell = cardWith(/counter target spell/);
+        if (uncounterable && counterspell && uncounterable.id !== counterspell.id) return {
+            tone:'blocked', eyebrow:'THE STACK', title:'The spell cannot be countered',
+            summary:`${counterspell.name} may be cast if it has a legal target, but it cannot counter ${uncounterable.name}. Any other instructions still happen when applicable.`,
+            steps:[`${uncounterable.name} is on the stack.`, `${counterspell.name} resolves and attempts to counter it.`, 'The “can’t be countered” rule wins over the attempted counter.'],
+            concepts:[...new Set(['Counter a Spell or Ability','Stack',...concepts])].slice(0,7), confidence:'High'
+        };
+
+        const doubler = cardWith(/twice that many .*counters|double the number of .*counters|additional .*counter/);
+        const counterMaker = cardWith(/put .*\+1\/\+1 counters|put .* counters? on/);
+        if (doubler && counterMaker && doubler.id !== counterMaker.id) return {
+            tone:'synergy', eyebrow:'COUNTER SYNERGY', title:'These cards can increase the same counter event',
+            summary:`${doubler.name} can modify the counters placed by ${counterMaker.name}. Check the exact controller, permanent type and counter type named by each card.`,
+            steps:[`${counterMaker.name} creates an event that would put counters on an object or player.`, `${doubler.name} modifies that event if all of its conditions are met.`, 'Put the modified number of counters on the object or player.'],
+            concepts:[...new Set(['Replacement Effect','Proliferate',...concepts])].slice(0,7), confidence:'Medium'
+        };
+
+        const tokenDoubler = cardWith(/twice that many tokens|double the number of tokens|additional token/);
+        const tokenMaker = cardWith(/\bcreate [\s\S]* token/);
+        if (tokenDoubler && tokenMaker && tokenDoubler.id !== tokenMaker.id) return {
+            tone:'synergy', eyebrow:'TOKEN SYNERGY', title:'The token-creation event can be increased',
+            summary:`${tokenDoubler.name} can increase the tokens created by ${tokenMaker.name} when the effect’s controller and token requirements are satisfied.`,
+            steps:[`${tokenMaker.name} would create one or more tokens.`, `${tokenDoubler.name} checks whether its replacement effect applies.`, 'Create the modified number of tokens in a single event.'],
+            concepts:[...new Set(['Create a Token','Replacement Effect',...concepts])].slice(0,7), confidence:'Medium'
+        };
+
+        const graveBlocker = cardWith(/cards? in graveyards? can.t|players can.t cast spells from graveyards|exile all graveyards|would be put into a graveyard[\s\S]*exile/);
+        const recursion = cardWith(/cast .* from (?:your|a) graveyard|return .* from (?:your|a) graveyard|target .* card in (?:your|a) graveyard/);
+        if (graveBlocker && recursion && graveBlocker.id !== recursion.id) return {
+            tone:'blocked', eyebrow:'GRAVEYARD ACCESS', title:'The graveyard plan may be shut off',
+            summary:`${graveBlocker.name} interferes with the graveyard action on ${recursion.name}. The exact result depends on whether it prevents casting, targeting or keeps cards out of the graveyard entirely.`,
+            steps:[`Check which graveyard action ${recursion.name} is trying to perform.`, `Apply the restriction or replacement effect from ${graveBlocker.name}.`, 'Complete only the parts of the resolving effect that remain legal.'],
+            concepts:[...new Set(['Graveyard','Exile','Replacement Effect',...concepts])].slice(0,7), confidence:'Medium'
+        };
+
+        const shield = cardWith(/\bhexproof\b|\bshroud\b|\bward\b/);
+        const targeter = cardWith(/\btarget\b/);
+        if (shield && targeter && shield.id !== targeter.id) return {
+            tone:'depends', eyebrow:'TARGETING', title:'Controller and target choice decide the result',
+            summary:`${shield.name} has a targeting restriction or additional targeting cost. Whether ${targeter.name} works depends on who controls each card, what is targeted and whether ward is paid.`,
+            steps:['Identify the controller of the protected object and the spell or ability.', 'Check whether the object is a legal target when choices are made.', 'If ward applies, put its trigger on the stack and pay the ward cost or counter the spell or ability.'],
+            concepts:[...new Set(['Target','Hexproof','Shroud','Ward',...concepts])].slice(0,7), confidence:'Context needed'
+        };
+
+        const blink = cardWith(/exile [\s\S]* then return|exile [\s\S]* return .* battlefield/);
+        const enters = cardWith(/when .* enters|whenever .* enters/);
+        if (blink && enters && blink.id !== enters.id) return {
+            tone:'synergy', eyebrow:'ENTER-THE-BATTLEFIELD', title:'Returning the permanent can trigger it again',
+            summary:`${blink.name} can make ${enters.name} leave and return as a new object. Its enter-the-battlefield ability can trigger again if it returns successfully.`,
+            steps:[`${blink.name} exiles the permanent.`, 'The linked effect returns it as a new game object.', 'Its enters ability triggers and waits on the stack.'],
+            concepts:[...new Set(['Exile','Triggered Ability','Stack',...concepts])].slice(0,7), confidence:'Medium'
+        };
+
+        const copySpell = cardWith(/\bcopy target .*spell|copy that spell|copy it\b/);
+        const castTrigger = cardWith(/whenever you cast|when you cast/);
+        if (copySpell && castTrigger && copySpell.id !== castTrigger.id) return {
+            tone:'depends', eyebrow:'CAST VS COPY', title:'Copying a spell is not normally casting it',
+            summary:`A copy created by ${copySpell.name} is placed on the stack without being cast, so ${castTrigger.name} does not trigger merely because that copy was created.`,
+            steps:['The original spell is cast and any cast triggers happen.', `${copySpell.name} creates a copy directly on the stack.`, 'Resolve the copy normally, but do not generate another cast trigger.'],
+            concepts:[...new Set(['Copy a Spell','Cast','Triggered Ability','Stack',...concepts])].slice(0,7), confidence:'High'
+        };
+
+        const complex = /base power and toughness|loses all abilities|becomes a copy|in addition to its other types|exchange control/;
+        if (complex.test(`${textA} ${textB}`)) return {
+            tone:'depends', eyebrow:'CONTINUOUS EFFECTS', title:'Order, timestamps or layers may matter',
+            summary:'These cards create continuous effects that can depend on the exact order they entered, what they copy and which effects are still active.',
+            steps:['Record the exact objects, choices and timestamps.', 'Apply copy, control, text, type, color, ability and power/toughness effects in the rules’ layer order.', 'Use the published card rulings below for exceptions or card-specific instructions.'],
+            concepts:[...new Set(['Stack','State-Based Actions',...concepts])].slice(0,7), confidence:'Context needed'
+        };
+
+        return {
+            tone:'depends', eyebrow:'NO SINGLE AUTOMATIC CONFLICT', title:'The interaction needs game context',
+            summary:`No direct conflict or guaranteed combo was found in the Oracle text of ${a.name} and ${b.name}. They may still interact through targets, timing, chosen modes or other cards.`,
+            steps:['Choose modes, targets and costs for the spell or ability.', 'Apply replacement and prevention effects before the event happens.', 'Put resulting triggers on the stack, then resolve them in last-in-first-out order.'],
+            concepts:concepts.length ? concepts : ['Priority','Stack','Resolve'], confidence:'Context needed'
+        };
+    };
+
+    const fetchRulings = async card => {
+        if (rulingsCache.has(card.id)) return rulingsCache.get(card.id);
+        try {
+            const response = await fetch(card.rulings_uri || `https://api.scryfall.com/cards/${card.id}/rulings`);
+            const data = response.ok ? await response.json() : {data:[]};
+            const rulings = data.data || [];
+            rulingsCache.set(card.id, rulings);
+            return rulings;
+        } catch (_) {
+            return [];
+        }
+    };
+
+    const renderRulings = (card, rulings) => `
+        <details class="interaction-rulings">
+            <summary><span>${esc(card.name)}</span><b>${rulings.length} ruling${rulings.length === 1 ? '' : 's'}</b><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="interaction-rulings-body">
+                ${rulings.length ? rulings.slice(0, 8).map(ruling => `<article><p>${esc(ruling.comment)}</p><time>${esc(ruling.published_at)}</time></article>`).join('') : '<div class="interaction-no-rulings">No published card-specific rulings.</div>'}
+                <a href="${esc(card.scryfall_uri || '#')}" target="_blank" rel="noopener">Open card on Scryfall <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+            </div>
+        </details>`;
+
+    window.openInteractionRule = rule => {
+        window.setRulesTool('library');
+        window.ruleQuickSearch(rule);
+    };
+
+    window.analyseCardInteraction = async () => {
+        if (!state.a || !state.b) return;
+        const button = document.getElementById('interaction-analyse');
+        const result = document.getElementById('interaction-result');
+        button.disabled = true;
+        button.classList.add('loading');
+        button.querySelector('span').textContent = 'Analysing Oracle text…';
+        result.innerHTML = '<div class="interaction-loading"><span></span><strong>Reading both cards</strong><small>Matching zones, actions, triggers and replacement effects…</small></div>';
+        const [rulingsA, rulingsB] = await Promise.all([fetchRulings(state.a), fetchRulings(state.b)]);
+        const verdict = interactionVerdict(state.a, state.b);
+        result.innerHTML = `
+            <section class="interaction-verdict ${verdict.tone}">
+                <div class="interaction-verdict-top"><span>${verdict.eyebrow}</span><b><i class="fa-solid fa-signal"></i>${verdict.confidence}</b></div>
+                <h3>${esc(verdict.title)}</h3>
+                <p>${esc(verdict.summary)}</p>
+            </section>
+            <section class="interaction-steps">
+                <div class="interaction-section-title"><i class="fa-solid fa-list-ol"></i><span>How it plays out</span></div>
+                ${verdict.steps.map((step, index) => `<div><b>${index + 1}</b><p>${esc(step)}</p></div>`).join('')}
+            </section>
+            <section class="interaction-concepts">
+                <div class="interaction-section-title"><i class="fa-solid fa-book-open"></i><span>Relevant rules</span></div>
+                <div>${verdict.concepts.map(concept => `<button onclick="openInteractionRule('${esc(concept)}')">${esc(concept)}<i class="fa-solid fa-chevron-right"></i></button>`).join('')}</div>
+            </section>
+            <section class="interaction-published">
+                <div class="interaction-section-title"><i class="fa-solid fa-scale-balanced"></i><span>Published card rulings</span></div>
+                ${renderRulings(state.a, rulingsA)}
+                ${renderRulings(state.b, rulingsB)}
+            </section>
+            <div class="interaction-disclaimer"><i class="fa-solid fa-circle-info"></i><span>This is table assistance, not a complete rules engine. Controller, targets, timing, chosen modes and other cards can change the result.</span></div>`;
+        button.disabled = false;
+        button.classList.remove('loading');
+        button.querySelector('span').textContent = 'Analyse again';
+        result.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+    };
+
+    setResultEmpty();
+})();
+
+</script>
 <script data-bundled-source="english-ui.js">
 /* Magic Helper — English interface layer
    Keeps game data and internal Danish keys intact while translating every
@@ -16606,6 +17946,8 @@ function showAccum(id, amt, type) {
     const changelog = changelogHeading?.nextElementSibling;
     if (changelog) {
         changelog.innerHTML = [
+            ['v8.9', 'Card Interaction compares two cards using Oracle text, Rules Library and published rulings'],
+            ['v8.8', 'Rules Library 2.0 with 131 searchable entries and larger mobile Commander damage controls'],
             ['v8.7', 'Full-width landscape game table and a complete English interface'],
             ['v8.6', 'Game History with game details, player rankings, filters, event log and Insights'],
             ['v8.5', 'Shared turn timer with a separate countdown on every player panel'],
