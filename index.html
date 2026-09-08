@@ -6353,6 +6353,265 @@ body.fs-mode #view-play {
     .wishlist-export-sheet { padding-inline: 14px; border-radius: 24px; }
 }
 
+/* Related token gallery on Card Search */
+.related-tokens-panel {
+    position: relative;
+    margin: 17px 0 2px;
+    padding: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(204, 174, 104, .23);
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at 8% 0%, rgba(218, 181, 93, .14), transparent 36%),
+        linear-gradient(145deg, rgba(37, 34, 30, .96), rgba(16, 21, 27, .97));
+    box-shadow: inset 0 1px rgba(255,255,255,.06), 0 15px 35px rgba(0,0,0,.22);
+}
+.related-tokens-panel::before {
+    content: "";
+    position: absolute;
+    top: -60px;
+    right: -45px;
+    width: 125px;
+    height: 125px;
+    border: 1px solid rgba(229, 197, 120, .12);
+    border-radius: 50%;
+    box-shadow: 0 0 42px rgba(220, 176, 79, .08);
+    pointer-events: none;
+}
+.related-tokens-head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.related-tokens-head > div { display: flex; flex-direction: column; gap: 2px; }
+.related-tokens-head > div > span { color: #d5ae5b; font-size: 8px; font-weight: 900; letter-spacing: .17em; }
+.related-tokens-head strong { color: #f4eee1; font-family: "Goudy Arcane", Georgia, serif; font-size: 18px; }
+.related-tokens-count {
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+    border: 1px solid rgba(224, 188, 104, .26);
+    border-radius: 50%;
+    color: #f2d998;
+    background: rgba(218, 175, 78, .1);
+    font-size: 11px;
+    font-weight: 850;
+}
+.related-tokens-list {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 1px 1px 7px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(213,174,91,.35) transparent;
+}
+.related-token-card {
+    flex: 0 0 132px;
+    min-width: 0;
+    padding: 7px;
+    scroll-snap-align: start;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 15px;
+    color: var(--text);
+    background: rgba(255,255,255,.045);
+    box-shadow: inset 0 1px rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.22);
+    text-align: left;
+    transition: transform .16s ease, border-color .2s ease, background .2s ease;
+}
+.related-token-card:active { transform: scale(.97); }
+.related-token-card:hover { border-color: rgba(229,194,112,.35); background: rgba(255,255,255,.065); }
+.related-token-art {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 5 / 7;
+    overflow: hidden;
+    border-radius: 10px;
+    background: rgba(0,0,0,.3);
+}
+.related-token-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.related-token-art > i {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 8px;
+    color: #fff;
+    background: rgba(5,9,13,.74);
+    backdrop-filter: blur(8px);
+    font-size: 9px;
+}
+.related-token-copy { display: flex; flex-direction: column; gap: 2px; padding: 8px 2px 2px; }
+.related-token-copy strong { overflow: hidden; font-size: 11px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.related-token-copy small { overflow: hidden; color: var(--muted); font-size: 8px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.related-tokens-loading,
+.related-tokens-unavailable {
+    display: flex;
+    min-height: 90px;
+    flex: 1 0 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    color: var(--muted);
+    font-size: 11px;
+}
+.related-tokens-loading i { color: #d5ae5b; animation: token-orbit 1.2s ease-in-out infinite; }
+@keyframes token-orbit { 50% { transform: translateY(-3px) rotate(12deg); filter: brightness(1.3); } }
+
+/* Per-card collection price tracking */
+.col-movers-trigger { display: inline-flex; align-items: center; gap: 7px; padding-inline: 12px; }
+#col-movers-badge {
+    display: none;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    place-items: center;
+    border-radius: 999px;
+    color: #082016;
+    background: #77d6a4;
+    box-shadow: 0 0 14px rgba(87,207,143,.28);
+    font-size: 9px;
+    font-weight: 950;
+}
+.col-movers-panel {
+    margin: 12px 0;
+    padding: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(101, 204, 151, .23);
+    border-radius: 22px;
+    background:
+        radial-gradient(circle at 6% 0%, rgba(66,180,119,.14), transparent 34%),
+        linear-gradient(150deg, rgba(25,35,36,.98), rgba(13,19,25,.98));
+    box-shadow: 0 18px 44px rgba(0,0,0,.3), inset 0 1px rgba(255,255,255,.055);
+    animation: movers-panel-in .3s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes movers-panel-in { from { opacity:0; transform:translateY(-8px); } }
+.col-movers-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.col-movers-title { display: flex; align-items: center; gap: 10px; }
+.col-movers-title > div { display: flex; flex-direction: column; gap: 1px; }
+.col-movers-title small { color: #70d29d; font-size: 8px; font-weight: 900; letter-spacing: .16em; }
+.col-movers-title strong { color: #f2f1e9; font-family: "Goudy Arcane", Georgia, serif; font-size: 21px; }
+.col-movers-icon {
+    display: grid;
+    width: 39px;
+    height: 39px;
+    place-items: center;
+    border: 1px solid rgba(100,208,151,.25);
+    border-radius: 13px;
+    color: #79dbaa;
+    background: rgba(55,157,103,.12);
+    box-shadow: inset 0 1px rgba(255,255,255,.06);
+}
+.col-movers-close {
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 13px;
+    color: var(--muted);
+    background: rgba(255,255,255,.04);
+}
+.col-movers-intro { margin: 11px 0 13px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.col-movers-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.col-movers-controls label { display: flex; flex-direction: column; gap: 5px; }
+.col-movers-controls label > span { color: #77848d; font-size: 8px; font-weight: 850; letter-spacing: .13em; }
+.col-movers-controls select { width: 100%; min-height: 42px; margin: 0; padding: 9px 11px; border-radius: 12px; font-size: 11px; }
+.col-movers-search-wrap { position: relative; margin: 9px 0 7px; }
+.col-movers-search-wrap > i { position: absolute; top: 50%; left: 13px; z-index: 1; color: #6d7a82; font-size: 11px; transform: translateY(-50%); }
+#col-movers-search {
+    width: 100%;
+    min-height: 43px;
+    margin: 0;
+    padding: 10px 12px 10px 34px;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 13px;
+    color: var(--text);
+    background: rgba(255,255,255,.045);
+    font-size: 12px;
+    outline: none;
+}
+#col-movers-search:focus { border-color: rgba(100,208,151,.45); box-shadow: 0 0 0 3px rgba(64,174,116,.1); }
+.col-movers-summary { min-height: 17px; margin: 8px 2px 7px; color: #82908f; font-size: 9px; }
+.col-movers-summary strong { color: #78d6a3; }
+.col-movers-list { display: grid; gap: 7px; }
+.col-mover-row {
+    display: grid;
+    grid-template-columns: 43px minmax(0,1fr) auto 10px;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 66px;
+    padding: 8px 10px 8px 8px;
+    border: 1px solid rgba(255,255,255,.075);
+    border-radius: 15px;
+    color: var(--text);
+    background: rgba(255,255,255,.035);
+    text-align: left;
+    box-shadow: inset 3px 0 rgba(89,190,136,.48), inset 0 1px rgba(255,255,255,.025);
+    animation: mover-row-in .3s cubic-bezier(.16,1,.3,1) var(--mover-delay) both;
+}
+.col-mover-row.strong { box-shadow: inset 3px 0 rgba(114,214,154,.75), inset 0 1px rgba(255,255,255,.025); }
+.col-mover-row.surging { border-color: rgba(225,187,99,.16); box-shadow: inset 3px 0 #dfb75d, inset 0 1px rgba(255,255,255,.025); }
+.col-mover-row:active { transform: scale(.985); }
+@keyframes mover-row-in { from { opacity:0; transform:translateX(-6px); } }
+.col-mover-row > img { width: 43px; height: 58px; border-radius: 7px; object-fit: cover; background: rgba(0,0,0,.25); }
+.col-mover-copy { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.col-mover-copy > strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.col-mover-copy em { margin-left: 4px; color: #e5c5ff; font-size: 7px; font-style: normal; }
+.col-mover-copy small { overflow: hidden; color: #78858d; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.col-mover-copy > span { color: #aeb7b8; font-size: 9px; font-variant-numeric: tabular-nums; }
+.col-mover-copy > span i { margin-inline: 4px; color: #5b696c; font-size: 7px; }
+.col-mover-gain { display: flex; align-items: flex-end; flex-direction: column; gap: 1px; }
+.col-mover-gain strong { color: #7bd6a5; font-size: 14px; font-variant-numeric: tabular-nums; }
+.col-mover-row.surging .col-mover-gain strong { color: #eccb7d; }
+.col-mover-gain small { color: #77837f; font-size: 8px; white-space: nowrap; }
+.col-mover-row > i { color: #59656a; font-size: 9px; }
+.col-movers-empty {
+    display: flex;
+    min-height: 150px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 5px;
+    padding: 22px;
+    border: 1px dashed rgba(255,255,255,.09);
+    border-radius: 16px;
+    color: var(--muted);
+    text-align: center;
+}
+.col-movers-empty > i { margin-bottom: 6px; color: #65c793; font-size: 24px; }
+.col-movers-empty strong { color: #e7e9e3; font-size: 13px; }
+.col-movers-empty span { max-width: 310px; font-size: 10px; line-height: 1.5; }
+.col-movers-empty button { margin-top: 10px; padding: 9px 13px; border: 1px solid rgba(98,202,147,.25); border-radius: 11px; color: #83d9aa; background: rgba(61,161,108,.1); font-size: 10px; font-weight: 800; }
+.col-card-located { animation: collection-card-locate 1.35s ease both !important; }
+@keyframes collection-card-locate { 20%,65% { border-color: rgba(237,199,110,.85) !important; box-shadow: 0 0 0 3px rgba(225,180,79,.16), 0 12px 35px rgba(0,0,0,.32) !important; transform: translateY(-3px); } }
+
+@media (max-width: 520px) {
+    .related-tokens-panel { margin-inline: -4px; padding: 13px 11px; }
+    .related-token-card { flex-basis: 122px; }
+    .col-movers-panel { margin-inline: -4px; padding: 13px 11px; border-radius: 20px; }
+    .col-mover-row { grid-template-columns: 39px minmax(0,1fr) auto 8px; gap: 8px; padding-right: 8px; }
+    .col-mover-row > img { width: 39px; height: 54px; }
+    .col-mover-gain strong { font-size: 13px; }
+    .col-mover-gain small { font-size: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .related-tokens-loading i,
+    .col-movers-panel,
+    .col-mover-row,
+    .col-card-located { animation: none !important; }
+}
+
 </style>
 </head>
 <body>
@@ -6557,6 +6816,17 @@ body.fs-mode #view-play {
                 <i class="fa-solid fa-rotate"></i>
             </button>
         </div>
+
+        <section id="related-tokens-panel" class="related-tokens-panel" style="display:none;" aria-live="polite">
+            <div class="related-tokens-head">
+                <div>
+                    <span>TOKENS &amp; EMBLEMS</span>
+                    <strong>Created by this card</strong>
+                </div>
+                <span id="related-tokens-count" class="related-tokens-count"></span>
+            </div>
+            <div id="related-tokens-list" class="related-tokens-list"></div>
+        </section>
 
         <div class="store-links">
             <a id="link-cm" href="#" target="_blank" style="background:#142E54;border:1px solid #1e4080;">
@@ -6871,6 +7141,10 @@ body.fs-mode #view-play {
 
     <div class="col-toolbar">
         <button class="col-filter-chip" id="col-foil-chip" onclick="toggleColFoilFilter()">✨ Foil only</button>
+        <button class="col-filter-chip col-movers-trigger" id="col-movers-btn" onclick="togglePriceMovers()">
+            <i class="fa-solid fa-arrow-trend-up"></i> Price Movers
+            <span id="col-movers-badge"></span>
+        </button>
         <select class="col-sort-select" id="col-sort" onchange="updateCollectionView(document.getElementById('col-search').value)">
             <option value="added-desc">Recently added</option>
             <option value="name-asc">Name A→Z</option>
@@ -6918,6 +7192,27 @@ body.fs-mode #view-play {
         <div id="cv-chart"></div>
         <div id="cv-foot" style="font-size:10px;color:var(--muted);margin-top:6px;text-align:center;"></div>
     </div>
+
+    <section id="col-movers-panel" class="col-movers-panel" style="display:none;">
+        <div class="col-movers-head">
+            <div class="col-movers-title">
+                <span class="col-movers-icon"><i class="fa-solid fa-chart-line"></i></span>
+                <div><small>YOUR COLLECTION</small><strong>Price Movers</strong></div>
+            </div>
+            <button class="col-movers-close" onclick="togglePriceMovers(false)" aria-label="Close Price Movers"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p class="col-movers-intro">Find cards you own that have risen recently. Prices are tracked privately on this device.</p>
+        <div class="col-movers-controls">
+            <label><span>PERIOD</span><select id="col-movers-period" onchange="renderPriceMovers()"><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option></select></label>
+            <label><span>MINIMUM RISE</span><select id="col-movers-min" onchange="renderPriceMovers()"><option value="5">5%+</option><option value="10">10%+</option><option value="20">20%+</option><option value="0">Any rise</option></select></label>
+        </div>
+        <div class="col-movers-search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="col-movers-search" type="search" placeholder="Search rising cards…" oninput="renderPriceMovers()">
+        </div>
+        <div id="col-movers-summary" class="col-movers-summary"></div>
+        <div id="col-movers-list" class="col-movers-list"></div>
+    </section>
 
     <div id="col-price-status" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:16px;"></div>
 
@@ -7926,6 +8221,11 @@ let _historyScope = 'past';
 let _historyTab = 'games';
 let _historyPlayerFilter = 'all';
 let _historyExpandedId = null;
+const CARD_PRICE_HISTORY_KEY = 'mtg_card_price_history_v1';
+let priceMoversOpen = false;
+let currentRelatedTokens = [];
+let relatedTokenRequest = 0;
+const relatedTokenCache = new Map();
 
 document.getElementById('currency-select').value = currency;
 
@@ -8050,7 +8350,7 @@ function switchView(name, el) {
     } else {
         releaseWakeLock();
     }
-    if (name === 'collection') { requestPersistentStorage(); refreshCollectionPrices(); recordCollectionValue(); }
+    if (name === 'collection') { requestPersistentStorage(); refreshCollectionPrices(); recordCollectionValue(); recordCardPriceSnapshot(); }
     if (name === 'deck' && activeDeckId) { renderDeckEditor(); }
 }
 
@@ -8184,7 +8484,8 @@ async function searchCard(query) {
                      cmLink: c.purchase_uris?.cardmarket||'#',
                      gathererLink: c.related_uris?.gatherer||'',
                      edhrecLink:   c.related_uris?.edhrec||'',
-                     legalities:   c.legalities||{} };
+                     legalities:   c.legalities||{},
+                     relatedParts: c.all_parts||base.all_parts||[] };
         });
         if (!currentVariants.length) throw 0;
         sortVariants();
@@ -8281,6 +8582,85 @@ function selectVariant(i) {
     document.getElementById('edhrec-rec-btn').style.display = currentCard.edhrecLink ? 'block' : 'none';
     document.getElementById('edhrec-recs-panel').style.display = 'none';
     renderLegality(currentCard);
+    renderRelatedTokens(currentCard);
+}
+
+function _safeHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+
+function _normaliseRelatedToken(card) {
+    const front = card.image_uris || card.card_faces?.[0]?.image_uris || {};
+    const back = card.card_faces?.[1]?.image_uris || {};
+    const typeLine = card.type_line || card.card_faces?.map(face=>face.type_line).filter(Boolean).join(' // ') || 'Token';
+    return {
+        id: card.id,
+        name: card.name || 'Token',
+        typeLine,
+        img: front.normal || front.large || front.png || front.small || '',
+        thumb: front.small || front.normal || front.large || front.png || '',
+        imgBack: back.normal || back.large || back.png || '',
+        oracleText: card.oracle_text || card.card_faces?.map(face=>face.oracle_text).filter(Boolean).join('\n//\n') || ''
+    };
+}
+
+async function renderRelatedTokens(card) {
+    const panel = document.getElementById('related-tokens-panel');
+    const list = document.getElementById('related-tokens-list');
+    const count = document.getElementById('related-tokens-count');
+    if (!panel || !list || !card) return;
+    const requestId = ++relatedTokenRequest;
+    const parts = [...new Map((card.relatedParts || [])
+        .filter(part => part?.id && part.component === 'token')
+        .map(part => [part.id, part])).values()];
+
+    currentRelatedTokens = [];
+    if (!parts.length) {
+        panel.style.display = 'none';
+        list.innerHTML = '';
+        return;
+    }
+
+    panel.style.display = 'block';
+    count.textContent = `${parts.length}`;
+    list.innerHTML = `<div class="related-tokens-loading"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Finding the matching token${parts.length===1?'':'s'}…</span></div>`;
+
+    const missing = parts.filter(part => !relatedTokenCache.has(part.id));
+    if (missing.length) {
+        try {
+            const response = await fetch('https://api.scryfall.com/cards/collection', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({identifiers: missing.slice(0,75).map(part=>({id:part.id}))})
+            });
+            if (!response.ok) throw new Error('Token lookup failed');
+            const result = await response.json();
+            (result.data || []).forEach(token=>relatedTokenCache.set(token.id,_normaliseRelatedToken(token)));
+        } catch(error) {
+            // The parent card still remains usable when the related-image request is offline.
+        }
+    }
+    if (requestId !== relatedTokenRequest || currentCard?.id !== card.id) return;
+
+    currentRelatedTokens = parts.map(part=>relatedTokenCache.get(part.id)).filter(Boolean);
+    if (!currentRelatedTokens.length) {
+        list.innerHTML = `<div class="related-tokens-unavailable"><i class="fa-solid fa-cloud-arrow-down"></i><span>The token images could not be loaded. Check your connection and select the printing again.</span></div>`;
+        return;
+    }
+    count.textContent = `${currentRelatedTokens.length}`;
+    list.innerHTML = currentRelatedTokens.map((token,index)=>`
+        <button class="related-token-card" onclick="openRelatedToken(${index})" aria-label="View ${_safeHTML(token.name)}">
+            <span class="related-token-art"><img src="${token.thumb}" alt="${_safeHTML(token.name)}" loading="lazy"><i class="fa-solid fa-expand"></i></span>
+            <span class="related-token-copy"><strong>${_safeHTML(token.name)}</strong><small>${_safeHTML(token.typeLine)}</small></span>
+        </button>`).join('');
+}
+
+function openRelatedToken(index) {
+    const token = currentRelatedTokens[index];
+    if (!token?.img) return;
+    const extras = document.getElementById('hand-zoom-extras');
+    if (extras) extras.style.display = 'none';
+    openHandCardZoom(token.img, token.imgBack, token.name);
 }
 
 // ── EDHREC Integration ────────────────────────────────────────
@@ -10579,7 +10959,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.11 · Arcane';
+const APP_VERSION = '8.12 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
@@ -12808,6 +13188,7 @@ function switchCollection(id) {
     document.getElementById('col-search-clear').style.display = 'none';
     renderCollectionTabs();
     updateCollectionView();
+    recordCardPriceSnapshot();
 }
 
 function createCollection() {
@@ -12957,6 +13338,7 @@ function addToCollection() {
         });
     }
     saveCollection();
+    recordCardPriceSnapshot();
     updateCollectionView();
     vib(40);
     const colLabel = targetId !== activeCollectionId ? ` → ${targetName}` : '';
@@ -13267,6 +13649,8 @@ async function openColCardDetail(id) {
 function updateCollectionView(query = '') {
     renderCollectionTabs();
     renderValueChart();
+    updatePriceMoversBadge();
+    if (priceMoversOpen) renderPriceMovers();
     const grid = document.getElementById('col-grid');
     const q = query.toLowerCase().trim();
     const sort = document.getElementById('col-sort')?.value || 'added-desc';
@@ -13334,6 +13718,7 @@ function updateCollectionView(query = '') {
         const ck = item._colKey || item.id;
         const el = document.createElement('div');
         el.className = 'col-card' + (item.foil ? ' foil-card' : '');
+        el.dataset.colKey = ck;
         el.innerHTML = `
             <div class="col-card-img-wrap" style="cursor:pointer;" onclick="openColCardDetail('${ck}')">
                 <img src="${item.img||''}" alt="${item.name}" loading="lazy"
@@ -13375,6 +13760,182 @@ updateCollectionView();
 migrateCollectionData();
 
 // ═══════════════════════════════════════════════
+//  PER-CARD PRICE HISTORY + MOVERS
+// ═══════════════════════════════════════════════
+function _cardPriceHistory() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CARD_PRICE_HISTORY_KEY) || '{}');
+        return saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
+    } catch(e) { return {}; }
+}
+
+function _priceDay(dateString) {
+    const value = dateString
+        ? new Date(`${dateString}T12:00:00Z`).getTime()
+        : Date.now();
+    return Math.floor(value / 864e5);
+}
+
+// Store only price changes in euro cents, rather than a full collection copy each day.
+function recordCardPriceSnapshot(dateString = new Date().toISOString().slice(0,10)) {
+    if (!collection?.length) return;
+    const day = _priceDay(dateString);
+    if (!Number.isFinite(day)) return;
+    const history = _cardPriceHistory();
+    const bucket = history[activeCollectionId] || {};
+    const liveKeys = new Set();
+
+    collection.forEach(item => {
+        const key = String(item._colKey || item.id || '');
+        const price = Number(item.price);
+        if (!key || !(price > 0)) return;
+        liveKeys.add(key);
+        const cents = Math.max(1, Math.round(price * 100));
+        const byDay = new Map((Array.isArray(bucket[key]) ? bucket[key] : [])
+            .filter(point => Array.isArray(point) && Number.isFinite(+point[0]) && Number.isFinite(+point[1]))
+            .map(point => [+point[0], +point[1]]));
+        byDay.set(day, cents);
+        let points = [...byDay.entries()].sort((a,b)=>a[0]-b[0]);
+
+        // Consecutive identical values add no information, so keep the earliest one.
+        points = points.filter((point,index,array)=>index === 0 || point[1] !== array[index-1][1]);
+        const cutoff = day - 120;
+        const oldAnchor = [...points].reverse().find(point => point[0] <= cutoff);
+        points = points.filter(point => point[0] > cutoff);
+        if (oldAnchor) points.unshift(oldAnchor);
+        if (points.length > 48) points = [points[0], ...points.slice(-47)];
+        bucket[key] = points;
+    });
+
+    Object.keys(bucket).forEach(key => { if (!liveKeys.has(key)) delete bucket[key]; });
+    history[activeCollectionId] = bucket;
+    Object.keys(history).forEach(id => { if (!collections[id]) delete history[id]; });
+    try { localStorage.setItem(CARD_PRICE_HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
+    updatePriceMoversBadge();
+    if (priceMoversOpen) renderPriceMovers();
+}
+
+function _priceMoverData(days = 7, minimumRise = 5, search = '') {
+    const today = _priceDay();
+    const target = today - days;
+    const bucket = _cardPriceHistory()[activeCollectionId] || {};
+    const query = String(search).trim().toLowerCase();
+    let comparable = 0;
+    const rows = [];
+
+    collection.forEach(item => {
+        const key = String(item._colKey || item.id || '');
+        if (query && !`${item.name} ${item.setName || item.set || ''}`.toLowerCase().includes(query)) return;
+        const points = (Array.isArray(bucket[key]) ? bucket[key] : [])
+            .map(point=>[+point[0],+point[1]])
+            .filter(point=>Number.isFinite(point[0]) && Number.isFinite(point[1]))
+            .sort((a,b)=>a[0]-b[0]);
+        const current = Number(item.price);
+        if (!(current > 0) || !points.length) return;
+
+        let baseline = null;
+        points.forEach(point => { if (point[0] <= target) baseline = point; });
+        if (!baseline && points[0][0] < today) baseline = points[0];
+        if (!baseline || baseline[1] <= 0) return;
+        const actualDays = Math.max(1, today - baseline[0]);
+        comparable++;
+        const oldPrice = baseline[1] / 100;
+        const difference = current - oldPrice;
+        const percent = difference / oldPrice * 100;
+        if (!(difference > 0) || percent + .001 < minimumRise) return;
+        rows.push({ item, key, current, oldPrice, difference, percent, actualDays, impact:difference*(item.qty||1) });
+    });
+    rows.sort((a,b)=>b.percent-a.percent || b.impact-a.impact || a.item.name.localeCompare(b.item.name));
+    return { rows, comparable };
+}
+
+function updatePriceMoversBadge() {
+    const badge = document.getElementById('col-movers-badge');
+    if (!badge) return;
+    const count = _priceMoverData(7, 5).rows.length;
+    badge.textContent = count ? count : '';
+    badge.style.display = count ? 'inline-grid' : 'none';
+}
+
+function togglePriceMovers(force) {
+    priceMoversOpen = typeof force === 'boolean' ? force : !priceMoversOpen;
+    document.getElementById('col-movers-btn')?.classList.toggle('active', priceMoversOpen);
+    renderPriceMovers();
+    if (priceMoversOpen) document.getElementById('col-movers-panel')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function renderPriceMovers() {
+    const panel = document.getElementById('col-movers-panel');
+    if (!panel) return;
+    panel.style.display = priceMoversOpen ? 'block' : 'none';
+    if (!priceMoversOpen) return;
+    const list = document.getElementById('col-movers-list');
+    const summary = document.getElementById('col-movers-summary');
+    const days = +(document.getElementById('col-movers-period')?.value || 7);
+    const minimum = +(document.getElementById('col-movers-min')?.value || 5);
+    const query = document.getElementById('col-movers-search')?.value || '';
+    const { rows, comparable } = _priceMoverData(days, minimum, query);
+
+    if (!collection.length) {
+        summary.textContent = '';
+        list.innerHTML = `<div class="col-movers-empty"><i class="fa-solid fa-box-open"></i><strong>Your collection is empty</strong><span>Add cards before tracking price movement.</span></div>`;
+        return;
+    }
+    if (!comparable) {
+        summary.textContent = 'Tracking starts with your first saved price';
+        list.innerHTML = `<div class="col-movers-empty"><i class="fa-solid fa-seedling"></i><strong>Your price timeline starts now</strong><span>Open Collection on different days to reveal which of your cards are rising.</span><button onclick="refreshPriceMovers()"><i class="fa-solid fa-rotate"></i> Update prices now</button></div>`;
+        return;
+    }
+
+    summary.innerHTML = `<strong>${rows.length}</strong> ${rows.length === 1 ? 'card' : 'cards'} up ${minimum ? `at least ${minimum}%` : 'in price'} · compared with up to ${days} days ago`;
+    if (!rows.length) {
+        list.innerHTML = `<div class="col-movers-empty"><i class="fa-solid fa-wave-square"></i><strong>No matching price jumps</strong><span>Try a lower percentage, a longer period or a different search.</span></div>`;
+        return;
+    }
+
+    list.innerHTML = rows.slice(0, 30).map((row,index) => {
+        const item = row.item;
+        const intensity = row.percent >= 20 ? 'surging' : row.percent >= 10 ? 'strong' : 'rising';
+        return `<button class="col-mover-row ${intensity}" onclick="locatePriceMover('${row.key}')" style="--mover-delay:${Math.min(index,12)*35}ms">
+            <img src="${item.thumb || item.img || ''}" alt="${_safeHTML(item.name)}" loading="lazy">
+            <span class="col-mover-copy"><strong>${_safeHTML(item.name)}${item.foil ? ' <em>FOIL</em>' : ''}</strong><small>${_safeHTML(item.setName || item.set || '')} · ${row.actualDays} day${row.actualDays===1?'':'s'} tracked</small><span>${fmt(row.oldPrice)} <i class="fa-solid fa-arrow-right"></i> ${fmt(row.current)}</span></span>
+            <span class="col-mover-gain"><strong>+${row.percent.toFixed(row.percent >= 100 ? 0 : 1)}%</strong><small>+${fmt(row.impact)} owned</small></span>
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>`;
+    }).join('');
+}
+
+async function refreshPriceMovers() {
+    const button = document.querySelector('.col-movers-empty button');
+    if (button) { button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating…'; }
+    await refreshCollectionPrices(true);
+    renderPriceMovers();
+}
+
+function locatePriceMover(key) {
+    const item = collection.find(card => String(card._colKey || card.id) === String(key));
+    if (!item) return;
+    priceMoversOpen = false;
+    document.getElementById('col-movers-panel').style.display = 'none';
+    document.getElementById('col-movers-btn')?.classList.remove('active');
+    colFoilFilter = false;
+    colTypeFilters.clear();
+    colColorFilters.clear();
+    document.querySelectorAll('#col-foil-chip, [id^="cft-"], [id^="cfc-"]').forEach(chip=>chip.classList.remove('active'));
+    const search = document.getElementById('col-search');
+    search.value = item.name;
+    document.getElementById('col-search-clear').style.display = 'flex';
+    _colPageSize = 120;
+    updateCollectionView(item.name);
+    requestAnimationFrame(() => {
+        const card = [...document.querySelectorAll('.col-card')].find(element=>element.dataset.colKey === key);
+        card?.scrollIntoView({behavior:'smooth',block:'center'});
+        card?.classList.add('col-card-located');
+        setTimeout(()=>card?.classList.remove('col-card-located'), 1400);
+    });
+}
+
+// ═══════════════════════════════════════════════
 //  AUTOMATISK PRISOPDATERING
 // ═══════════════════════════════════════════════
 let priceRefreshRunning = false;
@@ -13385,6 +13946,7 @@ async function refreshCollectionPrices(force = false) {
 
     const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
     const lastUpdate = localStorage.getItem('mtg_prices_date');
+    recordCardPriceSnapshot(lastUpdate || today);
     if (!force && lastUpdate === today) {
         // Already fresh today — just show the timestamp
         setColPriceStatus(`✓ Prices updated today`);
@@ -13435,6 +13997,7 @@ async function refreshCollectionPrices(force = false) {
 
     saveCollection();
     localStorage.setItem('mtg_prices_date', today);
+    recordCardPriceSnapshot(today);
     priceRefreshRunning = false;
 
     updateCollectionView(document.getElementById('col-search').value);
@@ -18336,6 +18899,7 @@ function showAccum(id, amt, type) {
     const changelog = changelogHeading?.nextElementSibling;
     if (changelog) {
         changelog.innerHTML = [
+            ['v8.12', 'Related token and emblem gallery on card search, plus private Price Movers tracking for your collection'],
             ['v8.11', 'Wishlist export to Cardmarket with quantities, clipboard confirmation and a mobile-friendly Want List guide'],
             ['v8.10', 'Reliable deck price lookup with safe request pacing, automatic retries and a local price cache'],
             ['v8.9', 'Card Interaction compares two cards using Oracle text, Rules Library and published rulings'],
