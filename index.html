@@ -6868,6 +6868,26 @@ body.fs-mode #view-play {
 .build-back:hover { text-decoration: underline; }
 .build-title .build-pips { vertical-align: middle; margin-left: 6px; }
 
+/* manglende kort fra EDHREC */
+.build-type-count small { font-size: 11px; font-weight: 700; color: var(--muted); margin-left: 1px; }
+.build-missing-head {
+    margin: 14px 0 2px; font-size: 10.5px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--gold);
+}
+.build-missing {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%; padding: 9px 13px; text-align: left; cursor: pointer;
+    font-family: inherit; font-size: 13.5px; color: var(--text);
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md);
+    transition: border-color var(--tr), background var(--tr);
+}
+.build-missing:hover { border-color: var(--border-lit); background: var(--bg-input); }
+.build-missing-pct {
+    flex: none; font-size: 12px; font-weight: 800; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+.build-missing-more { padding: 6px 2px; font-size: 11.5px; color: var(--muted); text-align: center; }
+
 </style>
 </head>
 <body>
@@ -19080,7 +19100,9 @@ function showAccum(id, amt, type) {
 
     const PIP = { W: '#f6eedc', U: '#7fb6e8', B: '#9b8fa8', R: '#e08a72', G: '#7cbb8a' };
 
-    window.openBuildSuggestions = function openBuildSuggestions() {
+    // Modalen skal kunne oprettes fra begge visninger — ellers vælter den, hvis
+    // buildShowMatches kaldes uden at oversigten har været åbnet først.
+    function buildModal() {
         let modal = document.getElementById('build-modal');
         if (!modal) {
             modal = document.createElement('div');
@@ -19091,6 +19113,11 @@ function showAccum(id, amt, type) {
             modal.onclick = event => { if (event.target === modal) modal.style.display = 'none'; };
             document.body.appendChild(modal);
         }
+        return modal;
+    }
+
+    window.openBuildSuggestions = function openBuildSuggestions() {
+        const modal = buildModal();
         const data = commanderSuggestions();
 
         const body = !data.legends
@@ -19145,54 +19172,193 @@ function showAccum(id, amt, type) {
         ['Planeswalker', /\bPlaneswalker\b/i]
     ];
 
-    window.buildShowMatches = function buildShowMatches(name) {
+    // ── EDHREC: hvad spiller folk faktisk i det her deck? ───────────
+    // Farveidentitet alene er et svagt signal — ethvert rødt kort "passer" til
+    // en mono-rød commander. EDHREC ved hvilke kort der rent faktisk bliver
+    // spillet, og det er dét man vil måle sin samling op imod.
+    const EDHREC_KEY = 'mtg_edhrec_cache';
+    const EDHREC_MAX_AGE = 7 * 864e5;   // en uge
+    const EDHREC_MAX_COMMANDERS = 12;   // hold cachen lille
+
+    const EDHREC_CATEGORIES = [
+        ['highsynergycards', 'High synergy'],
+        ['topcards',         'Top cards'],
+        ['creatures',        'Creatures'],
+        ['instants',         'Instants'],
+        ['sorceries',        'Sorceries'],
+        ['manaartifacts',    'Mana'],
+        ['enchantments',     'Enchantments'],
+        ['planeswalkers',    'Planeswalkers'],
+        ['utilitylands',     'Lands']
+    ];
+
+    function readEdhrecCache() {
+        try { return JSON.parse(localStorage.getItem(EDHREC_KEY) || '{}'); } catch (e) { return {}; }
+    }
+
+    function writeEdhrecCache(slug, payload) {
+        try {
+            const cache = readEdhrecCache();
+            cache[slug] = { at: Date.now(), payload };
+            // smid de ældste ud, så cachen ikke vokser i det uendelige
+            const entries = Object.entries(cache).sort((a, b) => b[1].at - a[1].at);
+            localStorage.setItem(EDHREC_KEY,
+                JSON.stringify(Object.fromEntries(entries.slice(0, EDHREC_MAX_COMMANDERS))));
+        } catch (e) { /* fyldt lager — cachen er en bekvemmelighed, ikke et krav */ }
+    }
+
+    async function fetchEdhrec(commanderName) {
+        const slug = typeof toEdhrecSlug === 'function'
+            ? toEdhrecSlug(commanderName)
+            : commanderName.split('//')[0].trim().toLowerCase()
+                .replace(/[',.!]/g, '').replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-').replace(/-+/g, '-');
+
+        const cached = readEdhrecCache()[slug];
+        if (cached && Date.now() - cached.at < EDHREC_MAX_AGE) return cached.payload;
+        if (!navigator.onLine) return cached ? cached.payload : null;
+
+        const endpoint = `https://json.edhrec.com/pages/commanders/${slug}.json`;
+        const urls = [
+            endpoint,
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`,
+            `https://corsproxy.io/?${encodeURIComponent(endpoint)}`
+        ];
+        let data = null;
+        for (const url of urls) {
+            try {
+                const r = await fetch(url, { signal: AbortSignal.timeout(9000) });
+                if (!r.ok) continue;
+                data = await r.json();
+                if (data) break;
+            } catch (e) { /* prøv næste vej ind */ }
+        }
+        const cardlists = data?.container?.json_dict?.cardlists || [];
+        if (!cardlists.length) return cached ? cached.payload : null;
+
+        // Gem kun det vi bruger: navn, kategori og hvor ofte kortet spilles.
+        const payload = cardlists.map(list => ({
+            tag: list.tag || '',
+            header: list.header || '',
+            cards: (list.cardviews || []).map(card => ({
+                n: card.name,
+                p: card.potential_decks ? Math.round(card.num_decks / card.potential_decks * 100) : 0
+            }))
+        })).filter(list => list.cards.length);
+
+        writeEdhrecCache(slug, payload);
+        return payload;
+    }
+
+    window.buildShowMatches = async function buildShowMatches(name) {
         const data = commanderSuggestions(999);
         const row = data.results.find(r => norm(r.commander.name) === norm(name));
         if (!row) return;
 
-        const buckets = TYPE_ORDER.map(([label, test]) => [label, row.matches.filter(card => {
-            const type = card.typeLine || card.type_line || '';
-            // et kort tælles i den første type det matcher, så intet tælles dobbelt
-            return TYPE_ORDER.find(([, t]) => t.test(type))?.[0] === label;
-        })]).filter(([, list]) => list.length);
-
-        const utypede = row.matches.filter(c => !(c.typeLine || c.type_line)).length;
-        const mangler = Math.max(0, 99 - row.playable);
+        const modal = buildModal();
         const pips = row.identity.length
             ? row.identity.map(c => `<i class="ci-pip" style="background:${PIP[c] || '#888'}" title="${c}"></i>`).join('')
             : '<i class="ci-pip" style="background:#6b7280" title="Colorless"></i>';
 
-        const modal = document.getElementById('build-modal');
-        modal.innerHTML = `
+        const shell = inner => `
             <div class="build-card" style="background:var(--bg-panel);border:1px solid var(--border-lit);
                  border-radius:var(--r-lg);padding:22px;max-width:560px;width:100%;max-height:86vh;
                  display:flex;flex-direction:column;">
                 <div class="build-head">
                     <div>
-                        <div class="build-kicker">CARDS THAT FIT</div>
+                        <div class="build-kicker">HOW CLOSE AM I?</div>
                         <h2 class="build-title">${escapeHTML(row.commander.name)} <span class="build-pips">${pips}</span></h2>
                     </div>
                     <button class="accessory-close" aria-label="Close" onclick="window.openBuildSuggestions()">✕</button>
                 </div>
-                <div class="build-summary">
-                    <strong>${row.playable}</strong> of the 99 cards you need
-                    ${mangler ? `<span>— ${mangler} still missing</span>` : '<span>— you have enough!</span>'}
-                    <span class="build-bar" style="margin-top:8px;"><span style="width:${Math.min(100, Math.round(row.playable / 99 * 100))}%"></span></span>
-                </div>
-                <div class="build-list">
-                    ${buckets.map(([label, list]) => `
-                        <div class="build-type-row">
-                            <span class="build-type-name">${label}</span>
-                            <span class="build-type-count">${list.length}</span>
-                        </div>`).join('')}
-                </div>
+                ${inner}
                 <div class="build-note">
-                    Counted from your collection by color identity. Basic lands are left out —
-                    add those on top.${utypede ? ` ${utypede} cards have no type data yet.` : ''}
-                    <br><button class="build-back" onclick="window.openBuildSuggestions()">← All commanders</button>
+                    <button class="build-back" onclick="window.openBuildSuggestions()">← All commanders</button>
                 </div>
             </div>`;
+
+        modal.innerHTML = shell('<div class="build-empty">Checking what people actually play…</div>');
         modal.style.display = 'flex';
+
+        const lists = await fetchEdhrec(row.commander.name);
+
+        if (!lists) {
+            // EDHREC utilgængelig — vis det vi kan regne ud lokalt
+            modal.innerHTML = shell(`
+                <div class="build-summary">
+                    <strong>${row.playable}</strong> cards in your collection match this
+                    commander's color identity
+                    <span class="build-bar" style="margin-top:8px;"><span style="width:${Math.min(100, Math.round(row.playable / 99 * 100))}%"></span></span>
+                </div>
+                <div class="build-note" style="margin-top:0;">
+                    Could not reach EDHREC, so this is only a color-identity count —
+                    it does not say whether the cards are actually played in this deck.
+                    Try again when you are online.
+                </div>`);
+            return;
+        }
+
+        // Hvilke af de anbefalede kort har jeg?
+        const owned = new Set(collectionCards().map(c => norm(c.name)));
+        const seen = new Set();
+        let totalRec = 0, totalOwned = 0;
+        const rows = [];
+        const missing = [];
+
+        for (const [tag, label] of EDHREC_CATEGORIES) {
+            const list = lists.find(l => l.tag === tag);
+            if (!list) continue;
+            let have = 0, inCategory = 0;
+            for (const card of list.cards) {
+                const key = norm(card.n);
+                // Samme kort optræder i flere kategorier. Det tælles kun i den
+                // første — også i nævneren, ellers passer brøken ikke.
+                if (seen.has(key)) continue;
+                seen.add(key);
+                inCategory++;
+                totalRec++;
+                if (owned.has(key)) { have++; totalOwned++; }
+                else missing.push({ name: card.n, pct: card.p, label });
+            }
+            if (inCategory) rows.push([label, have, inCategory]);
+        }
+
+        if (!totalRec) {
+            modal.innerHTML = shell('<div class="build-empty">EDHREC has no card data for this commander yet.</div>');
+            return;
+        }
+
+        missing.sort((a, b) => b.pct - a.pct);
+        const pct = Math.round(totalOwned / totalRec * 100);
+        const top = missing.slice(0, 15);
+
+        modal.innerHTML = shell(`
+            <div class="build-summary">
+                <strong>${totalOwned}</strong> of ${totalRec} cards people actually play
+                <span>— ${pct}%</span>
+                <span class="build-bar" style="margin-top:8px;"><span style="width:${pct}%"></span></span>
+            </div>
+            <div class="build-list">
+                ${rows.map(([label, have, all]) => `
+                    <div class="build-type-row">
+                        <span class="build-type-name">${label}</span>
+                        <span class="build-type-count">${have}<small>/${all}</small></span>
+                    </div>`).join('')}
+                ${top.length ? `
+                    <div class="build-missing-head">Most-played cards you are missing</div>
+                    ${top.map(card => `
+                        <button class="build-missing" onclick="window.buildRowSearch(${JSON.stringify(card.name).replace(/"/g, '&quot;')})">
+                            <span>${escapeHTML(card.name)}</span>
+                            <span class="build-missing-pct">${card.pct}%</span>
+                        </button>`).join('')}
+                    ${missing.length > top.length ? `<div class="build-missing-more">+ ${missing.length - top.length} more</div>` : ''}
+                ` : '<div class="build-missing-head">You own every card EDHREC lists ✓</div>'}
+            </div>
+            <div class="build-note" style="margin-top:12px;">
+                From EDHREC's most-played cards for this commander. The percentage is how
+                many ${escapeHTML(row.commander.name)} decks run that card.
+                Your collection also holds ${row.playable} cards that merely fit the color identity.
+            </div>`);
     };
 
     window.buildRowSearch = function buildRowSearch(name) {
