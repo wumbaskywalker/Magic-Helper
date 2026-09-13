@@ -19295,7 +19295,7 @@ function showAccum(id, amt, type) {
     function buildCardRow(card, isOwned) {
         const qty = card.qty > 1 ? `<span class="build-qty">×${card.qty}</span>` : '';
         return `<button class="build-card-row${isOwned ? ' owned' : ''}"
-                    onclick="window.buildRowSearch(${JSON.stringify(card.name).replace(/"/g, '&quot;')})">
+                    onclick="window.buildPeek(${JSON.stringify(card.name).replace(/"/g, '&quot;')})">
                     <span class="build-card-mark">${isOwned ? '✓' : '+'}</span>
                     <span class="build-card-name">${escapeHTML(card.name)}${qty}</span>
                     <span class="build-card-cat">${escapeHTML(card.label)}</span>
@@ -19447,6 +19447,15 @@ function showAccum(id, amt, type) {
         missing.sort((a, b) => b.pct - a.pct);
         buildLast = { row, pips, rows, ownedList, missing, totalRec, totalOwned };
         renderBuildMatches(buildLast);
+    };
+
+    // Vis kortet ovenpå listen i stedet for at hoppe til søgesiden. Appens egen
+    // kortvisning ligger på z-index 1300 (over modalen her på 1000) og lukkes
+    // med ét klik — så man lander tilbage i listen hvor man var.
+    window.buildPeek = function buildPeek(name) {
+        const preview = globalValue('previewEdhrecCard');
+        if (typeof preview === 'function') { preview(name); return; }
+        window.buildRowSearch(name);   // sidste udvej, hvis visningen mangler
     };
 
     window.buildRowSearch = function buildRowSearch(name) {
