@@ -6846,6 +6846,28 @@ body.fs-mode #view-play {
 .build-empty { padding: 26px 10px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .build-note { margin-top: 12px; font-size: 11px; line-height: 1.55; color: var(--muted); }
 
+/* kort der passer til en valgt commander */
+.build-summary {
+    margin-bottom: 12px; padding: 12px 14px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md);
+    font-size: 13px; color: var(--muted);
+}
+.build-summary strong { font-size: 22px; color: var(--gold-lt); font-family: "Goudy Arcane", Georgia, serif; }
+.build-summary span { color: var(--muted); }
+.build-type-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 13px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.build-type-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.build-type-count { font-size: 15px; font-weight: 800; color: var(--gold-lt); font-variant-numeric: tabular-nums; }
+.build-back {
+    margin-top: 8px; padding: 0; background: none; border: none;
+    color: var(--accent); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.build-back:hover { text-decoration: underline; }
+.build-title .build-pips { vertical-align: middle; margin-left: 6px; }
+
 </style>
 </head>
 <body>
@@ -13465,6 +13487,14 @@ function _compactCollectionCard(card) {
         thumb: card.thumb || card.img || '',
         imgBack: card.imgBack || '',
         addedAt: card.addedAt || Date.now(),
+        // Type- og farvedata SKAL gemmes med. Uden dem tror appen ved hver
+        // indlæsning at data mangler og henter dem forfra fra Scryfall for hele
+        // samlingen (40+ kald ved 3000 kort) — hvorefter de blev smidt væk igen
+        // her. Det gjorde typefiltre og commander-forslag ubrugelige og kunne
+        // udløse rate limiting på den almindelige kortsøgning.
+        typeLine: card.typeLine || '',
+        colorIdentity: Array.isArray(card.colorIdentity) ? card.colorIdentity : [],
+        cmc: Number.isFinite(Number(card.cmc)) ? Number(card.cmc) : 0,
     };
     if (card.lookupPending) compact.lookupPending = true;
     return compact;
@@ -19036,12 +19066,12 @@ function showAccum(id, amt, type) {
         const identities = cards.map(identityOf);
         const results = legends.map(commander => {
             const ci = identityOf(commander);
-            let playable = 0;
+            const matches = [];
             for (let i = 0; i < cards.length; i++) {
                 if (cards[i] === commander) continue;
-                if (fitsIn(identities[i], ci)) playable++;
+                if (fitsIn(identities[i], ci)) matches.push(cards[i]);
             }
-            return { commander, identity: ci, playable };
+            return { commander, identity: ci, playable: matches.length, matches };
         });
 
         results.sort((a, b) => b.playable - a.playable || a.commander.name.localeCompare(b.commander.name));
@@ -19072,7 +19102,7 @@ function showAccum(id, amt, type) {
                     : '<i class="ci-pip" style="background:#6b7280" title="Colorless"></i>';
                 const pct = Math.min(100, Math.round(row.playable / 99 * 100));
                 return `
-                    <button class="build-row" onclick="window.buildRowSearch(${JSON.stringify(row.commander.name).replace(/"/g, '&quot;')})">
+                    <button class="build-row" onclick="window.buildShowMatches(${JSON.stringify(row.commander.name).replace(/"/g, '&quot;')})">
                         <span class="build-row-top">
                             <strong>${escapeHTML(row.commander.name)}</strong>
                             <span class="build-pips">${pips}</span>
@@ -19098,6 +19128,68 @@ function showAccum(id, amt, type) {
                     Counts distinct cards that match each commander's color identity, from
                     ${data.total} cards across all your collections. Basic lands are left out.
                     ${data.missingData ? `<br>${data.missingData} cards have no type data yet and may be missing.` : ''}
+                </div>
+            </div>`;
+        modal.style.display = 'flex';
+    };
+
+    // Hvilke korttyper et Commander-deck typisk består af, i den rækkefølge
+    // man plejer at tænke dem igennem når man bygger.
+    const TYPE_ORDER = [
+        ['Land',         /\bLand\b/i],
+        ['Creature',     /\bCreature\b/i],
+        ['Instant',      /\bInstant\b/i],
+        ['Sorcery',      /\bSorcery\b/i],
+        ['Artifact',     /\bArtifact\b/i],
+        ['Enchantment',  /\bEnchantment\b/i],
+        ['Planeswalker', /\bPlaneswalker\b/i]
+    ];
+
+    window.buildShowMatches = function buildShowMatches(name) {
+        const data = commanderSuggestions(999);
+        const row = data.results.find(r => norm(r.commander.name) === norm(name));
+        if (!row) return;
+
+        const buckets = TYPE_ORDER.map(([label, test]) => [label, row.matches.filter(card => {
+            const type = card.typeLine || card.type_line || '';
+            // et kort tælles i den første type det matcher, så intet tælles dobbelt
+            return TYPE_ORDER.find(([, t]) => t.test(type))?.[0] === label;
+        })]).filter(([, list]) => list.length);
+
+        const utypede = row.matches.filter(c => !(c.typeLine || c.type_line)).length;
+        const mangler = Math.max(0, 99 - row.playable);
+        const pips = row.identity.length
+            ? row.identity.map(c => `<i class="ci-pip" style="background:${PIP[c] || '#888'}" title="${c}"></i>`).join('')
+            : '<i class="ci-pip" style="background:#6b7280" title="Colorless"></i>';
+
+        const modal = document.getElementById('build-modal');
+        modal.innerHTML = `
+            <div class="build-card" style="background:var(--bg-panel);border:1px solid var(--border-lit);
+                 border-radius:var(--r-lg);padding:22px;max-width:560px;width:100%;max-height:86vh;
+                 display:flex;flex-direction:column;">
+                <div class="build-head">
+                    <div>
+                        <div class="build-kicker">CARDS THAT FIT</div>
+                        <h2 class="build-title">${escapeHTML(row.commander.name)} <span class="build-pips">${pips}</span></h2>
+                    </div>
+                    <button class="accessory-close" aria-label="Close" onclick="window.openBuildSuggestions()">✕</button>
+                </div>
+                <div class="build-summary">
+                    <strong>${row.playable}</strong> of the 99 cards you need
+                    ${mangler ? `<span>— ${mangler} still missing</span>` : '<span>— you have enough!</span>'}
+                    <span class="build-bar" style="margin-top:8px;"><span style="width:${Math.min(100, Math.round(row.playable / 99 * 100))}%"></span></span>
+                </div>
+                <div class="build-list">
+                    ${buckets.map(([label, list]) => `
+                        <div class="build-type-row">
+                            <span class="build-type-name">${label}</span>
+                            <span class="build-type-count">${list.length}</span>
+                        </div>`).join('')}
+                </div>
+                <div class="build-note">
+                    Counted from your collection by color identity. Basic lands are left out —
+                    add those on top.${utypede ? ` ${utypede} cards have no type data yet.` : ''}
+                    <br><button class="build-back" onclick="window.openBuildSuggestions()">← All commanders</button>
                 </div>
             </div>`;
         modal.style.display = 'flex';

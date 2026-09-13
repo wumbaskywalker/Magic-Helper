@@ -3,11 +3,12 @@
 // kortbilleder gemmes efterhånden som de ses. Live data (priser, søgning)
 // hentes altid fra nettet og fejler pænt når forbindelsen mangler.
 
-const VERSION   = 'v1';
+const VERSION   = 'v2';
 const SHELL     = `mh-shell-${VERSION}`;   // selve appen
 const VENDOR    = `mh-vendor-${VERSION}`;  // font-awesome, tesseract, mqtt m.fl.
 const IMAGES    = 'mh-images';             // kortbilleder og sæt-ikoner
 const IMAGE_CAP = 400;                     // maks antal gemte billeder
+const NET_TIMEOUT = 2500;                  // ms vi venter på nettet før cachen bruges
 
 const SHELL_FILES = [
     './',
@@ -92,37 +93,44 @@ async function handleShell(request, event) {
     // én gang. Klon den med det samme, så baggrundssammenligningen har sin egen.
     const previousBody = cached ? cached.clone().text() : Promise.resolve(null);
 
-    const update = (async () => {
-        try {
-            // NB: fetch(request, init) laver et nyt Request-objekt, og det er
-            // ulovligt for en navigations-forespørgsel. Hent på adressen i stedet.
-            const response = await fetch(new Request(request.url, { cache: 'no-cache' }));
-            if (!response || !response.ok) return response;
-
-            const fresh = await response.text();
-            const init = {
-                status: response.status,
-                statusText: response.statusText,
-                headers: response.headers
-            };
-            // gem under begge nøgler, så både './' og './index.html' er opdaterede
-            await cache.put('./', new Response(fresh, init));
-            await cache.put('./index.html', new Response(fresh, init));
-
-            const previous = await previousBody;
-            if (previous !== null && previous !== fresh) await notifyClients('update-ready');
-            return new Response(fresh, init);
-        } catch (error) {
-            return null;
-        }
+    const network = (async () => {
+        // NB: fetch(request, init) laver internt et nyt Request-objekt, og det er
+        // ulovligt for en navigations-forespørgsel. Hent på adressen i stedet.
+        const response = await fetch(new Request(request.url, { cache: 'no-cache' }));
+        if (!response || !response.ok) throw new Error('HTTP ' + (response && response.status));
+        const fresh = await response.text();
+        const init = {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers
+        };
+        // gem under begge nøgler, så både './' og './index.html' er opdaterede
+        await cache.put('./', new Response(fresh, init));
+        await cache.put('./index.html', new Response(fresh, init));
+        return { fresh, init };
     })();
 
-    if (cached) {
-        if (event) event.waitUntil(update);
-        return cached;
+    // Nettet først, men med kort tålmodighed. Ellers ville en ny version først
+    // blive vist ved NÆSTE besøg — og man ville sidde og teste den gamle app
+    // uden at opdage det.
+    const raced = await Promise.race([
+        network.then(result => result, () => null),
+        new Promise(resolve => setTimeout(() => resolve(null), NET_TIMEOUT))
+    ]);
+    if (raced) return new Response(raced.fresh, raced.init);
+
+    // Nettet var væk eller for langsomt: vis den gemte version.
+    if (!cached) {
+        const slow = await network.catch(() => null);
+        return slow ? new Response(slow.fresh, slow.init) : Response.error();
     }
-    const response = await update;
-    return response || Response.error();
+    if (event) {
+        event.waitUntil(network.then(async ({ fresh }) => {
+            const previous = await previousBody;
+            if (previous !== null && previous !== fresh) await notifyClients('update-ready');
+        }).catch(() => {}));
+    }
+    return cached;
 }
 
 // Biblioteker og billeder: cache først, ellers hent og gem
