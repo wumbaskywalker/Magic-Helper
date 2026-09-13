@@ -6879,11 +6879,19 @@ body.fs-mode #view-play {
 /* kategori-chips, faner og kortliste i "How close am I?" */
 .build-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .build-cat-chip {
-    padding: 4px 9px; border-radius: 999px;
-    font-size: 11px; color: var(--muted);
+    padding: 5px 10px; border-radius: 999px; cursor: pointer;
+    font-family: inherit; font-size: 11px; color: var(--muted);
     background: var(--bg-card); border: 1px solid var(--border);
+    transition: color var(--tr), border-color var(--tr), background var(--tr);
 }
+.build-cat-chip:hover { color: var(--text); border-color: var(--border-lit); }
 .build-cat-chip b { color: var(--gold-lt); font-weight: 800; }
+.build-cat-chip.active {
+    color: #0c0e18; border-color: transparent;
+    background: linear-gradient(125deg, var(--gold), var(--gold-lt) 60%, #fff);
+}
+.build-cat-chip.active b { color: #0c0e18; }
+.build-cat-chip.clear { color: var(--accent); border-color: var(--accent); font-weight: 700; }
 
 .build-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
 .build-tab {
@@ -19406,6 +19414,7 @@ function showAccum(id, amt, type) {
 
     // Hvad brugeren sidst kiggede på: 'owned' eller 'missing'
     let buildTab = 'owned';
+    let buildCat = null;      // valgt kategori-chip, null = alle
     let buildLast = null;
 
     // Kortkunst pr. række. art_crop er et bredt udsnit uden ramme og tekst —
@@ -19491,13 +19500,23 @@ function showAccum(id, amt, type) {
         if (buildLast) renderBuildMatches(buildLast);
     };
 
+    // Tryk på en kategori-chip for kun at se den. Tryk igen for alle.
+    window.buildSetCat = function buildSetCat(label) {
+        buildCat = (buildCat === label) ? null : label;
+        if (buildLast) renderBuildMatches(buildLast);
+    };
+
     function renderBuildMatches(state) {
         const { row, pips, rows, ownedList, missing, totalRec, totalOwned } = state;
         const pct = totalRec ? Math.round(totalOwned / totalRec * 100) : 0;
-        const liste = buildTab === 'owned' ? ownedList : missing;
+        // Er en kategori valgt, gælder både listen og fanernes tal kun den.
+        const iKat = list => buildCat ? list.filter(c => c.label === buildCat) : list;
+        const mine = iKat(ownedList), mangler = iKat(missing);
+        const liste = buildTab === 'owned' ? mine : mangler;
+        const iKatTekst = buildCat ? ` in ${buildCat}` : '';
         const tom = buildTab === 'owned'
-            ? 'You do not own any of the cards EDHREC lists yet.'
-            : 'You own every card EDHREC lists ✓';
+            ? `You do not own any of the cards EDHREC lists${iKatTekst} yet.`
+            : `You own every card EDHREC lists${iKatTekst} ✓`;
 
         document.getElementById('build-modal').innerHTML = `
             <div class="build-card" style="background:var(--bg-panel);border:1px solid var(--border-lit);
@@ -19524,15 +19543,19 @@ function showAccum(id, amt, type) {
                 </div>
 
                 <div class="build-cats">
+                    ${buildCat ? `<button class="build-cat-chip clear" onclick="window.buildSetCat(null)">✕ All</button>` : ''}
                     ${rows.map(([label, have, all]) =>
-                        `<span class="build-cat-chip"><b>${have}</b>/${all} ${escapeHTML(label)}</span>`).join('')}
+                        `<button class="build-cat-chip${buildCat === label ? ' active' : ''}"
+                                 onclick="window.buildSetCat(${JSON.stringify(label).replace(/"/g, '&quot;')})">
+                            <b>${have}</b>/${all} ${escapeHTML(label)}
+                        </button>`).join('')}
                 </div>
 
                 <div class="build-tabs">
                     <button class="build-tab${buildTab === 'owned' ? ' active' : ''}"
-                            onclick="window.buildSetTab('owned')">You have (${ownedList.length})</button>
+                            onclick="window.buildSetTab('owned')">You have (${mine.length})</button>
                     <button class="build-tab${buildTab === 'missing' ? ' active' : ''}"
-                            onclick="window.buildSetTab('missing')">Missing (${missing.length})</button>
+                            onclick="window.buildSetTab('missing')">Missing (${mangler.length})</button>
                 </div>
 
                 <div class="build-list">
@@ -19555,6 +19578,7 @@ function showAccum(id, amt, type) {
         const row = data.results.find(r => norm(r.commander.name) === norm(name));
         if (!row) return;
 
+        buildCat = null;
         const modal = buildModal();
         const pips = row.identity.length
             ? row.identity.map(c => `<i class="ci-pip" style="background:${PIP[c] || '#888'}" title="${c}"></i>`).join('')
