@@ -6907,12 +6907,22 @@ body.fs-mode #view-play {
     transition: border-color var(--tr), background var(--tr);
 }
 .build-card-row:hover { border-color: var(--border-lit); background: var(--bg-input); }
+.build-card-art {
+    position: relative; flex: none;
+    width: 54px; height: 38px; overflow: hidden;
+    border-radius: 7px; border: 1px solid var(--border);
+    background: var(--bg-input);
+}
+.build-card-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .build-card-mark {
-    flex: none; width: 18px; height: 18px; display: grid; place-items: center;
-    border-radius: 50%; font-size: 11px; font-weight: 800;
-    color: var(--muted); background: rgba(255,255,255,.05);
+    position: absolute; left: 3px; top: 3px;
+    width: 16px; height: 16px; display: grid; place-items: center;
+    border-radius: 50%; font-size: 10px; font-weight: 800; line-height: 1;
+    color: var(--text); background: rgba(10,13,18,.82);
+    box-shadow: 0 1px 4px rgba(0,0,0,.6);
 }
 .build-card-row.owned .build-card-mark { color: #0c0e18; background: #7cbb8a; }
+.build-card-row { padding: 7px 11px; }
 .build-card-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .build-qty { margin-left: 6px; font-size: 11px; font-weight: 800; color: var(--gold-lt); }
 .build-card-cat {
@@ -19209,7 +19219,9 @@ function showAccum(id, amt, type) {
             }
             return b.playable - a.playable || a.commander.name.localeCompare(b.commander.name);
         });
-        const vis = rows.slice(0, harFit ? RANK_LIMIT : 12);
+        // Vis dem alle — listen kan rulles. Rangeringen er begrænset af netkald,
+        // men selve oversigten skal ikke skjule commanders man faktisk ejer.
+        const vis = rows;
 
         const body = !data.legends
             ? `<div class="build-empty">No legendary creatures in your collection yet.<br>
@@ -19263,8 +19275,10 @@ function showAccum(id, amt, type) {
                     </button>` : ''}
                 <div class="build-list">${body}</div>
                 <div class="build-note">
+                    <strong>${data.legends}</strong> legendary creatures in your collection.
                     ${harFit
-                        ? 'Sorted by how many of the cards people actually play in each deck you already own.'
+                        ? `Sorted by how much of each deck you own — the top ${antal} were checked
+                           against EDHREC; the rest are sorted by color identity below them.`
                         : `Sorted by how many cards match each commander's color identity — a rough
                            signal. Tap the button above to rank by real deck lists from EDHREC instead.`}
                     Counted from ${data.total} cards across all your collections; basic lands are left out.
@@ -19293,7 +19307,7 @@ function showAccum(id, amt, type) {
     const EDHREC_KEY = 'mtg_edhrec_cache';
     const EDHREC_MAX_AGE = 7 * 864e5;   // en uge
     const RANK_LIMIT = 40;              // hvor mange commanders rangeringen slår op
-    const EDHREC_MAX_COMMANDERS = 60;   // rangeringen slår mange op; payload er lille
+    const EDHREC_MAX_COMMANDERS = 25;   // payload rummer nu også kort-id'er
 
     const EDHREC_CATEGORIES = [
         ['highsynergycards', 'High synergy'],
@@ -19361,6 +19375,31 @@ function showAccum(id, amt, type) {
             }))
         })).filter(list => list.cards.length);
 
+        // Billederne skal komme fra Scryfalls CDN, ikke fra deres API. Ét opslag
+        // pr. kort ville betyde 100+ kald til api.scryfall.com hver gang listen
+        // vises — nok til at udløse rate limiting, som så rammer kortsøgningen.
+        // Her hentes id'erne samlet, 75 ad gangen, og gemmes med i cachen.
+        try {
+            const navne = [...new Set(payload.flatMap(l => l.cards.map(c => c.n)))];
+            const idMap = new Map();
+            for (let i = 0; i < navne.length; i += 75) {
+                const batch = navne.slice(i, i + 75);
+                const r = await fetch('https://api.scryfall.com/cards/collection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifiers: batch.map(n => ({ name: n })) })
+                });
+                if (!r.ok) break;
+                const d = await r.json();
+                (d.data || []).forEach(c => idMap.set(norm(c.name), c.id));
+                if (i + 75 < navne.length) await new Promise(res => setTimeout(res, 120));
+            }
+            payload.forEach(list => list.cards.forEach(card => {
+                const id = idMap.get(norm(card.n));
+                if (id) card.i = id;        // kun id'et gemmes; adressen bygges ved visning
+            }));
+        } catch (e) { /* uden billeder er listen stadig brugbar */ }
+
         writeEdhrecCache(slug, payload);
         return payload;
     }
@@ -19369,11 +19408,27 @@ function showAccum(id, amt, type) {
     let buildTab = 'owned';
     let buildLast = null;
 
+    // Kortkunst pr. række. art_crop er et bredt udsnit uden ramme og tekst —
+    // det fylder lidt og er nemt at genkende. fuzzy klarer også dobbeltsidede
+    // navne, hvor exact kan fejle. Billederne hentes først når rækken ruller i
+    // syne, så en liste på 170 kort ikke henter alt på én gang.
+    // Scryfalls billedadresser er forudsigelige ud fra kortets id, så vi behøver
+    // ikke slå op i API'et pr. kort. Billederne ligger på deres CDN, som hverken
+    // er rate limited eller går gennem appens service worker-undtagelse.
+    const artUrl = card => card.id
+        ? `https://cards.scryfall.io/art_crop/front/${card.id[0]}/${card.id[1]}/${card.id}.jpg`
+        : (card.thumb || '');
+
     function buildCardRow(card, isOwned) {
         const qty = card.qty > 1 ? `<span class="build-qty">×${card.qty}</span>` : '';
+        const art = artUrl(card);
         return `<button class="build-card-row${isOwned ? ' owned' : ''}"
                     onclick="window.buildPeek(${JSON.stringify(card.name).replace(/"/g, '&quot;')})">
-                    <span class="build-card-mark">${isOwned ? '✓' : '+'}</span>
+                    <span class="build-card-art">
+                        ${art ? `<img src="${escapeHTML(art)}" alt="" loading="lazy"
+                             onerror="this.style.display='none'">` : ''}
+                        <span class="build-card-mark">${isOwned ? '✓' : '+'}</span>
+                    </span>
                     <span class="build-card-name">${escapeHTML(card.name)}${qty}</span>
                     <span class="build-card-cat">${escapeHTML(card.label)}</span>
                     <span class="build-card-pct">${card.pct}%</span>
@@ -19570,9 +19625,10 @@ function showAccum(id, amt, type) {
                 const eget = mine.get(key);
                 if (eget) {
                     have++; totalOwned++;
-                    ownedList.push({ name: card.n, pct: card.p, label, qty: eget.qty || 1 });
+                    ownedList.push({ name: card.n, pct: card.p, label, qty: eget.qty || 1,
+                                     id: card.i || '', thumb: eget.thumb || eget.img || '' });
                 } else {
-                    missing.push({ name: card.n, pct: card.p, label, qty: 0 });
+                    missing.push({ name: card.n, pct: card.p, label, qty: 0, id: card.i || '', thumb: '' });
                 }
             }
             if (inCategory) rows.push([label, have, inCategory]);
