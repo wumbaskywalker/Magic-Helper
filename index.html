@@ -6798,6 +6798,54 @@ body.fs-mode #view-play {
     .net-pill { transition: none; }
 }
 
+/* ══ DECK INSIGHTS — bracket-estimat og commander-forslag ══ */
+.bracket-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.bracket-number {
+    flex: none;
+    width: 42px; height: 42px;
+    display: grid; place-items: center;
+    font-size: 20px; font-weight: 800;
+    font-family: "Goudy Arcane", Georgia, serif;
+    color: #0c0e18;
+    border-radius: 12px;
+    background: linear-gradient(125deg, var(--gold), var(--gold-lt) 60%, #fff);
+}
+.bracket-label { display: flex; flex-direction: column; font-weight: 800; font-size: 15px; color: var(--text); }
+.bracket-label small { font-weight: 600; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+.bracket-row { display: flex; flex-direction: column; gap: 2px; padding: 7px 0; border-top: 1px solid var(--border); }
+.bracket-row-title { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.bracket-row-cards { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.bracket-note {
+    margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border);
+    font-size: 11px; line-height: 1.55; color: var(--muted);
+}
+
+.build-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.build-kicker { font-size: 10.5px; font-weight: 800; letter-spacing: .12em; color: var(--gold); }
+.build-title { margin: 2px 0 0; font-size: 21px; font-family: "Goudy Arcane", Georgia, serif; color: var(--text); }
+.build-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; min-height: 0; }
+
+.build-row {
+    display: flex; flex-direction: column; gap: 6px;
+    width: 100%; padding: 11px 13px; text-align: left;
+    font-family: inherit; cursor: pointer;
+    background: var(--bg-card); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    transition: border-color var(--tr), background var(--tr);
+}
+.build-row:hover { border-color: var(--border-lit); background: var(--bg-input); }
+.build-row-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14.5px; }
+.build-row-sub { font-size: 11.5px; color: var(--muted); }
+.build-pips { display: inline-flex; gap: 3px; flex: none; }
+.ci-pip { width: 11px; height: 11px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.35); }
+
+.build-bar { display: block; height: 4px; border-radius: 999px; background: var(--bg-input); overflow: hidden; }
+.build-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), var(--gold-lt)); }
+
+.build-empty { padding: 26px 10px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.build-note { margin-top: 12px; font-size: 11px; line-height: 1.55; color: var(--muted); }
+
 </style>
 </head>
 <body>
@@ -7314,6 +7362,9 @@ body.fs-mode #view-play {
             <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="document.getElementById('col-import-input').click()">
                 <i class="fa-solid fa-file-import"></i> Importer
             </button>
+            <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="openBuildSuggestions()">
+                <i class="fa-solid fa-hammer"></i> What can I build?
+            </button>
             <input type="file" id="col-import-input" accept=".csv" style="display:none" onchange="importCollectionCSV(this)">
         </div>
     </div>
@@ -7758,6 +7809,11 @@ body.fs-mode #view-play {
         <div class="deck-stat-box">
             <div class="deck-stat-title">Format legality</div>
             <div id="deck-legality-info" style="font-size:13px;color:var(--muted);">Add cards to check legality.</div>
+        </div>
+
+        <div class="deck-stat-box">
+            <div class="deck-stat-title">🎯 Commander Bracket</div>
+            <div id="deck-bracket" style="font-size:13px;color:var(--muted);">Add cards to estimate a bracket.</div>
         </div>
 
         <div class="deck-stat-box">
@@ -18702,6 +18758,359 @@ function showAccum(id, amt, type) {
     };
 
     setResultEmpty();
+})();
+
+</script>
+<script data-bundled-source="deck-insights.js">
+/* Magic Helper — Deck Insights
+   To lokale værktøjer der kun bruger data appen allerede har gemt:
+     1) Bracket-estimat på et deck (Commander)
+     2) "What can I build?" — commander-forslag ud fra samlingen
+   Ingen af dem kræver netadgang. Game Changers-listen opdateres fra Scryfall
+   når der er forbindelse, og gemmes lokalt bagefter.                        */
+(() => {
+    'use strict';
+
+    // ── Game Changers ────────────────────────────────────────────────
+    // Scryfall vedligeholder "is:gamechanger" efter Wizards' officielle liste.
+    // Den indbyggede liste er kun et udgangspunkt, indtil appen har hentet
+    // den rigtige én gang. UI'et viser altid hvilken kilde tallet bygger på.
+    const GC_SEED = [
+        'Ancient Tomb','Gaea’s Cradle','Serra’s Sanctum','The Tabernacle at Pendrell Vale',
+        'Chrome Mox','Mox Diamond','Jeweled Lotus','Lion’s Eye Diamond','Mana Vault','Grim Monolith',
+        'The One Ring','Trinisphere','Glacial Chasm','Grim Tutor',
+        'Demonic Tutor','Vampiric Tutor','Imperial Seal','Enlightened Tutor','Mystical Tutor','Worldly Tutor',
+        'Survival of the Fittest','Food Chain','Necropotence','Ad Nauseam','Bolas’s Citadel',
+        'Cyclonic Rift','Expropriate','Force of Will','Fierce Guardianship','Deflecting Swat',
+        'Rhystic Study','Mystic Remora','Smothering Tithe','Consecrated Sphinx','Mana Drain',
+        'Thassa’s Oracle','Underworld Breach','Jeska’s Will','Gamble','Intuition',
+        'Drannith Magistrate','Opposition Agent','Tergrid, God of Fright','Notion Thief',
+        'Grand Arbiter Augustin IV','Kinnan, Bonder Prodigy','Yuriko, the Tiger’s Shadow',
+        'Winota, Joiner of Forces','Najeela, the Blade-Blossom','Urza, Lord High Artificer',
+        'Vorinclex, Voice of Hunger','Seedborn Muse','Braids, Cabal Minion','Aura Shards',
+        'Sway of the Stars','Coalition Victory','Panoptic Mirror','Mishra’s Workshop'
+    ];
+
+    const EXTRA_TURNS = [
+        'Time Warp','Temporal Manipulation','Capture of Jingzhou','Temporal Mastery','Time Stretch',
+        'Part the Waterveil','Karn’s Temporal Sundering','Nexus of Fate','Alrund’s Epiphany',
+        'Beacon of Tomorrows','Walk the Aeons','Savor the Moment','Temporal Trespass','Timestream Navigator',
+        'Emrakul, the Aeons Torn','Medomai the Ageless','Seedtime','Final Fortune','Last Chance','Ral Zarek'
+    ];
+
+    const MASS_LAND_DENIAL = [
+        'Armageddon','Ravages of War','Catastrophe','Cataclysm','Decree of Annihilation','Jokulhaups',
+        'Obliterate','Devastation','Wildfire','Burning of Xinye','Impending Disaster','Boom // Bust',
+        'Winter Orb','Static Orb','Rising Waters','Stasis','Blood Moon','Back to Basics','Contamination',
+        'Tangle Wire','Global Ruin','Mana Vortex','Death Cloud','Sunder','Boil','Ruination'
+    ];
+
+    const TUTORS = [
+        'Demonic Tutor','Vampiric Tutor','Imperial Seal','Grim Tutor','Diabolic Intent','Diabolic Tutor',
+        'Enlightened Tutor','Mystical Tutor','Worldly Tutor','Personal Tutor','Sylvan Tutor',
+        'Green Sun’s Zenith','Chord of Calling','Finale of Devastation','Natural Order','Birthing Pod',
+        'Eldritch Evolution','Neoform','Survival of the Fittest','Fauna Shaman','Wishclaw Tactics',
+        'Scheming Symmetry','Beseech the Mirror','Entomb','Buried Alive','Gamble','Intuition',
+        'Idyllic Tutor','Steelshaper’s Gift','Stoneforge Mystic','Recruiter of the Guard',
+        'Imperial Recruiter','Tinker','Whir of Invention','Fabricate','Trophy Mage','Tribute Mage',
+        'Merchant Scroll','Muddle the Mixture','Solve the Equation','Gifts Ungiven','Rune-Scarred Demon',
+        'Vampiric Rites','Profane Tutor','Sidisi, Undead Vizier','Razaketh, the Foulblooded'
+    ];
+
+    const FAST_MANA = [
+        'Mana Crypt','Mana Vault','Grim Monolith','Jeweled Lotus','Chrome Mox','Mox Diamond','Mox Opal',
+        'Lotus Petal','Dark Ritual','Cabal Ritual','Jeska’s Will','Ancient Tomb','City of Traitors',
+        'Lion’s Eye Diamond','Simian Spirit Guide','Elvish Spirit Guide','Rite of Flame','Culling the Weald'
+    ];
+
+    // Kortnavne skrives både med ' og ’ afhængigt af kilde — sammenlign uden
+    const norm = name => String(name || '')
+        .toLowerCase()
+        .replace(/[‘’ʼ]/g, "'")
+        .replace(/\s*\/\/.*$/, '')      // dobbeltsidede kort: brug forsiden
+        .trim();
+
+    const toSet = list => new Set(list.map(norm));
+    const SETS = {
+        extraTurns:   toSet(EXTRA_TURNS),
+        landDenial:   toSet(MASS_LAND_DENIAL),
+        tutors:       toSet(TUTORS),
+        fastMana:     toSet(FAST_MANA)
+    };
+
+    // ── Game Changers: hent fra Scryfall, gem lokalt ──────────────────
+    const GC_KEY = 'mtg_gamechangers';
+    let gcState = { names: toSet(GC_SEED), source: 'seed', fetched: null };
+
+    try {
+        const saved = JSON.parse(localStorage.getItem(GC_KEY) || 'null');
+        if (saved && Array.isArray(saved.names) && saved.names.length) {
+            gcState = { names: toSet(saved.names), source: 'scryfall', fetched: saved.fetched };
+        }
+    } catch (e) { /* beskadiget post — brug den indbyggede liste */ }
+
+    let gcFetching = null;
+    function refreshGameChangers() {
+        if (gcFetching) return gcFetching;
+        // hentet inden for et døgn? så lad være
+        if (gcState.source === 'scryfall' && gcState.fetched &&
+            Date.now() - new Date(gcState.fetched).getTime() < 864e5) return Promise.resolve(false);
+        if (!navigator.onLine) return Promise.resolve(false);
+
+        gcFetching = (async () => {
+            const names = [];
+            let url = 'https://api.scryfall.com/cards/search?q=is%3Agamechanger&unique=cards';
+            for (let page = 0; page < 6 && url; page++) {
+                const response = await fetch(url, { headers: { Accept: 'application/json' } });
+                if (!response.ok) throw new Error('Scryfall ' + response.status);
+                const data = await response.json();
+                (data.data || []).forEach(card => names.push(card.name));
+                url = data.has_more ? data.next_page : null;
+                if (url) await new Promise(r => setTimeout(r, 120)); // Scryfall beder om pauser
+            }
+            if (!names.length) throw new Error('tom liste');
+            const fetched = new Date().toISOString();
+            localStorage.setItem(GC_KEY, JSON.stringify({ names, fetched }));
+            gcState = { names: toSet(names), source: 'scryfall', fetched };
+            return true;
+        })().catch(() => false).finally(() => { gcFetching = null; });
+
+        return gcFetching;
+    }
+
+    // ── Bracket-vurdering ────────────────────────────────────────────
+    // Følger Wizards' officielle bracket-definitioner. Vurderingen er et
+    // estimat: den kan ikke se 2-kort-kombinationer, og den kender kun de
+    // kortnavne der står i listerne ovenfor. Derfor vises altid hvilke kort
+    // der trak i hvilken retning.
+    function assessDeck(deck) {
+        const cards = (deck.cards || []).filter(c => c && c.name);
+        const seen = new Set();
+        const unique = [];
+        for (const card of cards) {
+            const key = norm(card.name);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            unique.push(card);
+        }
+
+        const hits = { gameChangers: [], extraTurns: [], landDenial: [], tutors: [], fastMana: [] };
+        for (const card of unique) {
+            const key = norm(card.name);
+            if (gcState.names.has(key))     hits.gameChangers.push(card.name);
+            if (SETS.extraTurns.has(key))   hits.extraTurns.push(card.name);
+            if (SETS.landDenial.has(key))   hits.landDenial.push(card.name);
+            if (SETS.tutors.has(key))       hits.tutors.push(card.name);
+            if (SETS.fastMana.has(key))     hits.fastMana.push(card.name);
+        }
+
+        const gc = hits.gameChangers.length;
+        let bracket, label, why;
+
+        if (hits.landDenial.length || hits.extraTurns.length >= 3 || gc > 3) {
+            bracket = 4; label = 'Optimized';
+            why = hits.landDenial.length ? 'mass land denial'
+                : hits.extraTurns.length >= 3 ? 'several extra-turn spells'
+                : `${gc} Game Changers (more than 3)`;
+        } else if (gc >= 1) {
+            bracket = 3; label = 'Upgraded';
+            why = `${gc} Game Changer${gc === 1 ? '' : 's'} (3 or fewer)`;
+        } else if (hits.tutors.length || hits.extraTurns.length || hits.fastMana.length) {
+            bracket = 2; label = 'Core';
+            why = 'no Game Changers, but some tutors or fast mana';
+        } else {
+            bracket = 1; label = 'Exhibition';
+            why = 'no Game Changers, tutors, extra turns or fast mana';
+        }
+
+        return { bracket, label, why, hits, cardCount: cards.length };
+    }
+
+    const escapeHTML = value => String(value)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    function renderBracket() {
+        const box = document.getElementById('deck-bracket');
+        if (!box) return;
+        const deck = (window.decks || []).find(d => d.id === window.activeDeckId);
+        if (!deck) return;
+
+        if ((deck.format || 'commander') !== 'commander') {
+            box.innerHTML = '<span style="color:var(--muted);">Brackets only apply to Commander decks.</span>';
+            return;
+        }
+        if (!deck.cards || !deck.cards.length) {
+            box.innerHTML = '<span style="color:var(--muted);">Add cards to estimate a bracket.</span>';
+            return;
+        }
+
+        const result = assessDeck(deck);
+        const groups = [
+            ['Game Changers', result.hits.gameChangers, 'var(--gold-lt)'],
+            ['Mass land denial', result.hits.landDenial, '#ff8888'],
+            ['Extra turns', result.hits.extraTurns, '#ff8888'],
+            ['Tutors', result.hits.tutors, 'var(--muted)'],
+            ['Fast mana', result.hits.fastMana, 'var(--muted)']
+        ].filter(([, list]) => list.length);
+
+        const source = gcState.source === 'scryfall'
+            ? `Game Changers from Scryfall${gcState.fetched ? ' · ' + new Date(gcState.fetched).toLocaleDateString('en-GB') : ''}`
+            : 'Built-in Game Changers list — connect once to refresh from Scryfall';
+
+        box.innerHTML = `
+            <div class="bracket-head">
+                <span class="bracket-number">${result.bracket}</span>
+                <span class="bracket-label">${result.label}<small>${escapeHTML(result.why)}</small></span>
+            </div>
+            ${groups.map(([title, list, color]) => `
+                <div class="bracket-row">
+                    <span class="bracket-row-title" style="color:${color};">${title} (${list.length})</span>
+                    <span class="bracket-row-cards">${list.map(n => escapeHTML(n)).join(', ')}</span>
+                </div>`).join('')}
+            <div class="bracket-note">
+                Estimate. It cannot detect two-card combos, and only knows the cards in its
+                own lists — check the cards above before trusting the number.
+                <br>${escapeHTML(source)}
+            </div>`;
+    }
+
+    // ── "What can I build?" ──────────────────────────────────────────
+    // Farveidentitet afgør hvad der må ligge i et Commander-deck. Vi tæller
+    // hvor mange forskellige kort i samlingen der passer til hver mulig
+    // commander. Basic lands tælles ikke med — dem kan man altid skaffe.
+    const BASIC_LANDS = new Set(['plains','island','swamp','mountain','forest','wastes']);
+
+    function collectionCards() {
+        const seen = new Set();
+        const out = [];
+        const all = window.collections
+            ? Object.values(window.collections).flatMap(c => c.cards || [])
+            : (window.collection || []);
+        for (const card of all) {
+            if (!card || !card.name) continue;
+            const key = norm(card.name);
+            if (seen.has(key) || BASIC_LANDS.has(key)) continue;
+            seen.add(key);
+            out.push(card);
+        }
+        return out;
+    }
+
+    const identityOf = card => (card.colorIdentity || card.color_identity || []).map(c => c.toUpperCase());
+    const fitsIn = (cardIdentity, commanderIdentity) => cardIdentity.every(c => commanderIdentity.includes(c));
+
+    function commanderSuggestions(limit = 12) {
+        const cards = collectionCards();
+        const legends = cards.filter(card => {
+            const type = card.typeLine || card.type_line || '';
+            return /Legendary/i.test(type) && /Creature/i.test(type);
+        });
+
+        const missingData = cards.filter(c => !c.typeLine && !c.type_line).length;
+
+        const identities = cards.map(identityOf);
+        const results = legends.map(commander => {
+            const ci = identityOf(commander);
+            let playable = 0;
+            for (let i = 0; i < cards.length; i++) {
+                if (cards[i] === commander) continue;
+                if (fitsIn(identities[i], ci)) playable++;
+            }
+            return { commander, identity: ci, playable };
+        });
+
+        results.sort((a, b) => b.playable - a.playable || a.commander.name.localeCompare(b.commander.name));
+        return { results: results.slice(0, limit), total: cards.length, legends: legends.length, missingData };
+    }
+
+    const PIP = { W: '#f6eedc', U: '#7fb6e8', B: '#9b8fa8', R: '#e08a72', G: '#7cbb8a' };
+
+    window.openBuildSuggestions = function openBuildSuggestions() {
+        let modal = document.getElementById('build-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'build-modal';
+            // samme opsætning som appens øvrige modaler (inline styles, ikke klasser)
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(12,14,24,.93);z-index:1000;' +
+                                  'padding:20px;display:none;align-items:center;justify-content:center;';
+            modal.onclick = event => { if (event.target === modal) modal.style.display = 'none'; };
+            document.body.appendChild(modal);
+        }
+        const data = commanderSuggestions();
+
+        const body = !data.legends
+            ? `<div class="build-empty">No legendary creatures in your collection yet.<br>
+                 <small>Add some cards, or import a collection, and they will show up here.</small></div>`
+            : data.results.map(row => {
+                const pips = row.identity.length
+                    ? row.identity.map(c => `<i class="ci-pip" style="background:${PIP[c] || '#888'}" title="${c}"></i>`).join('')
+                    : '<i class="ci-pip" style="background:#6b7280" title="Colorless"></i>';
+                const pct = Math.min(100, Math.round(row.playable / 99 * 100));
+                return `
+                    <button class="build-row" onclick="window.buildRowSearch(${JSON.stringify(row.commander.name).replace(/"/g, '&quot;')})">
+                        <span class="build-row-top">
+                            <strong>${escapeHTML(row.commander.name)}</strong>
+                            <span class="build-pips">${pips}</span>
+                        </span>
+                        <span class="build-bar"><span style="width:${pct}%"></span></span>
+                        <span class="build-row-sub">${row.playable} playable cards in your collection</span>
+                    </button>`;
+            }).join('');
+
+        modal.innerHTML = `
+            <div class="build-card" style="background:var(--bg-panel);border:1px solid var(--border-lit);
+                 border-radius:var(--r-lg);padding:22px;max-width:560px;width:100%;max-height:86vh;
+                 display:flex;flex-direction:column;">
+                <div class="build-head">
+                    <div>
+                        <div class="build-kicker">WHAT CAN I BUILD?</div>
+                        <h2 class="build-title">Commanders from your collection</h2>
+                    </div>
+                    <button class="accessory-close" aria-label="Close" onclick="document.getElementById('build-modal').style.display='none'">✕</button>
+                </div>
+                <div class="build-list">${body}</div>
+                <div class="build-note">
+                    Counts distinct cards that match each commander's color identity, from
+                    ${data.total} cards across all your collections. Basic lands are left out.
+                    ${data.missingData ? `<br>${data.missingData} cards have no type data yet and may be missing.` : ''}
+                </div>
+            </div>`;
+        modal.style.display = 'flex';
+    };
+
+    window.buildRowSearch = function buildRowSearch(name) {
+        document.getElementById('build-modal').style.display = 'none';
+        try {
+            if (typeof window.searchCard === 'function') {
+                const nav = document.querySelector('[onclick*="switchView(\'search\'"]');
+                window.switchView('search', nav);
+                const input = document.getElementById('manual-search');
+                if (input) input.value = name;
+                window.searchCard(name);
+            }
+        } catch (e) { /* søgning er en bonus, ikke et krav */ }
+    };
+
+    // ── Kobl på appen ────────────────────────────────────────────────
+    function hook() {
+        if (typeof window.renderDeckEditor === 'function' && !window.renderDeckEditor.__insights) {
+            const original = window.renderDeckEditor;
+            const wrapped = function (...args) {
+                const result = original.apply(this, args);
+                try { renderBracket(); } catch (e) { /* må aldrig vælte deck-visningen */ }
+                refreshGameChangers().then(changed => { if (changed) { try { renderBracket(); } catch (e) {} } });
+                return result;
+            };
+            wrapped.__insights = true;
+            window.renderDeckEditor = wrapped;
+        }
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hook);
+    else hook();
+    setTimeout(hook, 1200); // hvis funktionen defineres efter os
+
+    window.magicHelperInsights = { assessDeck, commanderSuggestions, refreshGameChangers, renderBracket };
 })();
 
 </script>
