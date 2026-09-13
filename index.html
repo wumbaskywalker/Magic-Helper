@@ -6870,23 +6870,61 @@ body.fs-mode #view-play {
 
 /* manglende kort fra EDHREC */
 .build-type-count small { font-size: 11px; font-weight: 700; color: var(--muted); margin-left: 1px; }
-.build-missing-head {
-    margin: 14px 0 2px; font-size: 10.5px; font-weight: 800;
-    letter-spacing: .1em; text-transform: uppercase; color: var(--gold);
+
+
+
+
+
+
+/* kategori-chips, faner og kortliste i "How close am I?" */
+.build-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.build-cat-chip {
+    padding: 4px 9px; border-radius: 999px;
+    font-size: 11px; color: var(--muted);
+    background: var(--bg-card); border: 1px solid var(--border);
 }
-.build-missing {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    width: 100%; padding: 9px 13px; text-align: left; cursor: pointer;
+.build-cat-chip b { color: var(--gold-lt); font-weight: 800; }
+
+.build-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.build-tab {
+    flex: 1; padding: 8px 10px; cursor: pointer;
+    font-family: inherit; font-size: 12.5px; font-weight: 700;
+    color: var(--muted); background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    transition: color var(--tr), border-color var(--tr), background var(--tr);
+}
+.build-tab:hover { color: var(--text); border-color: var(--border-lit); }
+.build-tab.active {
+    color: #0c0e18; border-color: transparent;
+    background: linear-gradient(125deg, var(--gold), var(--gold-lt) 60%, #fff);
+}
+
+.build-card-row {
+    display: flex; align-items: center; gap: 9px;
+    width: 100%; padding: 9px 12px; text-align: left; cursor: pointer;
     font-family: inherit; font-size: 13.5px; color: var(--text);
     background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md);
     transition: border-color var(--tr), background var(--tr);
 }
-.build-missing:hover { border-color: var(--border-lit); background: var(--bg-input); }
-.build-missing-pct {
-    flex: none; font-size: 12px; font-weight: 800; color: var(--muted);
+.build-card-row:hover { border-color: var(--border-lit); background: var(--bg-input); }
+.build-card-mark {
+    flex: none; width: 18px; height: 18px; display: grid; place-items: center;
+    border-radius: 50%; font-size: 11px; font-weight: 800;
+    color: var(--muted); background: rgba(255,255,255,.05);
+}
+.build-card-row.owned .build-card-mark { color: #0c0e18; background: #7cbb8a; }
+.build-card-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.build-qty { margin-left: 6px; font-size: 11px; font-weight: 800; color: var(--gold-lt); }
+.build-card-cat {
+    flex: none; font-size: 10.5px; color: var(--muted);
+    padding: 2px 7px; border-radius: 999px; background: rgba(255,255,255,.04);
+}
+.build-card-pct {
+    flex: none; min-width: 34px; text-align: right;
+    font-size: 11.5px; font-weight: 800; color: var(--muted);
     font-variant-numeric: tabular-nums;
 }
-.build-missing-more { padding: 6px 2px; font-size: 11.5px; color: var(--muted); text-align: center; }
+@media (max-width: 420px) { .build-card-cat { display: none; } }
 
 </style>
 </head>
@@ -19250,6 +19288,79 @@ function showAccum(id, amt, type) {
         return payload;
     }
 
+    // Hvad brugeren sidst kiggede på: 'owned' eller 'missing'
+    let buildTab = 'owned';
+    let buildLast = null;
+
+    function buildCardRow(card, isOwned) {
+        const qty = card.qty > 1 ? `<span class="build-qty">×${card.qty}</span>` : '';
+        return `<button class="build-card-row${isOwned ? ' owned' : ''}"
+                    onclick="window.buildRowSearch(${JSON.stringify(card.name).replace(/"/g, '&quot;')})">
+                    <span class="build-card-mark">${isOwned ? '✓' : '+'}</span>
+                    <span class="build-card-name">${escapeHTML(card.name)}${qty}</span>
+                    <span class="build-card-cat">${escapeHTML(card.label)}</span>
+                    <span class="build-card-pct">${card.pct}%</span>
+                </button>`;
+    }
+
+    window.buildSetTab = function buildSetTab(tab) {
+        buildTab = tab;
+        if (buildLast) renderBuildMatches(buildLast);
+    };
+
+    function renderBuildMatches(state) {
+        const { row, pips, rows, ownedList, missing, totalRec, totalOwned } = state;
+        const pct = totalRec ? Math.round(totalOwned / totalRec * 100) : 0;
+        const liste = buildTab === 'owned' ? ownedList : missing;
+        const tom = buildTab === 'owned'
+            ? 'You do not own any of the cards EDHREC lists yet.'
+            : 'You own every card EDHREC lists ✓';
+
+        document.getElementById('build-modal').innerHTML = `
+            <div class="build-card" style="background:var(--bg-panel);border:1px solid var(--border-lit);
+                 border-radius:var(--r-lg);padding:22px;max-width:560px;width:100%;max-height:86vh;
+                 display:flex;flex-direction:column;">
+                <div class="build-head">
+                    <div>
+                        <div class="build-kicker">HOW CLOSE AM I?</div>
+                        <h2 class="build-title">${escapeHTML(row.commander.name)} <span class="build-pips">${pips}</span></h2>
+                    </div>
+                    <button class="accessory-close" aria-label="Close" onclick="window.openBuildSuggestions()">✕</button>
+                </div>
+
+                <div class="build-summary">
+                    <strong>${totalOwned}</strong> of ${totalRec} cards people actually play
+                    <span>— ${pct}%</span>
+                    <span class="build-bar" style="margin-top:8px;"><span style="width:${pct}%"></span></span>
+                </div>
+
+                <div class="build-cats">
+                    ${rows.map(([label, have, all]) =>
+                        `<span class="build-cat-chip"><b>${have}</b>/${all} ${escapeHTML(label)}</span>`).join('')}
+                </div>
+
+                <div class="build-tabs">
+                    <button class="build-tab${buildTab === 'owned' ? ' active' : ''}"
+                            onclick="window.buildSetTab('owned')">You have (${ownedList.length})</button>
+                    <button class="build-tab${buildTab === 'missing' ? ' active' : ''}"
+                            onclick="window.buildSetTab('missing')">Missing (${missing.length})</button>
+                </div>
+
+                <div class="build-list">
+                    ${liste.length
+                        ? liste.map(card => buildCardRow(card, buildTab === 'owned')).join('')
+                        : `<div class="build-empty">${tom}</div>`}
+                </div>
+
+                <div class="build-note">
+                    From EDHREC's most-played cards for this commander. The percentage is how many
+                    ${escapeHTML(row.commander.name)} decks run that card. Your collection also holds
+                    ${row.playable} cards that merely fit the color identity.
+                    <br><button class="build-back" onclick="window.openBuildSuggestions()">← All commanders</button>
+                </div>
+            </div>`;
+    }
+
     window.buildShowMatches = async function buildShowMatches(name) {
         const data = commanderSuggestions(999);
         const row = data.results.find(r => norm(r.commander.name) === norm(name));
@@ -19283,7 +19394,6 @@ function showAccum(id, amt, type) {
         const lists = await fetchEdhrec(row.commander.name);
 
         if (!lists) {
-            // EDHREC utilgængelig — vis det vi kan regne ud lokalt
             modal.innerHTML = shell(`
                 <div class="build-summary">
                     <strong>${row.playable}</strong> cards in your collection match this
@@ -19291,19 +19401,19 @@ function showAccum(id, amt, type) {
                     <span class="build-bar" style="margin-top:8px;"><span style="width:${Math.min(100, Math.round(row.playable / 99 * 100))}%"></span></span>
                 </div>
                 <div class="build-note" style="margin-top:0;">
-                    Could not reach EDHREC, so this is only a color-identity count —
-                    it does not say whether the cards are actually played in this deck.
-                    Try again when you are online.
+                    Could not reach EDHREC, so this is only a color-identity count — it does not
+                    say whether the cards are actually played in this deck. Try again when you are online.
                 </div>`);
             return;
         }
 
-        // Hvilke af de anbefalede kort har jeg?
-        const owned = new Set(collectionCards().map(c => norm(c.name)));
+        // Slå op efter navn, så vi også kan vise hvor mange eksemplarer man har
+        const mine = new Map();
+        for (const card of collectionCards()) mine.set(norm(card.name), card);
+
         const seen = new Set();
         let totalRec = 0, totalOwned = 0;
-        const rows = [];
-        const missing = [];
+        const rows = [], ownedList = [], missing = [];
 
         for (const [tag, label] of EDHREC_CATEGORIES) {
             const list = lists.find(l => l.tag === tag);
@@ -19317,8 +19427,13 @@ function showAccum(id, amt, type) {
                 seen.add(key);
                 inCategory++;
                 totalRec++;
-                if (owned.has(key)) { have++; totalOwned++; }
-                else missing.push({ name: card.n, pct: card.p, label });
+                const eget = mine.get(key);
+                if (eget) {
+                    have++; totalOwned++;
+                    ownedList.push({ name: card.n, pct: card.p, label, qty: eget.qty || 1 });
+                } else {
+                    missing.push({ name: card.n, pct: card.p, label, qty: 0 });
+                }
             }
             if (inCategory) rows.push([label, have, inCategory]);
         }
@@ -19328,37 +19443,10 @@ function showAccum(id, amt, type) {
             return;
         }
 
+        ownedList.sort((a, b) => b.pct - a.pct);
         missing.sort((a, b) => b.pct - a.pct);
-        const pct = Math.round(totalOwned / totalRec * 100);
-        const top = missing.slice(0, 15);
-
-        modal.innerHTML = shell(`
-            <div class="build-summary">
-                <strong>${totalOwned}</strong> of ${totalRec} cards people actually play
-                <span>— ${pct}%</span>
-                <span class="build-bar" style="margin-top:8px;"><span style="width:${pct}%"></span></span>
-            </div>
-            <div class="build-list">
-                ${rows.map(([label, have, all]) => `
-                    <div class="build-type-row">
-                        <span class="build-type-name">${label}</span>
-                        <span class="build-type-count">${have}<small>/${all}</small></span>
-                    </div>`).join('')}
-                ${top.length ? `
-                    <div class="build-missing-head">Most-played cards you are missing</div>
-                    ${top.map(card => `
-                        <button class="build-missing" onclick="window.buildRowSearch(${JSON.stringify(card.name).replace(/"/g, '&quot;')})">
-                            <span>${escapeHTML(card.name)}</span>
-                            <span class="build-missing-pct">${card.pct}%</span>
-                        </button>`).join('')}
-                    ${missing.length > top.length ? `<div class="build-missing-more">+ ${missing.length - top.length} more</div>` : ''}
-                ` : '<div class="build-missing-head">You own every card EDHREC lists ✓</div>'}
-            </div>
-            <div class="build-note" style="margin-top:12px;">
-                From EDHREC's most-played cards for this commander. The percentage is how
-                many ${escapeHTML(row.commander.name)} decks run that card.
-                Your collection also holds ${row.playable} cards that merely fit the color identity.
-            </div>`);
+        buildLast = { row, pips, rows, ownedList, missing, totalRec, totalOwned };
+        renderBuildMatches(buildLast);
     };
 
     window.buildRowSearch = function buildRowSearch(name) {
