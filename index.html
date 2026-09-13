@@ -18771,6 +18771,14 @@ function showAccum(id, amt, type) {
 (() => {
     'use strict';
 
+    // Appens data ligger i `let`-variabler på topniveau. Sådanne bindinger havner
+    // i det globale *lexical* miljø — de bliver ALDRIG egenskaber på window.
+    // Derfor skal de læses på det bare navn, pakket ind så en manglende
+    // variabel ikke kaster ReferenceError.
+    function globalValue(name) {
+        try { return (0, eval)(name); } catch (e) { return undefined; }
+    }
+
     // ── Game Changers ────────────────────────────────────────────────
     // Scryfall vedligeholder "is:gamechanger" efter Wizards' officielle liste.
     // Den indbyggede liste er kun et udgangspunkt, indtil appen har hentet
@@ -18850,11 +18858,16 @@ function showAccum(id, amt, type) {
     } catch (e) { /* beskadiget post — brug den indbyggede liste */ }
 
     let gcFetching = null;
+    let gcFailedAt = 0;
     function refreshGameChangers() {
         if (gcFetching) return gcFetching;
         // hentet inden for et døgn? så lad være
         if (gcState.source === 'scryfall' && gcState.fetched &&
             Date.now() - new Date(gcState.fetched).getTime() < 864e5) return Promise.resolve(false);
+        // Fejlede sidst? Vent et kvarter. Uden denne pause ville hvert eneste
+        // kald til renderDeckEditor sætte nye Scryfall-kald i gang, og appens
+        // egen kortsøgning kunne blive ramt af rate limiting.
+        if (gcFailedAt && Date.now() - gcFailedAt < 9e5) return Promise.resolve(false);
         if (!navigator.onLine) return Promise.resolve(false);
 
         gcFetching = (async () => {
@@ -18870,10 +18883,18 @@ function showAccum(id, amt, type) {
             }
             if (!names.length) throw new Error('tom liste');
             const fetched = new Date().toISOString();
-            localStorage.setItem(GC_KEY, JSON.stringify({ names, fetched }));
+            // Tag listen i brug med det samme. Hvis browserens lager er fyldt op
+            // (store samlinger kan nå grænsen), må det IKKE kaste listen væk og
+            // få os til at hente forfra ved hvert eneste deck-kald.
             gcState = { names: toSet(names), source: 'scryfall', fetched };
+            try {
+                localStorage.setItem(GC_KEY, JSON.stringify({ names, fetched }));
+            } catch (storageError) {
+                /* ingen plads — listen lever videre i hukommelsen denne session */
+            }
             return true;
-        })().catch(() => false).finally(() => { gcFetching = null; });
+        })().catch(() => { gcFailedAt = Date.now(); return false; })
+             .finally(() => { gcFetching = null; });
 
         return gcFetching;
     }
@@ -18932,7 +18953,9 @@ function showAccum(id, amt, type) {
     function renderBracket() {
         const box = document.getElementById('deck-bracket');
         if (!box) return;
-        const deck = (window.decks || []).find(d => d.id === window.activeDeckId);
+        const allDecks = globalValue('decks');
+        const activeId = globalValue('activeDeckId');
+        const deck = Array.isArray(allDecks) ? allDecks.find(d => d && d.id === activeId) : null;
         if (!deck) return;
 
         if ((deck.format || 'commander') !== 'commander') {
@@ -18983,9 +19006,11 @@ function showAccum(id, amt, type) {
     function collectionCards() {
         const seen = new Set();
         const out = [];
-        const all = window.collections
-            ? Object.values(window.collections).flatMap(c => c.cards || [])
-            : (window.collection || []);
+        const cols = globalValue('collections');
+        const single = globalValue('collection');
+        const all = cols && typeof cols === 'object'
+            ? Object.values(cols).flatMap(c => (c && c.cards) || [])
+            : (Array.isArray(single) ? single : []);
         for (const card of all) {
             if (!card || !card.name) continue;
             const key = norm(card.name);
@@ -19081,12 +19106,14 @@ function showAccum(id, amt, type) {
     window.buildRowSearch = function buildRowSearch(name) {
         document.getElementById('build-modal').style.display = 'none';
         try {
-            if (typeof window.searchCard === 'function') {
+            const search = globalValue('searchCard');
+            const switcher = globalValue('switchView');
+            if (typeof search === 'function' && typeof switcher === 'function') {
                 const nav = document.querySelector('[onclick*="switchView(\'search\'"]');
-                window.switchView('search', nav);
+                switcher('search', nav);
                 const input = document.getElementById('manual-search');
                 if (input) input.value = name;
-                window.searchCard(name);
+                search(name);
             }
         } catch (e) { /* søgning er en bonus, ikke et krav */ }
     };
