@@ -6926,6 +6926,46 @@ body.fs-mode #view-play {
 }
 @media (max-width: 420px) { .build-card-cat { display: none; } }
 
+/* rangeringsknap i "What can I build?" */
+.build-rank-btn {
+    width: 100%; margin-bottom: 12px; padding: 10px 14px; cursor: pointer;
+    font-family: inherit; font-size: 12.5px; font-weight: 700;
+    color: #0c0e18; border: 1px solid transparent; border-radius: var(--r-md);
+    background: linear-gradient(125deg, var(--gold), var(--gold-lt) 60%, #fff);
+    transition: filter var(--tr);
+}
+.build-rank-btn:hover { filter: brightness(1.06); }
+.build-rank-btn.running {
+    color: var(--text); background: var(--bg-card); border-color: var(--border-lit);
+}
+.build-fit { color: var(--gold-lt); font-size: 14px; font-weight: 800; }
+
+/* commander-miniature i oversigten og i detaljevisningen */
+.build-row-wrap { display: flex; align-items: stretch; gap: 8px; }
+.build-row-wrap .build-row { flex: 1; min-width: 0; }
+.build-thumb {
+    flex: none; width: 46px; padding: 0; cursor: pointer; overflow: hidden;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    transition: border-color var(--tr);
+}
+.build-thumb:hover { border-color: var(--gold); }
+.build-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.build-thumb-fallback { display: grid; place-items: center; height: 100%; color: var(--muted); font-size: 14px; }
+
+.build-head-card {
+    display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0;
+    padding: 0; text-align: left; cursor: pointer;
+    background: none; border: none; font-family: inherit; color: inherit;
+}
+.build-head-card img {
+    flex: none; width: 44px; height: 60px; object-fit: cover; object-position: top;
+    border-radius: 8px; border: 1px solid var(--border-lit);
+}
+.build-head-card > span { display: flex; flex-direction: column; min-width: 0; }
+.build-head-card .build-title { margin: 2px 0 0; }
+.build-head-card:hover .build-title { color: var(--gold-lt); }
+
 </style>
 </head>
 <body>
@@ -19154,29 +19194,56 @@ function showAccum(id, amt, type) {
         return modal;
     }
 
-    window.openBuildSuggestions = function openBuildSuggestions() {
+    window.openBuildSuggestions = function openBuildSuggestions(behold) {
         const modal = buildModal();
-        const data = commanderSuggestions();
+        const data = commanderSuggestions(999);
+
+        // Er der rangeret, sorteres efter hvor stor en del af decket man ejer.
+        // Ellers efter hvor mange kort der overhovedet passer i farveidentiteten.
+        const rows = data.results.map(row => ({ ...row, fit: fitResults.get(norm(row.commander.name)) || null }));
+        const harFit = rows.some(r => r.fit);
+        rows.sort((a, b) => {
+            if (harFit && (a.fit || b.fit)) {
+                if (a.fit && b.fit) return b.fit.pct - a.fit.pct || b.fit.owned - a.fit.owned;
+                return a.fit ? -1 : 1;
+            }
+            return b.playable - a.playable || a.commander.name.localeCompare(b.commander.name);
+        });
+        const vis = rows.slice(0, harFit ? RANK_LIMIT : 12);
 
         const body = !data.legends
             ? `<div class="build-empty">No legendary creatures in your collection yet.<br>
                  <small>Add some cards, or import a collection, and they will show up here.</small></div>`
-            : data.results.map(row => {
+            : vis.map(row => {
                 const pips = row.identity.length
                     ? row.identity.map(c => `<i class="ci-pip" style="background:${PIP[c] || '#888'}" title="${c}"></i>`).join('')
                     : '<i class="ci-pip" style="background:#6b7280" title="Colorless"></i>';
-                const pct = Math.min(100, Math.round(row.playable / 99 * 100));
+                const pct = row.fit ? row.fit.pct : Math.min(100, Math.round(row.playable / 99 * 100));
+                const sub = row.fit
+                    ? `<strong class="build-fit">${row.fit.pct}%</strong> of the deck — ${row.fit.owned} of ${row.fit.total} cards people play`
+                    : `${row.playable} cards fit the color identity`;
+                const navn = JSON.stringify(row.commander.name).replace(/"/g, '&quot;');
+                const billede = row.commander.thumb || row.commander.img || '';
                 return `
-                    <button class="build-row" onclick="window.buildShowMatches(${JSON.stringify(row.commander.name).replace(/"/g, '&quot;')})">
-                        <span class="build-row-top">
-                            <strong>${escapeHTML(row.commander.name)}</strong>
-                            <span class="build-pips">${pips}</span>
-                        </span>
-                        <span class="build-bar"><span style="width:${pct}%"></span></span>
-                        <span class="build-row-sub">${row.playable} playable cards in your collection</span>
-                    </button>`;
+                    <div class="build-row-wrap">
+                        <button class="build-thumb" title="Show card"
+                                onclick="event.stopPropagation();window.buildPeek(${navn})">
+                            ${billede
+                                ? `<img src="${escapeHTML(billede)}" alt="" loading="lazy">`
+                                : '<span class="build-thumb-fallback"><i class="fa-solid fa-image"></i></span>'}
+                        </button>
+                        <button class="build-row" onclick="window.buildShowMatches(${navn})">
+                            <span class="build-row-top">
+                                <strong>${escapeHTML(row.commander.name)}</strong>
+                                <span class="build-pips">${pips}</span>
+                            </span>
+                            <span class="build-bar"><span style="width:${pct}%"></span></span>
+                            <span class="build-row-sub">${sub}</span>
+                        </button>
+                    </div>`;
             }).join('');
 
+        const antal = Math.min(RANK_LIMIT, data.legends);
         modal.innerHTML = `
             <div class="build-card" style="background:var(--bg-panel);border:1px solid var(--border-lit);
                  border-radius:var(--r-lg);padding:22px;max-width:560px;width:100%;max-height:86vh;
@@ -19188,10 +19255,19 @@ function showAccum(id, amt, type) {
                     </div>
                     <button class="accessory-close" aria-label="Close" onclick="document.getElementById('build-modal').style.display='none'">✕</button>
                 </div>
+                ${data.legends ? `
+                    <button class="build-rank-btn${ranking ? ' running' : ''}" onclick="window.buildRankByFit()">
+                        ${ranking
+                            ? '<span id="build-rank-status">Checking…</span> · tap to stop'
+                            : (harFit ? '↻ Refresh ranking' : `⚡ Rank by how much of each deck you own (checks ${antal})`)}
+                    </button>` : ''}
                 <div class="build-list">${body}</div>
                 <div class="build-note">
-                    Counts distinct cards that match each commander's color identity, from
-                    ${data.total} cards across all your collections. Basic lands are left out.
+                    ${harFit
+                        ? 'Sorted by how many of the cards people actually play in each deck you already own.'
+                        : `Sorted by how many cards match each commander's color identity — a rough
+                           signal. Tap the button above to rank by real deck lists from EDHREC instead.`}
+                    Counted from ${data.total} cards across all your collections; basic lands are left out.
                     ${data.missingData ? `<br>${data.missingData} cards have no type data yet and may be missing.` : ''}
                 </div>
             </div>`;
@@ -19216,7 +19292,8 @@ function showAccum(id, amt, type) {
     // spillet, og det er dét man vil måle sin samling op imod.
     const EDHREC_KEY = 'mtg_edhrec_cache';
     const EDHREC_MAX_AGE = 7 * 864e5;   // en uge
-    const EDHREC_MAX_COMMANDERS = 12;   // hold cachen lille
+    const RANK_LIMIT = 40;              // hvor mange commanders rangeringen slår op
+    const EDHREC_MAX_COMMANDERS = 60;   // rangeringen slår mange op; payload er lille
 
     const EDHREC_CATEGORIES = [
         ['highsynergycards', 'High synergy'],
@@ -19303,6 +19380,57 @@ function showAccum(id, amt, type) {
                 </button>`;
     }
 
+    // Hvor stor en del af det EDHREC-anbefalede deck ejer man?
+    function deckFit(lists, ownedSet) {
+        const seen = new Set();
+        let total = 0, owned = 0;
+        for (const [tag] of EDHREC_CATEGORIES) {
+            const list = lists.find(l => l.tag === tag);
+            if (!list) continue;
+            for (const card of list.cards) {
+                const key = norm(card.n);
+                if (seen.has(key)) continue;
+                seen.add(key);
+                total++;
+                if (ownedSet.has(key)) owned++;
+            }
+        }
+        return total ? { owned, total, pct: Math.round(owned / total * 100) } : null;
+    }
+
+    // Resultater fra sidste rangering, så listen kan tegnes igen uden nye kald
+    const fitResults = new Map();
+    let ranking = false;
+
+    window.buildRankByFit = async function buildRankByFit() {
+        if (ranking) { ranking = false; return; }          // tryk igen = stop
+        ranking = true;
+        const data = commanderSuggestions(999);
+        const owned = new Set(collectionCards().map(c => norm(c.name)));
+        // Gå efter dem med flest kort i farveidentiteten først — de er de
+        // mest sandsynlige kandidater, og så giver de første svar mest mening.
+        const candidates = data.results.slice(0, RANK_LIMIT);
+
+        for (let i = 0; i < candidates.length; i++) {
+            if (!ranking) break;
+            const row = candidates[i];
+            const status = document.getElementById('build-rank-status');
+            if (status) status.textContent = `Checking ${i + 1} of ${candidates.length}…`;
+            try {
+                const lists = await fetchEdhrec(row.commander.name);
+                if (lists) {
+                    const fit = deckFit(lists, owned);
+                    if (fit) fitResults.set(norm(row.commander.name), fit);
+                }
+            } catch (e) { /* spring den over */ }
+            // EDHREC beder om at man ikke hamrer løs
+            await new Promise(r => setTimeout(r, 160));
+            if (i % 3 === 2) window.openBuildSuggestions(true);   // vis fremdrift undervejs
+        }
+        ranking = false;
+        window.openBuildSuggestions(true);
+    };
+
     window.buildSetTab = function buildSetTab(tab) {
         buildTab = tab;
         if (buildLast) renderBuildMatches(buildLast);
@@ -19321,10 +19449,16 @@ function showAccum(id, amt, type) {
                  border-radius:var(--r-lg);padding:22px;max-width:560px;width:100%;max-height:86vh;
                  display:flex;flex-direction:column;">
                 <div class="build-head">
-                    <div>
-                        <div class="build-kicker">HOW CLOSE AM I?</div>
-                        <h2 class="build-title">${escapeHTML(row.commander.name)} <span class="build-pips">${pips}</span></h2>
-                    </div>
+                    <button class="build-head-card" title="Show card"
+                            onclick="window.buildPeek(${JSON.stringify(row.commander.name).replace(/"/g, '&quot;')})">
+                        ${row.commander.thumb || row.commander.img
+                            ? `<img src="${escapeHTML(row.commander.thumb || row.commander.img)}" alt="">`
+                            : ''}
+                        <span>
+                            <span class="build-kicker">HOW CLOSE AM I?</span>
+                            <span class="build-title">${escapeHTML(row.commander.name)} <span class="build-pips">${pips}</span></span>
+                        </span>
+                    </button>
                     <button class="accessory-close" aria-label="Close" onclick="window.openBuildSuggestions()">✕</button>
                 </div>
 
@@ -19376,10 +19510,16 @@ function showAccum(id, amt, type) {
                  border-radius:var(--r-lg);padding:22px;max-width:560px;width:100%;max-height:86vh;
                  display:flex;flex-direction:column;">
                 <div class="build-head">
-                    <div>
-                        <div class="build-kicker">HOW CLOSE AM I?</div>
-                        <h2 class="build-title">${escapeHTML(row.commander.name)} <span class="build-pips">${pips}</span></h2>
-                    </div>
+                    <button class="build-head-card" title="Show card"
+                            onclick="window.buildPeek(${JSON.stringify(row.commander.name).replace(/"/g, '&quot;')})">
+                        ${row.commander.thumb || row.commander.img
+                            ? `<img src="${escapeHTML(row.commander.thumb || row.commander.img)}" alt="">`
+                            : ''}
+                        <span>
+                            <span class="build-kicker">HOW CLOSE AM I?</span>
+                            <span class="build-title">${escapeHTML(row.commander.name)} <span class="build-pips">${pips}</span></span>
+                        </span>
+                    </button>
                     <button class="accessory-close" aria-label="Close" onclick="window.openBuildSuggestions()">✕</button>
                 </div>
                 ${inner}
