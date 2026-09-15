@@ -7053,6 +7053,51 @@ body.fs-mode #view-play {
 }
 .cv-hist-reset:hover { color: var(--text); border-color: var(--muted); }
 
+/* ── Bygget deck (kort bundet op i samlingen) ───────────────────────────── */
+.deck-built-row {
+    display: flex; align-items: center; gap: 11px; width: 100%;
+    margin-bottom: 12px; padding: 10px 12px; cursor: pointer; text-align: left;
+    border: 1px solid var(--border-lit); border-radius: var(--r-sm);
+    background: var(--bg-panel); color: inherit;
+    transition: border-color .15s, background .15s;
+}
+.deck-built-row.on { border-color: rgba(100,177,190,.45); background: rgba(74,145,158,.1); }
+.deck-built-switch {
+    flex: 0 0 auto; width: 38px; height: 22px; border-radius: 11px; padding: 2px;
+    background: rgba(255,255,255,.1); border: 1px solid var(--border-lit);
+    display: flex; align-items: center; transition: background .18s, border-color .18s;
+}
+.deck-built-row.on .deck-built-switch { background: rgba(100,177,190,.5); border-color: rgba(100,177,190,.6); }
+.deck-built-knob {
+    width: 16px; height: 16px; border-radius: 50%; background: var(--muted);
+    transition: transform .18s, background .18s;
+}
+.deck-built-row.on .deck-built-knob { transform: translateX(16px); background: #eaf6f8; }
+.deck-built-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.deck-built-text strong { font-size: 12.5px; font-weight: 800; }
+.deck-built-text small { font-size: 10px; color: var(--muted); line-height: 1.35; }
+.deck-built-row.on .deck-built-text strong { color: #8fd2de; }
+
+.deck-built-badge {
+    margin-left: 6px; padding: 1px 6px; border-radius: 5px; vertical-align: middle;
+    font-size: 8px; font-weight: 900; letter-spacing: .08em;
+    border: 1px solid rgba(100,177,190,.45); background: rgba(74,145,158,.18); color: #8fd2de;
+}
+
+.col-card-alloc {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 9px; font-weight: 700; color: #8fd2de; line-height: 1.3;
+}
+.col-card-alloc i { font-size: 7px; }
+.col-card-alloc-none { color: #e08a7d; }
+
+.col-card-detail-alloc {
+    margin-top: 9px; padding-top: 9px; border-top: 1px solid rgba(100,177,190,.18);
+    display: flex; flex-direction: column; gap: 3px;
+}
+.col-card-detail-alloc strong { font-size: 11.5px; font-weight: 800; color: #8fd2de; }
+.col-card-detail-alloc span { font-size: 10px; color: var(--muted); line-height: 1.4; }
+
 </style>
 </head>
 <body>
@@ -7990,6 +8035,15 @@ body.fs-mode #view-play {
             </select>
         </div>
 
+        <!-- Bygget eller bare en idé -->
+        <button id="deck-built-row" class="deck-built-row" onclick="toggleDeckBuilt()" type="button" aria-pressed="false">
+            <span class="deck-built-switch"><span class="deck-built-knob"></span></span>
+            <span class="deck-built-text">
+                <strong id="deck-built-title">Just an idea</strong>
+                <small id="deck-built-sub">The cards are still free for other decks.</small>
+            </span>
+        </button>
+
         <!-- Stats strip -->
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
             <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;flex:1;min-width:70px;text-align:center;">
@@ -8843,7 +8897,7 @@ function switchView(name, el) {
         releaseWakeLock();
     }
     if (name === 'collection') { requestPersistentStorage(); refreshCollectionPrices(); recordCollectionValue(); recordCardPriceSnapshot(); }
-    if (name === 'deck' && activeDeckId) { renderDeckEditor(); }
+    if (name === 'deck') { renderDeckList(); if (activeDeckId) renderDeckEditor(); }
 }
 
 function toggleFsMode(){
@@ -14100,6 +14154,15 @@ function flipColCard() {
     }, 180);
 }
 
+// Lille linje på kortet: hvor mange eksemplarer er bundet i byggede decks.
+// Vises kun når der faktisk er bundet noget - ellers er det bare støj på 2949 kort.
+function _allocLine(entry) {
+    if (!entry || entry.tied <= 0) return '';
+    const cls = entry.free === 0 ? ' col-card-alloc-none' : '';
+    const free = entry.free === 0 ? 'none free' : `${entry.free} free`;
+    return `<div class="col-card-alloc${cls}"><i class="fa-solid fa-lock"></i> ${entry.tied} in decks · ${free}</div>`;
+}
+
 // Navnenøgle til sammenligning af samling og decks. Kortnavne kommer fra flere
 // kilder (Scryfall, ManaBox-import, gamle gemte kort), og de skriver krøllede
 // apostroffer, Æ og bagsiden af dobbeltsidede kort forskelligt. Uden den her
@@ -14143,6 +14206,51 @@ function _collectionDeckUsageIndex() {
     byId.forEach(sortUsages);
     byName.byId = byId;
     return byName;
+}
+
+// Et deck med deck.built === true er et fysisk bygget deck: dets kort ligger i
+// decket og er derfor bundet op — de kan ikke bruges i et andet deck samtidig.
+// Decks uden flaget er bare idéer og rører ikke samlingen. Modellen svarer til
+// ManaBox' "registrerede" decks, bare uden at flytte selve posterne rundt.
+function collectionAvailability() {
+    const owned = new Map();   // navnenøgle -> antal ejet på tværs af alle samlinger
+    Object.values(collections || {}).forEach(col => {
+        (col?.cards || []).forEach(card => {
+            const key = _deckMatchKey(card.name);
+            if (!key) return;
+            owned.set(key, (owned.get(key) || 0) + Math.max(0, Number(card.qty) || 0));
+        });
+    });
+
+    const out = new Map();
+    decks.filter(deck => deck.built).forEach(deck => {
+        const perDeck = new Map();
+        (deck.cards || []).forEach(card => {
+            const key = _deckMatchKey(card.name);
+            if (!key) return;
+            perDeck.set(key, (perDeck.get(key) || 0) + Math.max(1, Number(card.qty) || 1));
+        });
+        perDeck.forEach((qty, key) => {
+            if (!out.has(key)) out.set(key, { owned: owned.get(key) || 0, demand: 0, decks: [] });
+            const entry = out.get(key);
+            entry.demand += qty;
+            entry.decks.push({ id: deck.id, name: deck.name, qty });
+        });
+    });
+
+    out.forEach(entry => {
+        // Man kan ikke binde flere op end man ejer. Overskuddet er kort der står i
+        // et bygget deck uden at være i samlingen - det siger vi til om.
+        entry.tied = Math.min(entry.demand, entry.owned);
+        entry.free = Math.max(0, entry.owned - entry.tied);
+        entry.short = Math.max(0, entry.demand - entry.owned);
+        entry.decks.sort((a, b) => a.name.localeCompare(b.name));
+    });
+    return out;
+}
+
+function collectionAvailabilityFor(item, index = collectionAvailability()) {
+    return index.get(_deckMatchKey(item?.name)) || null;
 }
 
 function _collectionDeckUsage(item, index = _collectionDeckUsageIndex()) {
@@ -14240,6 +14348,18 @@ async function openColCardDetail(id) {
         <div class="col-card-detail-decks">
             <small>USED IN DECKS</small>
             <div>${deckUsage.length ? _collectionDeckChips(deckUsage, 20) : '<span style="color:var(--muted);font-size:11px;">Not currently used in a deck</span>'}</div>
+            ${(() => {
+                const entry = collectionAvailabilityFor(item);
+                if (!entry || entry.tied <= 0) return '';
+                const built = entry.decks.map(d => _safeHTML(d.name)).join(', ');
+                const short = entry.short > 0
+                    ? `<br><span style="color:#e08a7d;">${entry.short} more needed than you own.</span>`
+                    : '';
+                return `<div class="col-card-detail-alloc">
+                    <strong>${entry.owned} owned · ${entry.tied} in built decks · ${entry.free} free</strong>
+                    <span>Set aside by: ${built}${short}</span>
+                </div>`;
+            })()}
         </div>
         <div style="display:flex;gap:10px;margin-bottom:16px;">
             <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
@@ -14281,6 +14401,7 @@ function updateCollectionView(query = '') {
     const q = query.toLowerCase().trim();
     const sort = document.getElementById('col-sort')?.value || 'added-desc';
     const deckUsageIndex = _collectionDeckUsageIndex();
+    const availIndex = collectionAvailability();
 
     let filtered = q ? collection.filter(x =>
         x.name.toLowerCase().includes(q)
@@ -14370,6 +14491,7 @@ function updateCollectionView(query = '') {
                     ${(()=>{const s=condStyle(item.condition||'NM');return`<span data-cond-key="${ck}" style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;border:1px solid ${s.color}66;background:${s.color}22;color:${s.color};letter-spacing:.03em;">${s.label}</span>`;})()}
                 </div>
                 <div class="col-card-price">${lineTotal}</div>
+                ${_allocLine(collectionAvailabilityFor(item, availIndex))}
                 ${deckUsage.length ? `<div class="col-card-decks">${_collectionDeckChips(deckUsage)}</div>` : ''}
                 <div class="col-qty-row">
                     <button class="col-qty-btn" onclick="changeColQty('${ck}',-1)">−</button>
@@ -15926,6 +16048,54 @@ async function setDeckCommander(deckKey) {
     }
 }
 
+function toggleDeckBuilt() {
+    const deck = getActiveDeck(); if (!deck) return;
+    deck.built = !deck.built;
+    saveDecks();
+    renderDeckEditor();
+    renderDeckList();
+    // Samlingen viser nu andre tal, så den skal tegnes om hvis den er indlæst.
+    if (document.getElementById('col-grid')) {
+        updateCollectionView(document.getElementById('col-search')?.value || '');
+    }
+    toast(deck.built
+        ? `"${deck.name}" is built — its cards are now set aside in your collection.`
+        : `"${deck.name}" is an idea again — its cards are free.`);
+}
+
+function renderDeckBuiltRow(deck) {
+    const row = document.getElementById('deck-built-row');
+    if (!row) return;
+    const title = document.getElementById('deck-built-title');
+    const sub = document.getElementById('deck-built-sub');
+    row.classList.toggle('on', !!deck.built);
+    row.setAttribute('aria-pressed', deck.built ? 'true' : 'false');
+    if (!deck.built) {
+        title.innerText = 'Just an idea';
+        sub.innerText = 'The cards are still free for other decks.';
+        return;
+    }
+    title.innerText = 'Built';
+    // Der er to helt forskellige grunde til at et kort ikke kan dækkes, og de
+    // kræver hver sin handling: enten ejer man det slet ikke (køb det), eller
+    // også er ens eksemplarer allerede brugt i et andet bygget deck (køb ét mere
+    // eller skil det andet deck ad). Slå dem ikke sammen til ét tal.
+    const avail = collectionAvailability();
+    let notOwned = 0, contested = 0;
+    (deck.cards || []).forEach(card => {
+        const entry = avail.get(_deckMatchKey(card.name));
+        if (!entry || entry.short <= 0) return;
+        const need = Math.min(entry.short, Math.max(1, Number(card.qty) || 1));
+        if (entry.owned === 0) notOwned += need; else contested += need;
+    });
+    const parts = [];
+    if (notOwned)  parts.push(`${notOwned} not in your collection`);
+    if (contested) parts.push(`${contested} already used by another built deck`);
+    sub.innerText = parts.length
+        ? `Cards are set aside · ${parts.join(' · ')}`
+        : 'Cards are set aside and cannot be used by other decks.';
+}
+
 function deleteDeck() {
     const deck = getActiveDeck(); if (!deck) return;
     if (!confirm(`Delete the deck "${deck.name}"?`)) return;
@@ -15947,7 +16117,7 @@ function renderDeckList() {
         return `<div class="deck-list-item" onclick="openDeckEditor('${d.id}')">
             <div style="font-size:24px;">🃏</div>
             <div class="deck-meta">
-                <div class="deck-name-label">${_safeHTML(d.name)}${d.importSource === 'manabox' ? '<span class="deck-import-source-badge">MANABOX</span>' : ''}</div>
+                <div class="deck-name-label">${_safeHTML(d.name)}${d.built ? '<span class="deck-built-badge">BUILT</span>' : ''}${d.importSource === 'manabox' ? '<span class="deck-import-source-badge">MANABOX</span>' : ''}</div>
                 <div class="deck-info-label">${total} cards · ${fmt(val)} · ${(d.format||'commander').charAt(0).toUpperCase()+(d.format||'commander').slice(1)} ${ci.map(c=>COLOR_ICONS[c]||c).join('')}</div>
             </div>
             <i class="fa-solid fa-chevron-right" style="color:var(--muted);font-size:14px;"></i>
@@ -15971,6 +16141,7 @@ function renderDeckEditor() {
     document.getElementById('deck-stat-lands').innerText = lands;
     document.getElementById('deck-stat-cmc').innerText = avgCmc;
     document.getElementById('deck-stat-value').innerText = fmt(totalVal);
+    renderDeckBuiltRow(deck);
 
     // Colors
     const COLOR_STYLES = {
@@ -19358,11 +19529,21 @@ function showAccum(id, amt, type) {
     // commander. Basic lands tælles ikke med — dem kan man altid skaffe.
     const BASIC_LANDS = new Set(['plains','island','swamp','mountain','forest','wastes']);
 
+    // Kort der er bundet op i et bygget deck kan ikke bruges i et nyt deck. Appen
+    // regner det ud i collectionAvailability(); mangler funktionen (ældre version),
+    // falder vi tilbage til at alt er frit i stedet for at vise nul kort.
+    function availability() {
+        const fn = globalValue('collectionAvailability');
+        if (typeof fn !== 'function') return null;
+        try { return fn(); } catch (e) { return null; }
+    }
+
     function collectionCards() {
         const seen = new Set();
         const out = [];
         const cols = globalValue('collections');
         const single = globalValue('collection');
+        const avail = availability();
         const all = cols && typeof cols === 'object'
             ? Object.values(cols).flatMap(c => (c && c.cards) || [])
             : (Array.isArray(single) ? single : []);
@@ -19371,6 +19552,11 @@ function showAccum(id, amt, type) {
             const key = norm(card.name);
             if (seen.has(key) || BASIC_LANDS.has(key)) continue;
             seen.add(key);
+            // Hver eneste eksemplar ligger i et bygget deck -> tæller ikke med her.
+            if (avail) {
+                const entry = avail.get(key);
+                if (entry && entry.free <= 0) continue;
+            }
             out.push(card);
         }
         return out;
