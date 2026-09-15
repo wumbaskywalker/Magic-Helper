@@ -7016,6 +7016,43 @@ body.fs-mode #view-play {
 .build-color.clear { color: var(--accent); border-color: var(--accent); padding: 5px 11px; }
 .build-color .ci-pip { width: 13px; height: 13px; }
 
+/* ── Måleliste under værdigrafen (ret/slet en fejlmåling) ───────────────── */
+.cv-edit-btn {
+    display: block; width: 100%; margin-top: 9px; padding: 7px 10px;
+    border: 1px solid var(--border-lit); border-radius: 9px;
+    background: rgba(255,255,255,.03); color: var(--muted);
+    font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+    cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.cv-edit-btn:hover { background: rgba(255,255,255,.06); color: var(--text); border-color: var(--border-lit); }
+.cv-edit-btn i { font-size: 9px; margin-right: 3px; }
+
+.cv-hist { margin-top: 9px; display: flex; flex-direction: column; gap: 5px; }
+.cv-hist-empty { font-size: 11px; color: var(--muted); text-align: center; padding: 8px; }
+.cv-hist-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 9px; border: 1px solid var(--border-lit); border-radius: 9px;
+    background: rgba(255,255,255,.02);
+}
+.cv-hist-row-peak { border-color: rgba(231,76,60,.45); background: rgba(231,76,60,.08); }
+.cv-hist-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cv-hist-main strong { font-size: 12px; font-weight: 800; }
+.cv-hist-main small { font-size: 9.5px; color: var(--muted); }
+.cv-hist-row-peak .cv-hist-main small { color: #e09a92; }
+.cv-hist-del {
+    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+    border: 1px solid rgba(231,76,60,.3); background: rgba(231,76,60,.1); color: #e74c3c;
+    font-size: 11px; display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+}
+.cv-hist-del:hover { background: rgba(231,76,60,.22); }
+.cv-hist-reset {
+    margin-top: 3px; padding: 8px; border-radius: 9px; cursor: pointer;
+    border: 1px dashed var(--border-lit); background: none; color: var(--muted);
+    font-size: 10px; font-weight: 700;
+}
+.cv-hist-reset:hover { color: var(--text); border-color: var(--muted); }
+
 </style>
 </head>
 <body>
@@ -7604,6 +7641,10 @@ body.fs-mode #view-play {
         </div>
         <div id="cv-chart"></div>
         <div id="cv-foot" style="font-size:10px;color:var(--muted);margin-top:6px;text-align:center;"></div>
+        <button id="cv-edit-btn" class="cv-edit-btn" onclick="toggleValueHistory()" style="display:none;">
+            <i class="fa-solid fa-sliders"></i> <span id="cv-edit-label">Edit measurements</span>
+        </button>
+        <div id="cv-hist" class="cv-hist" style="display:none;"></div>
     </div>
 
     <section id="col-movers-panel" class="col-movers-panel" style="display:none;">
@@ -14631,6 +14672,8 @@ function renderValueChart() {
     const hist = _valueHistory();
     if (!collection.length) { panel.style.display = 'none'; return; }
     panel.style.display = 'block';
+    const editBtn = document.getElementById('cv-edit-btn');
+    if (editBtn) editBtn.style.display = hist.length ? 'block' : 'none';
 
     const total = collection.reduce((s, x) => s + (x.price > 0 ? x.price * x.qty : 0), 0);
     document.getElementById('cv-now').innerText = fmt(total);
@@ -14646,6 +14689,7 @@ function renderValueChart() {
         changeEl.innerText = ''; periodEl.innerText = ''; footEl.innerText = '';
         return;
     }
+
 
     // Ændring siden ~30 dage (eller ældste måling)
     const now = hist[hist.length - 1];
@@ -14680,6 +14724,83 @@ function renderValueChart() {
         <circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(now.v).toFixed(1)}" r="3.5" fill="${col}"/>
     </svg>`;
     footEl.innerText = `${pts.length} measurements · ${now.q} cards · highest ${fmt(max)}`;
+}
+
+let valueHistOpen = false;
+
+function toggleValueHistory() {
+    valueHistOpen = !valueHistOpen;
+    renderValueHistoryList();
+    renderValueChart();
+}
+
+// Listen over målinger, så en fejlmåling kan fjernes. Hver linje viser også
+// antal kort på måletidspunktet — er værdien tårnhøj OG antallet forkert,
+// var det mængderne der var gale; passer antallet, var det priserne.
+function renderValueHistoryList() {
+    const box = document.getElementById('cv-hist');
+    const label = document.getElementById('cv-edit-label');
+    if (!box) return;
+    if (label) label.innerText = valueHistOpen ? 'Hide measurements' : 'Edit measurements';
+    if (!valueHistOpen) { box.style.display = 'none'; box.innerHTML = ''; return; }
+
+    const hist = _valueHistory();
+    box.style.display = 'block';
+    if (!hist.length) {
+        box.innerHTML = '<div class="cv-hist-empty">No measurements recorded yet.</div>';
+        return;
+    }
+    // Kun målinger der stikker voldsomt ud markeres som mistænkelige. Den højeste
+    // måling er som regel helt normal, så bare at fremhæve max ville pege på et
+    // tilfældigt kort. Vi sammenligner med medianen, som én fejlmåling ikke rykker.
+    const sorted = hist.map(h => h.v).sort((a, b) => a - b);
+    const median = sorted.length
+        ? (sorted.length % 2 ? sorted[(sorted.length - 1) / 2]
+                             : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)
+        : 0;
+    const suspect = v => hist.length > 2 && median > 0 && v >= median * 3;
+    const rows = hist.slice().reverse().map(h => {
+        const odd = suspect(h.v);
+        const date = new Date(h.d).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+        return `<div class="cv-hist-row${odd ? ' cv-hist-row-peak' : ''}">
+            <div class="cv-hist-main">
+                <strong>${fmt(h.v)}</strong>
+                <small>${_safeHTML(date)} · ${h.q} cards${odd ? ' · looks wrong' : ''}</small>
+            </div>
+            <button class="cv-hist-del" onclick="deleteValueMeasurement('${_safeHTML(h.d)}')"
+                    title="Delete this measurement" aria-label="Delete measurement from ${_safeHTML(date)}">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>`;
+    }).join('');
+    box.innerHTML = rows + `<button class="cv-hist-reset" onclick="clearValueHistory()">
+        <i class="fa-solid fa-rotate-left"></i> Start the graph over
+    </button>`;
+}
+
+function deleteValueMeasurement(day) {
+    const hist = _valueHistory();
+    const entry = hist.find(h => h.d === day);
+    if (!entry) return;
+    const date = new Date(day).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    if (!confirm(`Delete the measurement from ${date} (${fmt(entry.v)})?\n\nThe graph is redrawn without it. Today's value is measured again next time you open the collection.`)) return;
+    const rest = hist.filter(h => h.d !== day);
+    localStorage.setItem('mtg_value_hist', JSON.stringify(rest));
+    renderValueHistoryList();
+    renderValueChart();
+    toast('Measurement deleted.');
+}
+
+function clearValueHistory() {
+    const hist = _valueHistory();
+    if (!hist.length) return;
+    if (!confirm(`Delete all ${hist.length} measurements and start the graph over?\n\nYour cards and prices are not touched — only the value history.`)) return;
+    localStorage.removeItem('mtg_value_hist');
+    valueHistOpen = false;
+    renderValueHistoryList();
+    recordCollectionValue();
+    renderValueChart();
+    toast('The graph has been reset.');
 }
 
 function setColPriceStatus(msg) {
