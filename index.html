@@ -7584,6 +7584,12 @@ body.fs-mode #view-play {
         <button class="col-filter-chip" id="cfc-C" onclick="toggleColColorFilter('C')">Colorless</button>
     </div>
 
+    <!-- Deck filter -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <button class="col-filter-chip" id="cfd-in"  onclick="toggleColDeckFilter('in')"><i class="fa-solid fa-layer-group"></i> In a deck</button>
+        <button class="col-filter-chip" id="cfd-out" onclick="toggleColDeckFilter('out')"><i class="fa-regular fa-square"></i> Not in a deck</button>
+    </div>
+
     <div id="col-value-panel" style="display:none;background:var(--bg-card);border:1px solid var(--border-lit);
          border-radius:var(--r-md);padding:14px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -13884,6 +13890,7 @@ function removeFromCollection(id) {
 let colFoilFilter = false;
 let colTypeFilters = new Set();   // e.g. {'Creature','Land'}
 let colColorFilters = new Set();  // e.g. {'W','R'}
+let colDeckFilter = '';           // '' = alle, 'in' = med i et deck, 'out' = ikke i noget deck
 
 function toggleColFoilFilter() {
     colFoilFilter = !colFoilFilter;
@@ -13899,6 +13906,13 @@ function toggleColTypeFilter(type) {
 function toggleColColorFilter(color) {
     colColorFilters.has(color) ? colColorFilters.delete(color) : colColorFilters.add(color);
     document.getElementById('cfc-' + color)?.classList.toggle('active', colColorFilters.has(color));
+    updateCollectionView(document.getElementById('col-search').value);
+}
+// 'in' og 'out' udelukker hinanden - man kan ikke både være i et deck og ikke være det.
+function toggleColDeckFilter(mode) {
+    colDeckFilter = colDeckFilter === mode ? '' : mode;
+    document.getElementById('cfd-in')?.classList.toggle('active', colDeckFilter === 'in');
+    document.getElementById('cfd-out')?.classList.toggle('active', colDeckFilter === 'out');
     updateCollectionView(document.getElementById('col-search').value);
 }
 function filterCollection(query) {
@@ -14045,29 +14059,59 @@ function flipColCard() {
     }, 180);
 }
 
+// Navnenøgle til sammenligning af samling og decks. Kortnavne kommer fra flere
+// kilder (Scryfall, ManaBox-import, gamle gemte kort), og de skriver krøllede
+// apostroffer, Æ og bagsiden af dobbeltsidede kort forskelligt. Uden den her
+// normalisering fejler matchet lydløst, og kortet ser ud til ikke at være i et
+// deck selvom det er.
+function _deckMatchKey(name) {
+    return String(name || '')
+        .replace(/[\u2018\u2019\u02BC\u00B4`]/g, "'")   // krøllede apostroffer -> '
+        .replace(/\s*\/\/.*$/, '')                       // "Forside // Bagside" -> "Forside"
+        .replace(/\u00C6/g, 'AE').replace(/\u00E6/g, 'ae')
+        .replace(/\s+/g, ' ')
+        .trim().toLowerCase();
+}
+
 function _collectionDeckUsageIndex() {
     const byName = new Map();
+    const byId = new Map();
     decks.forEach(deck => {
         const quantities = new Map();
+        const ids = new Map();
         (deck.cards || []).forEach(card => {
-            const key = String(card.name || '').trim().toLowerCase();
-            if (!key) return;
-            quantities.set(key, (quantities.get(key) || 0) + Math.max(1, Number(card.qty) || 1));
+            const key = _deckMatchKey(card.name);
+            const qty = Math.max(1, Number(card.qty) || 1);
+            if (key) quantities.set(key, (quantities.get(key) || 0) + qty);
+            // Printing-id som reservenøgle: rammer kort hvis navn er gemt anderledes.
+            const cardId = String(card.id || '').trim();
+            if (cardId) ids.set(cardId, (ids.get(cardId) || 0) + qty);
         });
+        const entry = qty => ({ id: deck.id, name: deck.name, qty, imported: deck.importSource === 'manabox' });
         quantities.forEach((qty, key) => {
             if (!byName.has(key)) byName.set(key, []);
-            byName.get(key).push({ id: deck.id, name: deck.name, qty, imported: deck.importSource === 'manabox' });
+            byName.get(key).push(entry(qty));
+        });
+        ids.forEach((qty, key) => {
+            if (!byId.has(key)) byId.set(key, []);
+            byId.get(key).push(entry(qty));
         });
     });
-    byName.forEach(usages => usages.sort((a,b)=>a.name.localeCompare(b.name)));
+    const sortUsages = usages => usages.sort((a,b)=>a.name.localeCompare(b.name));
+    byName.forEach(sortUsages);
+    byId.forEach(sortUsages);
+    byName.byId = byId;
     return byName;
 }
 
 function _collectionDeckUsage(item, index = _collectionDeckUsageIndex()) {
-    return index.get(String(item?.name || '').trim().toLowerCase()) || [];
+    if (!item) return [];
+    const byName = index.get(_deckMatchKey(item.name));
+    if (byName && byName.length) return byName;
+    return (index.byId && index.byId.get(String(item.id || '').trim())) || [];
 }
 
-function _collectionDeckChips(usages, limit = 2) {
+function _collectionDeckChips(usages, limit = 3) {
     if (!usages.length) return '';
     const visible = usages.slice(0, limit).map(usage => {
         const encodedId = encodeURIComponent(usage.id);
@@ -14077,7 +14121,10 @@ function _collectionDeckChips(usages, limit = 2) {
         </button>`;
     }).join('');
     const remaining = usages.length - limit;
-    return visible + (remaining > 0 ? `<span class="col-deck-chip col-deck-chip-more">+${remaining}</span>` : '');
+    const restNames = usages.slice(limit).map(usage => usage.name).join(', ');
+    return visible + (remaining > 0
+        ? `<span class="col-deck-chip col-deck-chip-more" title="Also in: ${_safeHTML(restNames)}">+${remaining}</span>`
+        : '');
 }
 
 function openDeckFromCollection(encodedId, event) {
@@ -14219,6 +14266,14 @@ function updateCollectionView(query = '') {
             const c = x.colors && x.colors.length ? x.colors : [];
             if (c.length === 0) return colColorFilters.has('C');
             return [...colColorFilters].some(col => col !== 'C' && c.includes(col));
+        });
+    }
+
+    // Deck-filter
+    if (colDeckFilter) {
+        filtered = filtered.filter(x => {
+            const used = _collectionDeckUsage(x, deckUsageIndex).length > 0;
+            return colDeckFilter === 'in' ? used : !used;
         });
     }
 
@@ -14464,7 +14519,8 @@ function locatePriceMover(key) {
     colFoilFilter = false;
     colTypeFilters.clear();
     colColorFilters.clear();
-    document.querySelectorAll('#col-foil-chip, [id^="cft-"], [id^="cfc-"]').forEach(chip=>chip.classList.remove('active'));
+    colDeckFilter = '';
+    document.querySelectorAll('#col-foil-chip, [id^="cft-"], [id^="cfc-"], [id^="cfd-"]').forEach(chip=>chip.classList.remove('active'));
     const search = document.getElementById('col-search');
     search.value = item.name;
     document.getElementById('col-search-clear').style.display = 'flex';
