@@ -6996,6 +6996,26 @@ body.fs-mode #view-play {
 .build-edhrec:hover { color: var(--gold-lt); border-color: var(--gold); background: var(--bg-input); }
 .build-edhrec i { font-size: 11px; opacity: .8; }
 
+/* farvefilter i "What can I build?" */
+.build-colors { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.build-color {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px 5px 7px; cursor: pointer;
+    font-family: inherit; font-size: 11.5px; font-weight: 800;
+    color: var(--muted); background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+    transition: color var(--tr), border-color var(--tr), background var(--tr), opacity var(--tr);
+}
+.build-color:hover:not(:disabled) { color: var(--text); border-color: var(--border-lit); }
+.build-color.active {
+    color: var(--text); border-color: var(--gold);
+    background: rgba(201, 168, 76, .14);
+}
+.build-color.empty { opacity: .3; cursor: default; }
+.build-color.clear { color: var(--accent); border-color: var(--accent); padding: 5px 11px; }
+.build-color .ci-pip { width: 13px; height: 13px; }
+
 </style>
 </head>
 <body>
@@ -19239,13 +19259,24 @@ function showAccum(id, amt, type) {
             }
             return b.playable - a.playable || a.commander.name.localeCompare(b.commander.name);
         });
+        // Farvefilter: 'C' betyder farveløs (tom identitet), ellers skal alle
+        // valgte farver findes i commanderens identitet.
+        const filtreret = buildColors.size
+            ? rows.filter(r => buildColors.has('C')
+                ? r.identity.length === 0
+                : [...buildColors].every(c => r.identity.includes(c)))
+            : rows;
+
         // Vis dem alle — listen kan rulles. Rangeringen er begrænset af netkald,
         // men selve oversigten skal ikke skjule commanders man faktisk ejer.
-        const vis = rows;
+        const vis = filtreret;
 
         const body = !data.legends
             ? `<div class="build-empty">No legendary creatures in your collection yet.<br>
                  <small>Add some cards, or import a collection, and they will show up here.</small></div>`
+            : !vis.length
+            ? `<div class="build-empty">No commanders in your collection have that color combination.<br>
+                 <small>Tap ✕ to clear the color filter.</small></div>`
             : vis.map(row => {
                 const pips = row.identity.length
                     ? row.identity.map(c => `<i class="ci-pip" style="background:${PIP[c] || '#888'}" title="${c}"></i>`).join('')
@@ -19288,6 +19319,21 @@ function showAccum(id, amt, type) {
                     <button class="accessory-close" aria-label="Close" onclick="document.getElementById('build-modal').style.display='none'">✕</button>
                 </div>
                 ${data.legends ? `
+                    <div class="build-colors">
+                        ${[['W','White'],['U','Blue'],['B','Black'],['R','Red'],['G','Green'],['C','Colorless']]
+                            .map(([c, navn]) => {
+                                const antal = rows.filter(r => c === 'C'
+                                    ? r.identity.length === 0
+                                    : r.identity.includes(c)).length;
+                                return `<button class="build-color${buildColors.has(c) ? ' active' : ''}${antal ? '' : ' empty'}"
+                                            title="${navn} (${antal})" ${antal ? '' : 'disabled'}
+                                            onclick="window.buildToggleColor('${c}')">
+                                        <i class="ci-pip" style="background:${PIP[c] || '#6b7280'}"></i>
+                                        <span>${antal}</span>
+                                    </button>`;
+                            }).join('')}
+                        ${buildColors.size ? `<button class="build-color clear" onclick="window.buildToggleColor(null)">✕</button>` : ''}
+                    </div>
                     <button class="build-rank-btn${ranking ? ' running' : ''}" onclick="window.buildRankByFit()">
                         ${ranking
                             ? '<span id="build-rank-status">Checking…</span> · tap to stop'
@@ -19295,7 +19341,7 @@ function showAccum(id, amt, type) {
                     </button>` : ''}
                 <div class="build-list">${body}</div>
                 <div class="build-note">
-                    <strong>${data.legends}</strong> legendary creatures in your collection.
+                    ${buildColors.size ? `Showing <strong>${vis.length}</strong> of ` : '<strong>'}${data.legends}${buildColors.size ? '' : '</strong>'} legendary creatures in your collection.
                     ${harFit
                         ? `Sorted by how much of each deck you own — the top ${antal} were checked
                            against EDHREC; the rest are sorted by color identity below them.`
@@ -19432,6 +19478,7 @@ function showAccum(id, amt, type) {
     // Hvad brugeren sidst kiggede på: 'owned' eller 'missing'
     let buildTab = 'owned';
     let buildCat = null;      // valgt kategori-chip, null = alle
+    let buildColors = new Set();   // valgte farver i oversigten, tom = alle
     let buildLast = null;
 
     // Kortkunst pr. række. art_crop er et bredt udsnit uden ramme og tekst —
@@ -19515,6 +19562,15 @@ function showAccum(id, amt, type) {
     window.buildSetTab = function buildSetTab(tab) {
         buildTab = tab;
         if (buildLast) renderBuildMatches(buildLast);
+    };
+
+    // Farvefilter i oversigten. Vælger man flere, vises kun commanders der har
+    // dem alle i sin farveidentitet — sådan tænker man når man vil bygge fx Rakdos.
+    window.buildToggleColor = function buildToggleColor(color) {
+        if (color === null) buildColors.clear();
+        else if (buildColors.has(color)) buildColors.delete(color);
+        else buildColors.add(color);
+        window.openBuildSuggestions(true);
     };
 
     // Tryk på en kategori-chip for kun at se den. Tryk igen for alle.
