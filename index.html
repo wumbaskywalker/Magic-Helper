@@ -7098,6 +7098,32 @@ body.fs-mode #view-play {
 .col-card-detail-alloc strong { font-size: 11.5px; font-weight: 800; color: #8fd2de; }
 .col-card-detail-alloc span { font-size: 10px; color: var(--muted); line-height: 1.4; }
 
+/* ── Wishlist-totalen: tal der smelter sammen ───────────────────────────────
+ * Symptom hos Simon (macOS): "147.12 kr." blev tegnet som "17.12 kr." hvor 1 og
+ * 4 lå oven i hinanden — teksten var 68px bred i stedet for 85px. Tallet var
+ * altså rigtigt; det var tegningen der var gal.
+ *
+ * Forskellen på den række og værdipanelet i samlingen (som viser 8-cifrede
+ * beløb korrekt) er backdrop-filter. Det tvinger elementet op i sit eget
+ * kompositeringslag, og glyffernes bredder kan så blive afrundet forkert.
+ * Rækken ligger på en solid baggrund, så filteret gør ingen visuel forskel her.
+ *
+ * Kunne ikke genskabes i Chromium/Linux — derfor både årsagen (filteret væk)
+ * og et sikkerhedsnet (tabular-nums giver alle cifre samme faste bredde).
+ */
+.list-total-row {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+#list-total {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: normal;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+.list-total-row > span:first-child { min-width: 0; }
+
 </style>
 </head>
 <body>
