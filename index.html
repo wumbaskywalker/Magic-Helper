@@ -7160,6 +7160,35 @@ body.fs-mode #view-play {
 }
 .storage-alarm button:hover { background: rgba(255,255,255,.24); }
 
+/* ── Navnesøgning: alle kort der matcher ────────────────────────────────── */
+.name-results { margin-bottom: 14px; }
+.name-results-head { display: flex; flex-direction: column; gap: 2px; margin: 2px 2px 10px; }
+.name-results-head strong { font-size: 13px; font-weight: 800; }
+.name-results-head small { font-size: 11px; color: var(--muted); }
+.name-results-grid {
+    display: grid; gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+}
+.name-result {
+    display: flex; flex-direction: column; gap: 5px; min-width: 0;
+    padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer;
+}
+.name-result-img {
+    display: block; aspect-ratio: 146 / 204; overflow: hidden; border-radius: 7px;
+    border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.05);
+    transition: border-color .15s, transform .15s;
+}
+.name-result-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.name-result:hover .name-result-img,
+.name-result:focus-visible .name-result-img { border-color: var(--gold-lt); transform: translateY(-2px); }
+.name-result-name { font-size: 10.5px; font-weight: 700; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
+.name-results-back {
+    display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; cursor: pointer;
+    border: 1px solid var(--border-lit); border-radius: 999px; background: rgba(255,255,255,.04);
+    color: var(--muted); font-size: 11.5px; font-weight: 700;
+}
+.name-results-back:hover { color: var(--text); }
+
 </style>
 </head>
 <body>
@@ -7229,6 +7258,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.29</span> — Search by part of a name: searching “emrakul” now shows every card with Emrakul in the name. Type the full name and the card opens directly as before</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.28</span> — Bug fixes: backups now include your decks, game history and value graph; multiplayer data from other players is checked before it is shown; downloads work reliably on iPhone; “Who goes first?” no longer crashes if a new game starts mid-draw; retrying a deck import keeps the card quantities</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.27</span> — The scanner now compares the artwork when scanning into the collection too, so it picks the right printing instead of whichever one the name lookup happened to return</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.26</span> — Faster scanner: the text reader is now cached instead of being downloaded on every scan, and Tesseract is only fetched when the scanner actually needs it</div>
@@ -7329,13 +7359,13 @@ body.fs-mode #view-play {
         <input type="text" id="manual-search" placeholder="Search for Magic cards…"
                style="padding-right:32px;"
                oninput="handleAutocomplete(this.value,'main');document.getElementById('search-clear-btn').style.display=this.value?'flex':'none';"
-               onkeypress="if(event.key==='Enter'){searchCard(this.value);hideAC()}">
+               onkeypress="if(event.key==='Enter'){searchByName(this.value);hideAC()}">
         <button id="search-clear-btn" onclick="document.getElementById('manual-search').value='';document.getElementById('search-clear-btn').style.display='none';hideAC();document.getElementById('manual-search').focus();"
             style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;width:24px;height:24px;align-items:center;justify-content:center;border-radius:50%;padding:0;line-height:1;">×</button>
         <div id="autocomplete-suggestions" class="autocomplete-box"></div>
     </div>
 
-    <button class="app-btn" onclick="searchCard(document.getElementById('manual-search').value);hideAC()">
+    <button class="app-btn" onclick="searchByName(document.getElementById('manual-search').value);hideAC()">
         <i class="fa-solid fa-magnifying-glass"></i> Search Scryfall
     </button>
 
@@ -7349,6 +7379,7 @@ body.fs-mode #view-play {
     </div>
 
     <div id="status-msg" class="status-pill" style="display:none;"></div>
+    <div id="name-results" class="name-results" style="display:none;"></div>
 
     <div id="search-result" style="display:none;" class="result-card">
         <h3 id="res-name" style="margin:0 0 4px;font-size:21px;"></h3>
@@ -9091,8 +9122,105 @@ renderRecentSearches();
 // ═══════════════════════════════════════════════
 //  SEARCH
 // ═══════════════════════════════════════════════
+// ── Navnesøgning ─────────────────────────────────────────────────────────
+// Før brugte Søg-knappen named?fuzzy, som altid returnerer præcis ét kort - det
+// Scryfall gætter bedst på. Søgte man "emrakul", fik man én Emrakul og ingen
+// mulighed for at se de andre. Nu hentes alle kort med ordet i navnet.
+let _nameResults = null;   // { query, cards, total }
+const NAME_RESULTS_MAX = 60;
+
+async function searchByName(query) {
+    query = String(query || '').trim();
+    if (!query) return;
+    const status = document.getElementById('status-msg');
+    const box = document.getElementById('name-results');
+    document.getElementById('search-result').style.display = 'none';
+    box.style.display = 'none'; box.innerHTML = '';
+    status.innerText = `Searching for "${query}"… ⏳`;
+    status.style.display = 'block';
+
+    let cards = [], total = 0;
+    try {
+        const r = await fetch('https://api.scryfall.com/cards/search?q=' + encodeURIComponent(query)
+                              + '&unique=cards&order=name');
+        if (r.ok) { const j = await r.json(); cards = j.data || []; total = j.total_cards || cards.length; }
+    } catch (e) { /* netfejl - det gamle opslag nedenfor viser den rigtige besked */ }
+
+    // Ingen træf, fx en stavefejl: det gamle opslag tåler slåfejl ("emrkaul" -> Emrakul)
+    if (!cards.length) { _nameResults = null; return searchCard(query); }
+
+    const q = query.toLowerCase();
+    const exact = cards.find(c => {
+        const n = String(c.name || '').toLowerCase();
+        return n === q || n.split(' // ')[0] === q;
+    });
+    // Skrev man det fulde navn, eller er der kun ét kort, åbnes det direkte som før.
+    if (cards.length === 1 || exact) {
+        _nameResults = cards.length > 1 ? { query, cards, total } : null;
+        await searchCard((exact || cards[0]).name);
+        renderNameResultsChip();
+        return;
+    }
+    _nameResults = { query, cards, total };
+    renderNameResults();
+}
+
+// Kort der STARTER med det man skrev, kommer før dem der bare indeholder det.
+function _rankNameResults(cards, q) {
+    const first = [], rest = [];
+    cards.forEach(c => (String(c.name || '').toLowerCase().startsWith(q) ? first : rest).push(c));
+    return first.concat(rest);
+}
+
+function renderNameResults() {
+    const box = document.getElementById('name-results');
+    if (!_nameResults) { box.style.display = 'none'; return; }
+    const { query, cards, total } = _nameResults;
+    const shown = _rankNameResults(cards, query.toLowerCase()).slice(0, NAME_RESULTS_MAX);
+    document.getElementById('status-msg').style.display = 'none';
+    document.getElementById('search-result').style.display = 'none';
+    const hint = total > shown.length
+        ? `Showing the first ${shown.length} — type more of the name to narrow it down`
+        : 'Tap a card to open it';
+    box.innerHTML = `
+        <div class="name-results-head">
+            <strong>${total} cards match “${_safeHTML(query)}”</strong>
+            <small>${hint}</small>
+        </div>
+        <div class="name-results-grid">
+            ${shown.map(c => {
+                const img = c.image_uris?.small || c.card_faces?.[0]?.image_uris?.small || '';
+                return `<button type="button" class="name-result" data-name="${_safeHTML(c.name)}">
+                    <span class="name-result-img">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}</span>
+                    <span class="name-result-name">${_safeHTML(c.name)}</span>
+                </button>`;
+            }).join('')}
+        </div>`;
+    // Navnet ligger i data-name og læses tilbage derfra, så apostroffer
+    // ("Emrakul's Hatcher") ikke skal escapes ind i en onclick-streng.
+    box.querySelectorAll('.name-result').forEach(b => { b.onclick = () => openNameResult(b.dataset.name); });
+    box.style.display = 'block';
+}
+
+async function openNameResult(name) {
+    await searchCard(name);
+    renderNameResultsChip();
+}
+
+// Når et kort er åbnet fra listen: en knap tilbage til alle træffene.
+function renderNameResultsChip() {
+    const box = document.getElementById('name-results');
+    if (!_nameResults) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.innerHTML = `<button type="button" class="name-results-back" onclick="renderNameResults()">
+        <i class="fa-solid fa-arrow-left"></i> All ${_nameResults.total} cards matching “${_safeHTML(_nameResults.query)}”
+    </button>`;
+    box.style.display = 'block';
+}
+
 async function searchCard(query) {
     if (!query?.trim()) return;
+    const nameBox = document.getElementById('name-results');
+    if (nameBox) nameBox.style.display = 'none';
     const status = document.getElementById('status-msg');
     const res    = document.getElementById('search-result');
     status.innerText = `Searching for "${query}"… ⏳`;
@@ -11744,7 +11872,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.28 · Arcane';
+const APP_VERSION = '8.29 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
