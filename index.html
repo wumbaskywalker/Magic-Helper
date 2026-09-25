@@ -7229,6 +7229,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.27</span> — The scanner now compares the artwork when scanning into the collection too, so it picks the right printing instead of whichever one the name lookup happened to return</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.26</span> — Faster scanner: the text reader is now cached instead of being downloaded on every scan, and Tesseract is only fetched when the scanner actually needs it</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.25</span> — Animated front page, and the hero image is no longer cropped on wide screens</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.24</span> — The collection now warns you if the browser storage is full instead of failing silently, and the last Danish texts are translated</div>
@@ -9114,6 +9115,7 @@ async function searchCard(query) {
             if (price < 0 && priceFoil >= 0) price = priceFoil;
             const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
             return { id:c.id, name:c.name, set:c.set.toUpperCase(), setName:c.set_name||c.set.toUpperCase(), price, priceFoil,
+                     illustrationId: c.illustration_id || c.card_faces?.[0]?.illustration_id || '',
                      released_at: c.released_at||'1900-01-01', img, thumb, imgBack,
                      artCrop: c.image_uris?.art_crop ?? c.card_faces?.[0]?.image_uris?.art_crop ?? '',
                      cmc: c.cmc||0, colors: c.colors||[], colorIdentity: c.color_identity||[],
@@ -10506,6 +10508,20 @@ async function _lookupCollector(pc) {
 // Fælles succes-håndtering for collector- og navne-scan
 async function _scanSuccess(data, isAuto, artHash, exact) {
     const status = document.getElementById('scan-status');
+
+    // Kunne samlernummeret ikke læses, ved vi kun HVILKET kort det er - ikke hvilket
+    // tryk. Her afgør kunsten sagen. Før skete det kun når man scannede til søgning;
+    // scannede man ind i samlingen, blev artHash regnet ud og aldrig brugt, og man
+    // fik det tryk navneopslaget tilfældigvis returnerede.
+    // Vi gør det kun når vi faktisk er i tvivl, så den hurtige vej forbliver hurtig.
+    if (!exact && artHash && data.oracle_id) {
+        try {
+            status.innerText = 'Comparing the artwork…';
+            const hit = await _bestPrintByArt(await _printsForOracle(data.oracle_id), artHash);
+            if (hit) { data = hit.print; exact = true; }
+        } catch (e) { /* uden match beholder vi det oprindelige tryk */ }
+    }
+
     const price = data.prices?.eur ? +data.prices.eur : (data.prices?.usd ? +data.prices.usd/rates.USD : 0);
     const card = {
         id: data.id, name: data.name, set: data.set, setName: data.set_name, price,
@@ -10619,19 +10635,81 @@ function _artHashFromUrl(url, isArtCrop) {
     });
 }
 
+// Hashes vi allerede har hentet. Scanner man flere kort fra samme sæt, slipper
+// vi for at hente de samme kunstudsnit igen.
+const _artHashCache = new Map();
+const ART_ACCEPT = 20;      // hamming ≤ 20/64
+const ART_MAX_ART = 24;     // maks antal FORSKELLIGE illustrationer vi sammenligner
+
+async function _cachedArtHash(url, isArtCrop) {
+    if (!url) return null;
+    if (_artHashCache.has(url)) return _artHashCache.get(url);
+    const h = await _artHashFromUrl(url, isArtCrop);
+    if (h) _artHashCache.set(url, h);
+    return h;
+}
+
+// To tryk med samme illustration kan et billede aldrig kende forskel på - der er
+// det sætkode og samlernummer der må afgøre. Vi sammenligner derfor ét tryk per
+// illustration i stedet for alle tryk. Sol Ring har omkring hundrede tryk, men
+// langt færre forskellige illustrationer, så det er både hurtigere og mere dækkende
+// end at tage de første 12 i rækkefølge.
+function _byIllustration(list, getId, getArt) {
+    const seen = new Map();
+    for (const item of list) {
+        const art = getArt(item);
+        if (!art) continue;
+        const key = getId(item) || art;
+        if (!seen.has(key)) seen.set(key, item);
+        if (seen.size >= ART_MAX_ART) break;
+    }
+    return [...seen.values()];
+}
+
 // Find den udgave i variant-galleriet hvis kunst matcher det scannede billede
 async function _matchVariantByArt(artHash) {
     try {
-        const cands = currentVariants.slice(0, 12);
-        const hashes = await Promise.all(cands.map(c => _artHashFromUrl(c.artCrop || c.thumb, !!c.artCrop)));
-        let best = -1, bd = 21; // accept-grænse: hamming ≤ 20/64
+        const cands = _byIllustration(currentVariants, v => v.illustrationId, v => v.artCrop || v.thumb);
+        const hashes = await Promise.all(cands.map(c => _cachedArtHash(c.artCrop || c.thumb, !!c.artCrop)));
+        let best = null, bd = ART_ACCEPT + 1;
         hashes.forEach((h, i) => {
             if (!h) return;
             const d = _hamming(artHash, h);
-            if (d < bd) { bd = d; best = i; }
+            if (d < bd) { bd = d; best = cands[i]; }
         });
-        return best;
+        return best ? currentVariants.findIndex(v => v.id === best.id) : -1;
     } catch(e) { return -1; }
+}
+
+// Alle tryk af et kort, med en lille cache så gentagne scanninger ikke spørger igen.
+const _printsCache = new Map();
+async function _printsForOracle(oracleId) {
+    if (!oracleId) return [];
+    if (_printsCache.has(oracleId)) return _printsCache.get(oracleId);
+    try {
+        const r = await fetch(`https://api.scryfall.com/cards/search?q=oracle_id:${oracleId}&unique=prints&order=released`);
+        const j = await r.json();
+        const list = Array.isArray(j.data) ? j.data : [];
+        _printsCache.set(oracleId, list);
+        return list;
+    } catch (e) { return []; }
+}
+
+// Vælg det tryk hvis kunst ligner det scannede kort mest.
+async function _bestPrintByArt(prints, artHash) {
+    if (!artHash || prints.length < 2) return null;
+    const artOf = c => c.image_uris?.art_crop || c.card_faces?.[0]?.image_uris?.art_crop || '';
+    const cands = _byIllustration(prints,
+        c => c.illustration_id || c.card_faces?.[0]?.illustration_id || '', artOf);
+    if (cands.length < 2) return null;
+    const hashes = await Promise.all(cands.map(c => _cachedArtHash(artOf(c), true)));
+    let best = null, bd = ART_ACCEPT + 1;
+    hashes.forEach((h, i) => {
+        if (!h) return;
+        const d = _hamming(artHash, h);
+        if (d < bd) { bd = d; best = cands[i]; }
+    });
+    return best ? { print: best, dist: bd } : null;
 }
 
 // Kunstnernavnet står i collector-området og er allerede OCR'et — brug det som signal
@@ -11665,7 +11743,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.26 · Arcane';
+const APP_VERSION = '8.27 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
