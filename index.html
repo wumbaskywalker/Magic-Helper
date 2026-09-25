@@ -7188,6 +7188,14 @@ body.fs-mode #view-play {
     color: var(--muted); font-size: 11.5px; font-weight: 700;
 }
 .name-results-back:hover { color: var(--text); }
+.name-results-more { display: flex; justify-content: center; padding: 14px 0 6px; }
+.name-results-more-btn {
+    padding: 10px 16px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--border-lit); background: rgba(255,255,255,.04);
+    color: var(--muted); font-size: 12px; font-weight: 700;
+}
+.name-results-more-btn:hover { color: var(--text); }
+.name-results-end { font-size: 11px; color: var(--muted); }
 
 </style>
 </head>
@@ -7258,6 +7266,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.30</span> — Name search shows every matching card: more load automatically as you scroll, and going back from a card returns you to the same place in the list</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.29</span> — Search by part of a name: searching “emrakul” now shows every card with Emrakul in the name. Type the full name and the card opens directly as before</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.28</span> — Bug fixes: backups now include your decks, game history and value graph; multiplayer data from other players is checked before it is shown; downloads work reliably on iPhone; “Who goes first?” no longer crashes if a new game starts mid-draw; retrying a deck import keeps the card quantities</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.27</span> — The scanner now compares the artwork when scanning into the collection too, so it picks the right printing instead of whichever one the name lookup happened to return</div>
@@ -9124,26 +9133,34 @@ renderRecentSearches();
 // ═══════════════════════════════════════════════
 // ── Navnesøgning ─────────────────────────────────────────────────────────
 // Før brugte Søg-knappen named?fuzzy, som altid returnerer præcis ét kort - det
-// Scryfall gætter bedst på. Søgte man "emrakul", fik man én Emrakul og ingen
-// mulighed for at se de andre. Nu hentes alle kort med ordet i navnet.
-let _nameResults = null;   // { query, cards, total }
-const NAME_RESULTS_MAX = 60;
+// Scryfall gætter bedst på. Nu hentes alle kort med ordet i navnet.
+// Listen vises 60 ad gangen og henter flere efterhånden som man ruller. Scryfall
+// leverer højst 175 kort pr. side, så bredere søgninger hentes side for side.
+let _nameResults = null;   // { query, cards, total, nextPage, shown, loading, failed, scrollY }
+let _nameResultsObserver = null;
+const NAME_RESULTS_BATCH = 60;
 
 async function searchByName(query) {
     query = String(query || '').trim();
     if (!query) return;
     const status = document.getElementById('status-msg');
     const box = document.getElementById('name-results');
+    _nameResultsObserver?.disconnect();
     document.getElementById('search-result').style.display = 'none';
     box.style.display = 'none'; box.innerHTML = '';
     status.innerText = `Searching for "${query}"… ⏳`;
     status.style.display = 'block';
 
-    let cards = [], total = 0;
+    let cards = [], total = 0, nextPage = null;
     try {
         const r = await fetch('https://api.scryfall.com/cards/search?q=' + encodeURIComponent(query)
                               + '&unique=cards&order=name');
-        if (r.ok) { const j = await r.json(); cards = j.data || []; total = j.total_cards || cards.length; }
+        if (r.ok) {
+            const j = await r.json();
+            cards = j.data || [];
+            total = j.total_cards || cards.length;
+            nextPage = j.has_more ? (j.next_page || null) : null;
+        }
     } catch (e) { /* netfejl - det gamle opslag nedenfor viser den rigtige besked */ }
 
     // Ingen træf, fx en stavefejl: det gamle opslag tåler slåfejl ("emrkaul" -> Emrakul)
@@ -9154,18 +9171,20 @@ async function searchByName(query) {
         const n = String(c.name || '').toLowerCase();
         return n === q || n.split(' // ')[0] === q;
     });
+    const results = { query, cards: _rankNameResults(cards, q), total, nextPage, shown: 0 };
     // Skrev man det fulde navn, eller er der kun ét kort, åbnes det direkte som før.
-    if (cards.length === 1 || exact) {
-        _nameResults = cards.length > 1 ? { query, cards, total } : null;
+    if (total === 1 || exact) {
+        _nameResults = total > 1 ? results : null;
         await searchCard((exact || cards[0]).name);
         renderNameResultsChip();
         return;
     }
-    _nameResults = { query, cards, total };
+    _nameResults = results;
     renderNameResults();
 }
 
 // Kort der STARTER med det man skrev, kommer før dem der bare indeholder det.
+// Rangeres pr. hentet side, så kort man allerede har rullet forbi ikke flytter sig.
 function _rankNameResults(cards, q) {
     const first = [], rest = [];
     cards.forEach(c => (String(c.name || '').toLowerCase().startsWith(q) ? first : rest).push(c));
@@ -9174,37 +9193,123 @@ function _rankNameResults(cards, q) {
 
 function renderNameResults() {
     const box = document.getElementById('name-results');
-    if (!_nameResults) { box.style.display = 'none'; return; }
-    const { query, cards, total } = _nameResults;
-    const shown = _rankNameResults(cards, query.toLowerCase()).slice(0, NAME_RESULTS_MAX);
+    const R = _nameResults;
+    if (!R) { box.style.display = 'none'; return; }
     document.getElementById('status-msg').style.display = 'none';
     document.getElementById('search-result').style.display = 'none';
-    const hint = total > shown.length
-        ? `Showing the first ${shown.length} — type more of the name to narrow it down`
-        : 'Tap a card to open it';
     box.innerHTML = `
         <div class="name-results-head">
-            <strong>${total} cards match “${_safeHTML(query)}”</strong>
-            <small>${hint}</small>
+            <strong>${R.total} cards match “${_safeHTML(R.query)}”</strong>
+            <small>Tap a card to open it</small>
         </div>
-        <div class="name-results-grid">
-            ${shown.map(c => {
-                const img = c.image_uris?.small || c.card_faces?.[0]?.image_uris?.small || '';
-                return `<button type="button" class="name-result" data-name="${_safeHTML(c.name)}">
-                    <span class="name-result-img">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}</span>
-                    <span class="name-result-name">${_safeHTML(c.name)}</span>
-                </button>`;
-            }).join('')}
-        </div>`;
+        <div class="name-results-grid" id="name-results-grid"></div>
+        <div class="name-results-more" id="name-results-more"></div>`;
+    box.style.display = 'block';
+    // Kommer man tilbage fra et kort, tegnes lige så mange som før, så man lander samme sted.
+    const target = Math.max(R.shown || 0, NAME_RESULTS_BATCH);
+    R.shown = 0;
+    _appendNameResults(target);
+    _updateNameResultsFooter();
+    if (R.scrollY != null) {
+        const y = R.scrollY;
+        requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+    _observeNameResults();
+}
+
+function _appendNameResults(count) {
+    const R = _nameResults, grid = document.getElementById('name-results-grid');
+    if (!R || !grid) return;
+    const batch = R.cards.slice(R.shown, R.shown + count);
+    const html = batch.map(c => {
+        const img = c.image_uris?.small || c.card_faces?.[0]?.image_uris?.small || '';
+        return `<button type="button" class="name-result" data-name="${_safeHTML(c.name)}">
+            <span class="name-result-img">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}</span>
+            <span class="name-result-name">${_safeHTML(c.name)}</span>
+        </button>`;
+    }).join('');
+    grid.insertAdjacentHTML('beforeend', html);
     // Navnet ligger i data-name og læses tilbage derfra, så apostroffer
     // ("Emrakul's Hatcher") ikke skal escapes ind i en onclick-streng.
-    box.querySelectorAll('.name-result').forEach(b => { b.onclick = () => openNameResult(b.dataset.name); });
-    box.style.display = 'block';
+    grid.querySelectorAll('.name-result:not([data-bound])').forEach(b => {
+        b.dataset.bound = '1';
+        b.onclick = () => openNameResult(b.dataset.name);
+    });
+    R.shown += batch.length;
+}
+
+function _nameResultsHasMore() {
+    const R = _nameResults;
+    return !!R && (R.shown < R.cards.length || !!R.nextPage);
+}
+
+function _updateNameResultsFooter() {
+    const R = _nameResults, el = document.getElementById('name-results-more');
+    if (!R || !el) return;
+    if (R.failed) {
+        el.innerHTML = `<button type="button" class="name-results-more-btn" onclick="_nameResults.failed=false;_loadMoreNameResults()">
+            Could not load more cards — tap to try again</button>`;
+    } else if (_nameResultsHasMore()) {
+        const left = R.total - R.shown;
+        // Knappen virker også uden rulning (ældre browsere, tastatur); rulning trykker den automatisk.
+        el.innerHTML = `<button type="button" class="name-results-more-btn" onclick="_loadMoreNameResults()">
+            ${R.loading ? 'Loading more cards…' : `Show more (${left} left)`}</button>`;
+    } else {
+        el.innerHTML = R.total > NAME_RESULTS_BATCH ? `<div class="name-results-end">All ${R.total} cards shown</div>` : '';
+    }
+}
+
+async function _loadMoreNameResults() {
+    const R = _nameResults;
+    if (!R || R.loading || R.failed) return;
+    if (R.shown < R.cards.length) {
+        _appendNameResults(NAME_RESULTS_BATCH);
+        _updateNameResultsFooter();
+        _observeNameResults();
+        return;
+    }
+    if (!R.nextPage) return;
+    R.loading = true;
+    _updateNameResultsFooter();
+    try {
+        const r = await fetch(R.nextPage);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const j = await r.json();
+        if (_nameResults !== R) return;           // en ny søgning er startet imens
+        R.cards = R.cards.concat(_rankNameResults(j.data || [], R.query.toLowerCase()));
+        R.nextPage = j.has_more ? (j.next_page || null) : null;
+        _appendNameResults(NAME_RESULTS_BATCH);
+    } catch (e) {
+        if (_nameResults === R) R.failed = true;
+    } finally {
+        if (_nameResults === R) {
+            R.loading = false;
+            _updateNameResultsFooter();
+            _observeNameResults();
+        }
+    }
+}
+
+// Henter flere når bunden af listen nærmer sig. En ny observation efter hver
+// tilføjelse sikrer at en høj skærm bliver fyldt helt op af sig selv.
+function _observeNameResults() {
+    _nameResultsObserver?.disconnect();
+    const el = document.getElementById('name-results-more');
+    if (!el || !('IntersectionObserver' in window) || !_nameResultsHasMore()) return;
+    _nameResultsObserver = new IntersectionObserver(entries => {
+        if (entries.some(e => e.isIntersecting)) _loadMoreNameResults();
+    }, { rootMargin: '600px 0px' });
+    _nameResultsObserver.observe(el);
 }
 
 async function openNameResult(name) {
+    if (_nameResults) _nameResults.scrollY = window.scrollY;
+    _nameResultsObserver?.disconnect();
     await searchCard(name);
     renderNameResultsChip();
+    // Man stod måske langt nede i listen - vis kortet fra toppen, lige under søgefeltet.
+    const anchor = document.getElementById('name-results');
+    if (anchor) window.scrollTo(0, Math.max(0, anchor.getBoundingClientRect().top + window.scrollY - 90));
 }
 
 // Når et kort er åbnet fra listen: en knap tilbage til alle træffene.
@@ -11872,7 +11977,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.29 · Arcane';
+const APP_VERSION = '8.30 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
