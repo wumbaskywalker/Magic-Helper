@@ -3,7 +3,7 @@
 // kortbilleder gemmes efterhånden som de ses. Live data (priser, søgning)
 // hentes altid fra nettet og fejler pænt når forbindelsen mangler.
 
-const VERSION   = 'v2';
+const VERSION   = 'v3';
 const SHELL     = `mh-shell-${VERSION}`;   // selve appen
 const VENDOR    = `mh-vendor-${VERSION}`;  // font-awesome, tesseract, mqtt m.fl.
 const IMAGES    = 'mh-images';             // kortbilleder og sæt-ikoner
@@ -29,8 +29,10 @@ const VENDOR_FILES = [
     FA + 'webfonts/fa-regular-400.woff2'
 ];
 
-// Biblioteker med fast versionsnummer i adressen — sikre at cache
-const VENDOR_HOSTS = ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net', 'unpkg.com'];
+// Biblioteker med fast versionsnummer i adressen — sikre at cache.
+// esm.sh hører med: PaddleOCR hentes derfra, og uden den på listen blev
+// tekstlæseren hentet forfra ved hver eneste scanning.
+const VENDOR_HOSTS = ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net', 'unpkg.com', 'esm.sh'];
 // Billeder fra Scryfall — samme adresse giver altid samme billede
 const IMAGE_HOSTS  = ['cards.scryfall.io', 'svgs.scryfall.io', 'c1.scryfall.com'];
 // Levende data — må aldrig serveres fra cache
