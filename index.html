@@ -1980,7 +1980,13 @@ button.app-btn:active { transform: scale(.975); filter: brightness(.94); }
 }
 .autocomplete-box {
     top: calc(100% - 4px);
-    overflow: hidden;
+    /* Før: overflow: hidden, som slog rulningen fra - man så kun ~5 forslag, og det
+     * femte var skåret over. overflow-y: auto ruller og klipper stadig de runde hjørner. */
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: min(58vh, 430px);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     border-color: rgba(255,255,255,.11);
     border-radius: 17px;
     background: rgba(18,23,30,.96);
@@ -7197,6 +7203,20 @@ body.fs-mode #view-play {
 .name-results-more-btn:hover { color: var(--text); }
 .name-results-end { font-size: 11px; color: var(--muted); }
 
+/* Sidste linje i forslagslisten: fører til den fulde søgning. Klistrer i bunden,
+ * så den altid er synlig uanset hvor langt man har rullet. */
+.suggestion-item.suggestion-all {
+    position: sticky; bottom: 0;
+    display: flex; align-items: center; gap: 9px;
+    border-top: 1px solid rgba(242,214,147,.22); border-bottom: 0;
+    background: rgba(26,31,38,.98);
+    color: var(--gold-lt); font-size: 13.5px; font-weight: 700;
+}
+.suggestion-item.suggestion-all:hover { background: rgba(40,46,54,.98); }
+.suggestion-item.suggestion-all i { font-size: 12px; }
+/* Ikke plads under feltet (typisk mobil med tastatur eller menu i bunden): åbn opad. */
+.autocomplete-box.ac-up { top: auto; bottom: calc(100% - 4px); }
+
 </style>
 </head>
 <body>
@@ -7266,6 +7286,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.31</span> — The suggestion list while you type now shows every match and scrolls, opens upwards when there is no room below, and ends with “Show all cards” to jump to the full search</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.30</span> — Name search shows every matching card: more load automatically as you scroll, and going back from a card returns you to the same place in the list</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.29</span> — Search by part of a name: searching “emrakul” now shows every card with Emrakul in the name. Type the full name and the card opens directly as before</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.28</span> — Bug fixes: backups now include your decks, game history and value graph; multiplayer data from other players is checked before it is shown; downloads work reliably on iPhone; “Who goes first?” no longer crashes if a new game starts mid-draw; retrying a deck import keeps the card quantities</div>
@@ -8972,6 +8993,48 @@ function hideAC() {
 }
 document.addEventListener('click', e => { if (!e.target.closest('.search-container')) hideAC(); });
 
+// Forslagslisten placeres hvor der er plads: under feltet hvis der er plads nok,
+// ellers over det. Højden sættes til pladsen mellem feltet og menulinjen i bunden
+// (mobil), tastaturet og headeren. Før var den fast 430px høj og løb ind under
+// menuen, så de nederste forslag og "Show all" ikke kunne trykkes på.
+// (At rulle siden for at skaffe plads virker ikke: listen er selv en del af sidens
+// højde, så når den gøres lavere, bliver siden kortere og ruller tilbage igen.)
+function _fitSuggestionBox(box, input) {
+    if (!box || !input || box.style.display !== 'block') return;
+    const vv = window.visualViewport;
+    const viewTop = vv ? vv.offsetTop : 0;
+    let viewBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;   // over tastaturet
+    const anchor = (box.offsetParent || input.parentElement).getBoundingClientRect();
+    const nav = document.querySelector('nav[aria-label="Primary navigation"]') || document.querySelector('nav');
+    if (nav) {
+        const n = nav.getBoundingClientRect();
+        if (n.height && n.top > anchor.bottom && n.top < viewBottom) viewBottom = n.top;   // kun menu UNDER feltet
+    }
+    let viewTopLimit = viewTop;
+    const header = document.getElementById('app-header');
+    if (header) {
+        const h = header.getBoundingClientRect(), pos = getComputedStyle(header).position;
+        if ((pos === 'fixed' || pos === 'sticky') && h.bottom <= anchor.top && h.bottom > viewTopLimit) viewTopLimit = h.bottom;
+    }
+    const GAP = 8, OVERLAP = 4, COMFORTABLE = 240;
+    const below = viewBottom - (anchor.bottom - OVERLAP) - GAP;
+    const above = (anchor.top + OVERLAP) - viewTopLimit - GAP;
+    const up = below < COMFORTABLE && above > below;
+    box.classList.toggle('ac-up', up);
+    box.style.maxHeight = Math.max(120, Math.min(430, up ? above : below)) + 'px';
+}
+function _refitOpenSuggestions() {
+    document.querySelectorAll('.autocomplete-box').forEach(box => {
+        if (box.style.display !== 'block') return;
+        const input = box.parentElement?.querySelector('input');
+        _fitSuggestionBox(box, input);
+    });
+}
+// Tastaturet på mobil kan dukke op EFTER listen er vist, og siden kan rulles mens
+// den er åben - tilpas igen i begge tilfælde.
+window.visualViewport?.addEventListener('resize', _refitOpenSuggestions);
+window.addEventListener('scroll', _refitOpenSuggestions, { passive: true });
+
 async function handleAutocomplete(q, type) {
     hideAC(); clearTimeout(acTimeout);
     if (q.length < 3) return;
@@ -8985,7 +9048,8 @@ async function handleAutocomplete(q, type) {
             if (!d.data?.length) return;
             const box = document.getElementById(boxId);
             box.innerHTML = '';
-            d.data.slice(0, 8).forEach(name => {
+            // Alle forslag (Scryfall sender højst 20) - før blev kun de første 8 vist.
+            d.data.forEach(name => {
                 const div = document.createElement('div');
                 div.className = 'suggestion-item'; div.innerText = name;
                 div.onclick = () => {
@@ -8996,7 +9060,18 @@ async function handleAutocomplete(q, type) {
                 };
                 box.appendChild(div);
             });
+            // Forslagslisten kan aldrig vise mere end 20 navne og ingen billeder.
+            // Sidste linje fører til den fulde søgning med alle kort.
+            if (type === 'main') {
+                const all = document.createElement('div');
+                all.className = 'suggestion-item suggestion-all';
+                all.innerHTML = `<i class="fa-solid fa-table-cells-large"></i> Show all cards matching “${_safeHTML(q)}”`;
+                all.onclick = () => { hideAC(); searchByName(document.getElementById(inputId).value || q); };
+                box.appendChild(all);
+            }
+            box.scrollTop = 0;
             box.style.display = 'block';
+            _fitSuggestionBox(box, document.getElementById(inputId));
         } catch(e) {}
     }, 280);
 }
@@ -11977,7 +12052,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.30 · Arcane';
+const APP_VERSION = '8.31 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
