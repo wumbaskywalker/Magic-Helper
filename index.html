@@ -7217,6 +7217,103 @@ body.fs-mode #view-play {
 /* Ikke plads under feltet (typisk mobil med tastatur eller menu i bunden): åbn opad. */
 .autocomplete-box.ac-up { top: auto; bottom: calc(100% - 4px); }
 
+/* ── Combos fra Commander Spellbook ─────────────────────────────────────── */
+.combo-intro { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.45; }
+.combo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.combo-btn {
+    display: inline-flex; align-items: center; gap: 7px; padding: 9px 13px; border-radius: 10px; cursor: pointer;
+    border: 1px solid rgba(242,214,147,.35); background: rgba(201,168,76,.12); color: var(--gold-lt);
+    font-size: 12px; font-weight: 800;
+}
+.combo-btn:hover { background: rgba(201,168,76,.2); }
+.combo-btn-ghost { border-color: var(--border-lit); background: rgba(255,255,255,.04); color: var(--muted); font-weight: 700; }
+.combo-loading, .combo-error { font-size: 12.5px; margin-bottom: 10px; }
+.combo-error { color: #e8a298; }
+.combo-stale {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 10px;
+    border-radius: 9px; background: rgba(232,180,80,.08); border: 1px solid rgba(232,180,80,.25); color: #e6c98a; font-size: 11.5px;
+}
+.combo-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.combo-head strong { color: var(--text); font-size: 13px; font-weight: 800; }
+.combo-head small { color: #e8a298; font-size: 11px; }
+.combo-sub { margin: 14px 0 6px; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.combo-row { padding: 9px 0; border-top: 1px solid rgba(255,255,255,.06); }
+.combo-cards, .combo-missing { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 5px; font-size: 12.5px; color: var(--text); }
+.combo-card {
+    padding: 2px 7px; border-radius: 6px; cursor: pointer; font: inherit; font-weight: 700;
+    border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: var(--text);
+}
+.combo-card:hover { border-color: var(--gold-lt); }
+.combo-plus { color: var(--muted); font-weight: 700; }
+.combo-owned {
+    margin-left: 2px; padding: 1px 6px; border-radius: 999px; font-size: 9.5px; font-weight: 800;
+    background: rgba(123,212,162,.14); color: #7bd4a2; border: 1px solid rgba(123,212,162,.35);
+}
+.combo-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 5px; font-size: 11px; color: var(--muted); }
+.combo-tag { padding: 1px 7px; border-radius: 999px; font-size: 9.5px; font-weight: 800; letter-spacing: .03em;
+    border: 1px solid rgba(255,255,255,.14); color: var(--muted); }
+.combo-tag-two { border-color: rgba(255,136,136,.45); color: #ff9c9c; background: rgba(255,136,136,.08); }
+.combo-produces { color: #aeb8c0; }
+.combo-with { color: var(--muted); }
+.combo-link, .combo-credit a { color: var(--accent); text-decoration: none; font-weight: 700; }
+.combo-link:hover, .combo-credit a:hover { text-decoration: underline; }
+.combo-foot { margin-top: 10px; font-size: 10.5px; color: var(--muted); }
+.combo-linkbtn { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
+.combo-credit { margin-top: 8px; font-size: 10px; color: var(--muted); }
+
+/* ── Deck pr. spiller + win rate pr. deck (v8.32) ── */
+.player-deck-card {
+    display: grid;
+    grid-template-columns: 34px minmax(0,1fr);
+    align-items: center;
+    gap: 9px;
+    padding: 7px 8px;
+    border: 1px solid rgba(242,214,147,.12);
+    border-radius: 14px;
+    background: rgba(199,167,104,.05);
+}
+.player-deck-icon {
+    width: 34px; height: 34px;
+    display: grid; place-items: center;
+    border-radius: 10px;
+    color: #e5d5ad;
+    background: rgba(199,167,104,.12);
+}
+.player-deck-card select, .player-deck-other {
+    width: 100%;
+    min-width: 0;
+    height: 39px;
+    margin: 0 !important;
+    padding: 8px 11px !important;
+    border: 1px solid rgba(255,255,255,.08) !important;
+    border-radius: 12px !important;
+    color: #ece6d6 !important;
+    font-size: 11px !important;
+    background: rgba(3,6,10,.32) !important;
+}
+.player-deck-other { margin-top: 7px !important; box-sizing: border-box; }
+.history-deck-tag { display: block; margin-top: 2px; color: #8f989f; font-size: 7px; font-weight: 600; }
+.history-deck-ranking .history-player-sigil i { font-size: 15px; }
+.history-deck-trend { display: block; margin-top: 3px; color: #7a838b; font-size: 7px; font-style: normal; white-space: nowrap; }
+.history-deck-trend.up { color: #8fd3a8; }
+.history-deck-trend.down { color: #e39a8f; }
+.history-filter-row .history-deck-filter span { margin-left: 4px; opacity: .7; }
+#history-tabs { gap: 14px; }
+.deck-record-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 10px; }
+.deck-record-grid > div { padding: 8px 6px; border-radius: 10px; text-align: center; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); }
+.deck-record-grid strong { display: block; color: var(--gold, #e5d5ad); font-size: 18px; line-height: 1.1; }
+.deck-record-grid span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+.deck-record-bar { position: relative; height: 6px; margin: 2px 0 9px; border-radius: 4px; background: rgba(255,255,255,.07); }
+.deck-record-bar b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#c7a768,#f2d693); }
+.deck-record-bar i { position: absolute; top: -3px; width: 2px; height: 12px; border-radius: 1px; background: #8fc7d8; transform: translateX(-1px); }
+.deck-record-note, .deck-record-empty { font-size: 12px; line-height: 1.45; color: var(--muted); }
+.deck-record-link {
+    margin-left: 6px; padding: 3px 9px;
+    border: 1px solid rgba(242,214,147,.25); border-radius: 999px;
+    color: #e5d5ad; font-size: 11px; background: rgba(199,167,104,.08); cursor: pointer;
+}
+.player-deck-section { margin-bottom: 12px; }
+
 </style>
 </head>
 <body>
@@ -7286,6 +7383,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.32</span> — Combos: “Find combos in this deck” checks Commander Spellbook for the combos your deck can assemble and the ones that are one card away, and two-card combos now count in the bracket estimate. Win rate per deck: choose each player’s deck in the player overview, and Game history gets a Decks tab plus a Record box in the deck editor. History now keeps up to 250 games</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.31</span> — The suggestion list while you type now shows every match and scrolls, opens upwards when there is no room below, and ends with “Show all cards” to jump to the full search</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.30</span> — Name search shows every matching card: more load automatically as you scroll, and going back from a card returns you to the same place in the list</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.29</span> — Search by part of a name: searching “emrakul” now shows every card with Emrakul in the name. Type the full name and the card opens directly as before</div>
@@ -8242,6 +8340,16 @@ body.fs-mode #view-play {
         </div>
 
         <div class="deck-stat-box">
+            <div class="deck-stat-title">🔗 Combos</div>
+            <div id="deck-combos" style="font-size:13px;color:var(--muted);">Add cards to look for combos.</div>
+        </div>
+
+        <div class="deck-stat-box">
+            <div class="deck-stat-title">🏆 Record</div>
+            <div id="deck-record" style="font-size:13px;color:var(--muted);"></div>
+        </div>
+
+        <div class="deck-stat-box">
             <div class="deck-stat-title">⚗️ Mana Base Recommendation</div>
             <div id="deck-manabase" style="font-size:13px;color:var(--muted);">Add cards to calculate the mana base.</div>
         </div>
@@ -8909,10 +9017,23 @@ let rates           = { EUR: 1, DKK: 7.46, USD: 1.07 };
 let currency        = localStorage.getItem('mtg_currency') || 'DKK';
 let lpTimers = {};
 const GAME_HISTORY_KEY = 'mtg_game_history_v1';
+// Historikken gemmer op til 250 spil, så win rate pr. deck/spiller får nok data.
+// Kun de 20 nyeste beholder den detaljerede hændelseslog — resten komprimeres,
+// ellers ville loggen alene kunne fylde telefonens lager.
+const GAME_HISTORY_MAX = 250;
+const GAME_HISTORY_DETAILED = 20;
+function _compactGameHistory(list) {
+    return (Array.isArray(list) ? list : []).filter(e => e && typeof e === 'object').slice(0, GAME_HISTORY_MAX)
+        .map((e, i) => {
+            if (i < GAME_HISTORY_DETAILED || !Array.isArray(e.events)) return e;
+            const { events, ...rest } = e;
+            return rest;
+        });
+}
 let gameHistory = [];
 try {
     const savedHistory = JSON.parse(localStorage.getItem(GAME_HISTORY_KEY) || '[]');
-    gameHistory = Array.isArray(savedHistory) ? savedHistory.slice(0, 20) : [];
+    gameHistory = _compactGameHistory(savedHistory);
 } catch(e) { gameHistory = []; }
 let _gameSession = { id:'', startedAt:0, recorded:false, prompted:false };
 let _pendingWinnerId = null;
@@ -12052,7 +12173,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.31 · Arcane';
+const APP_VERSION = '8.32 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
@@ -12438,7 +12559,7 @@ function initGame(n){
         .find(duration => duration > 0) || 0;
     for(let i=1;i<=n;i++){
         const ex=gamePlayers.find(p=>p.id===i);
-        const pl={id:i,name:ex?.name??(n===1?'Me':`Player ${i}`),color:ex?.color??defaultColors[i-1],life:startLife,poison:0,tax:0,dead:false,cmdDmg:{},claimedBy:ex?.claimedBy??null,cnt:ex?.cnt??{energy:0,exp:0,rad:0},flags:ex?.flags??{},bg:ex?.bg??'',timer:{duration:sharedTimerDuration,remaining:sharedTimerDuration,running:false,endsAt:0,alerted:false}};
+        const pl={id:i,name:ex?.name??(n===1?'Me':`Player ${i}`),color:ex?.color??defaultColors[i-1],life:startLife,poison:0,tax:0,dead:false,cmdDmg:{},claimedBy:ex?.claimedBy??null,cnt:ex?.cnt??{energy:0,exp:0,rad:0},flags:ex?.flags??{},bg:ex?.bg??'',deck:ex?.deck??null,timer:{duration:sharedTimerDuration,remaining:sharedTimerDuration,running:false,endsAt:0,alerted:false}};
         for(let j=1;j<=n;j++)if(j!==i)pl.cmdDmg[j]=0;
         next.push(pl);
     }
@@ -12801,7 +12922,7 @@ function _renderHistoryEvents(events, emptyText='No events recorded yet.') {
         </div>`).join('')}</div>`;
 }
 function _saveGameHistory() {
-    gameHistory = gameHistory.slice(0,20);
+    gameHistory = _compactGameHistory(gameHistory);
     _persist(GAME_HISTORY_KEY, JSON.stringify(gameHistory), 'game history');
 }
 function openGameHistory() {
@@ -12819,7 +12940,7 @@ function setHistoryScope(scope) {
 }
 function setHistoryTab(tab) {
     _historyScope = 'past';
-    _historyTab = ['games','players','insights'].includes(tab) ? tab : 'games';
+    _historyTab = ['games','players','decks','insights'].includes(tab) ? tab : 'games';
     renderGameHistory();
 }
 function setHistoryPlayerFilter(key) {
@@ -12879,7 +13000,7 @@ function _renderHistoryCurrent(summary,current,list) {
         <div class="history-current-players">${gamePlayers.map(p => `
             <div class="history-current-player${p.dead?' eliminated':''}" style="--winner-color:${p.color}">
                 <span class="history-player-sigil">${_escapeHistory((p.name||'?').trim().charAt(0).toUpperCase()||'?')}</span>
-                <span><strong>${_escapeHistory(p.name)}</strong><small>${p.dead?'Eliminated':p.poison ? `${p.poison} Poison counters` : 'In game'}</small></span>
+                <span><strong>${_escapeHistory(p.name)}</strong><small>${p.dead?'Eliminated':p.poison ? `${p.poison} Poison counters` : 'In game'}${p.deck&&p.deck.name?` · ${_escapeHistory(p.deck.name)}`:''}</small></span>
                 <b>${p.life}</b>
             </div>`).join('')}</div>
         ${_gameSession.recorded ? `<div class="history-recorded-note"><i class="fa-solid fa-circle-check"></i> The result for this game has been saved.</div>` : `
@@ -12906,12 +13027,15 @@ function _renderHistoryGames(summary,current,list) {
         </div>
         <div class="history-filter-row">
             <button class="${_historyPlayerFilter==='all'?'active':''}" onclick="setHistoryPlayerFilter('all')"><i class="fa-solid fa-filter"></i> All</button>
+            ${String(_historyPlayerFilter).startsWith('deck:') ? `<button class="active history-deck-filter" onclick="setHistoryPlayerFilter('all')"><i class="fa-solid fa-layer-group"></i>${_escapeHistory(_historyDeckLabel(_historyPlayerFilter.slice(5)))} <span aria-hidden="true">✕</span></button>` : ''}
             ${playerStats.map(p=>`<button class="${_historyPlayerFilter===p.key?'active':''}" onclick="setHistoryPlayerFilter(decodeURIComponent('${_historyArg(p.key)}'))"><i style="--filter-color:${p.color}"></i>${_escapeHistory(p.name)}</button>`).join('')}
         </div>` : '';
-    const filtered = _historyPlayerFilter === 'all' ? gameHistory : gameHistory.filter(entry =>
-        _entryPlayers(entry).some(p => _historyPlayerKey(p.name)===_historyPlayerFilter));
+    const deckFilter = String(_historyPlayerFilter).startsWith('deck:') ? _historyPlayerFilter.slice(5) : null;
+    const filtered = _historyPlayerFilter === 'all' ? gameHistory : gameHistory.filter(entry => deckFilter
+        ? _entryPlayers(entry).some(p => _historyDeckKey(p.deck)===deckFilter)
+        : _entryPlayers(entry).some(p => _historyPlayerKey(p.name)===_historyPlayerFilter));
     if (!filtered.length) {
-        list.innerHTML = `<div class="history-empty"><i class="fa-solid fa-trophy"></i><strong>${gameHistory.length?'No games match the filter':'No finished games yet'}</strong><span>${gameHistory.length?'Choose a different player above.':'When a winner is saved, the game appears here.'}</span></div>`;
+        list.innerHTML = `<div class="history-empty"><i class="fa-solid fa-trophy"></i><strong>${gameHistory.length?'No games match the filter':'No finished games yet'}</strong><span>${gameHistory.length?'Choose a different filter above.':'When a winner is saved, the game appears here.'}</span></div>`;
         return;
     }
     list.innerHTML = `<div class="history-entry-list">${filtered.map(entry => {
@@ -12930,7 +13054,7 @@ function _renderHistoryGames(summary,current,list) {
             <div class="history-game-date">${_formatMatchDate(entry.playedAt)}<i class="fa-solid fa-chevron-${expanded?'up':'down'}"></i></div>
             ${expanded ? `<div class="history-game-detail" onclick="event.stopPropagation()">
                 <div class="history-section-heading"><span>FINAL BOARD</span><span></span></div>
-                <div class="history-final-players">${players.map(p=>`<div style="--winner-color:${p.color||'#c7a768'}"><i></i><span>${_escapeHistory(p.name||'Unknown')}</span><strong>${p.life ?? '—'} life</strong>${_historyPlayerKey(p.name)===_historyPlayerKey(entry.winnerName)?'<b>WIN</b>':''}</div>`).join('')}</div>
+                <div class="history-final-players">${players.map(p=>`<div style="--winner-color:${p.color||'#c7a768'}"><i></i><span>${_escapeHistory(p.name||'Unknown')}${p.deck&&p.deck.name?`<small class="history-deck-tag">${_escapeHistory(_historyDeckLabel(_historyDeckKey(p.deck), p.deck.name))}</small>`:''}</span><strong>${p.life ?? '—'} life</strong>${_historyPlayerKey(p.name)===_historyPlayerKey(entry.winnerName)?'<b>WIN</b>':''}</div>`).join('')}</div>
                 <div class="history-section-heading"><span>GAME LOG · ${(entry.events||[]).length}</span><span></span></div>
                 ${_renderHistoryEvents(entry.events,'This older game has no detailed event log.')}
                 <button class="history-delete-game" onclick="deleteHistoryEntry(decodeURIComponent('${_historyArg(entry.id)}'))"><i class="fa-solid fa-trash-can"></i> Delete game</button>
@@ -13002,6 +13126,165 @@ function _renderHistoryInsights(summary,current,list) {
         <div class="history-section-heading"><span>FORMATS</span><span></span></div>
         <div class="history-format-split"><div><span style="width:${Math.round(commanderCount/gameHistory.length*100)}%"></span></div><small>Commander ${commanderCount} · Standard ${gameHistory.length-commanderCount}</small></div>`;
 }
+// ── Win rate pr. deck ─────────────────────────
+// Et deck i historikken er {id, name, cmd}: id peger på et af dine egne decks
+// (så navneskift følger med), id=null er "en andens deck" med fritekst-navn.
+function _playerDeckForHistory(p) {
+    const d = p && p.deck;
+    const name = d && String(d.name || '').trim();
+    if (!name) return null;
+    return { id: d.id || null, name: name.slice(0, 60), cmd: String(d.cmd || '').slice(0, 80) };
+}
+function _historyDeckKey(d) {
+    if (!d || !String(d.name || '').trim()) return '';
+    return d.id ? 'id:' + d.id : 'n:' + _historyPlayerKey(d.name);
+}
+function _deckCommanderName(deck) {
+    const key = deck && deck.commanderKey;
+    const c = key ? (deck.cards || []).find(x => (x._deckKey || x.id) === key) : null;
+    return c ? c.name : '';
+}
+function _historyDeckLabel(key, fallback='') {
+    if (String(key).startsWith('id:')) {
+        const own = decks.find(d => String(d.id) === String(key).slice(3));
+        if (own) return own.name || 'Unnamed deck';
+    }
+    if (fallback) return fallback;
+    for (const e of gameHistory) for (const p of _entryPlayers(e)) if (_historyDeckKey(p.deck) === key) return p.deck.name;
+    return 'Deck';
+}
+function _playerWon(entry, p) {
+    return typeof p.winner === 'boolean' ? p.winner : _historyPlayerKey(p.name) === _historyPlayerKey(entry.winnerName);
+}
+function _historyStatsByDeck() {
+    const stats = new Map();
+    gameHistory.forEach(entry => {
+        const players = _entryPlayers(entry);
+        const seen = new Set();
+        players.forEach(p => {
+            const key = _historyDeckKey(p.deck);
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            const own = key.startsWith('id:') ? decks.find(d => String(d.id) === key.slice(3)) : null;
+            const row = stats.get(key) || { key, name: own ? (own.name || 'Unnamed deck') : p.deck.name,
+                cmd: own ? _deckCommanderName(own) : (p.deck.cmd || ''), own: !!own, deckId: own ? own.id : null,
+                color: p.color || '#c7a768', games: 0, wins: 0, totalSeconds: 0, expected: 0, lastPlayed: 0, pilots: new Set() };
+            row.games += 1;
+            row.expected += 1 / Math.max(1, Number(entry.playerCount) || players.length || 1);
+            row.totalSeconds += Number(entry.durationSeconds) || 0;
+            row.lastPlayed = Math.max(row.lastPlayed, Number(entry.playedAt) || 0);
+            row.pilots.add(p.name || 'Unknown');
+            if (_playerWon(entry, p)) row.wins += 1;
+            stats.set(key, row);
+        });
+    });
+    return [...stats.values()].sort((a,b) => b.wins-a.wins || (b.wins/b.games)-(a.wins/a.games) || b.games-a.games);
+}
+function showDeckGames(key) {
+    _historyScope = 'past';
+    _historyTab = 'games';
+    _historyPlayerFilter = 'deck:' + key;
+    renderGameHistory();
+}
+function _renderHistoryDecks(summary,current,list) {
+    summary.innerHTML = '';
+    current.innerHTML = '';
+    const stats = _historyStatsByDeck();
+    if (!stats.length) {
+        list.innerHTML = `<div class="history-empty"><i class="fa-solid fa-layer-group"></i><strong>No deck results yet</strong><span>Tap a player on the board, choose their deck under DECK, and save the winner as usual. Each deck then gets its own win rate here.</span></div>`;
+        return;
+    }
+    list.innerHTML = `<div class="history-player-ranking history-deck-ranking">${stats.map((d,index)=>{
+        const rate = d.games ? Math.round(d.wins/d.games*100) : 0;
+        const exp = d.games ? Math.round(d.expected/d.games*100) : 0;
+        const diff = rate - exp;
+        const trend = d.games < 3 ? `<em class="history-deck-trend">few games</em>`
+            : `<em class="history-deck-trend ${diff>=5?'up':diff<=-5?'down':''}">${diff>0?'+':''}${diff} vs. ${exp}% expected</em>`;
+        const pilots = [...d.pilots].slice(0,3).join(', ') + (d.pilots.size>3?` +${d.pilots.size-3}`:'');
+        return `<button onclick="showDeckGames(decodeURIComponent('${_historyArg(d.key)}'))" style="--winner-color:${d.color}">
+            <span class="history-player-rank">${index+1}</span>
+            <span class="history-player-sigil"><i class="fa-solid ${d.own?'fa-layer-group':'fa-user-shield'}"></i></span>
+            <span class="history-player-stats-copy"><strong>${_escapeHistory(d.name)}</strong><small>${d.cmd?_escapeHistory(d.cmd)+' · ':''}${d.games} game${d.games===1?'':'s'} · ${_escapeHistory(pilots)}</small><i><b style="width:${rate}%"></b></i></span>
+            <span class="history-player-winrate"><strong>${rate}%</strong><small>${d.wins} win${d.wins===1?'':'s'}</small>${trend}</span>
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>`;
+    }).join('')}</div><div class="history-data-note"><i class="fa-solid fa-circle-info"></i> “Expected” is what a deck would win by pure chance — 25% in a 4-player pod. Only games where a deck was chosen count.</div>`;
+}
+// Spillerens deck vælges i spillerskuffen. Gemmes kun på denne enhed (værten
+// registrerer resultatet), så det sendes ikke som en multiplayer-hændelse.
+function _deckPickerHtml(p) {
+    if (mpMode === 'client') return '';
+    const d = p.deck;
+    const own = [...decks].sort((a,b) => String(a.name||'').localeCompare(String(b.name||''), 'en'));
+    const isOther = !!d && !d.id;
+    const opt = (v, label, sel) => `<option value="${_escapeHistory(v)}"${sel?' selected':''}>${_escapeHistory(label)}</option>`;
+    const record = d && d.name ? _deckRecordText(_historyDeckKey(d)) : '';
+    return `<section class="counter-section player-deck-section">
+        <div class="counter-section-title"><span>DECK</span><span class="counter-section-line"></span></div>
+        <div class="player-deck-card">
+            <span class="player-deck-icon"><i class="fa-solid fa-layer-group"></i></span>
+            <select id="player-deck-select" aria-label="Deck played by ${_escapeHistory(p.name)}" onchange="setPlayerDeck(${p.id}, this.value)">
+                ${opt('', 'No deck chosen', !d)}
+                ${own.length ? `<optgroup label="Your decks">${own.map(x => {
+                    const cmd = _deckCommanderName(x);
+                    return opt('id:' + x.id, (x.name || 'Unnamed deck') + (cmd && cmd !== x.name ? ' — ' + cmd : ''), d && String(d.id) === String(x.id));
+                }).join('')}</optgroup>` : ''}
+                ${opt('other', 'Someone else’s deck…', isOther)}
+            </select>
+        </div>
+        ${isOther ? `<input id="player-deck-other" class="player-deck-other" maxlength="60" placeholder="Commander or deck name" value="${_escapeHistory(d.name || '')}" oninput="_setPlayerDeckNameLive(${p.id}, this.value)" onchange="setPlayerDeckName(${p.id}, this.value)" onkeydown="if(event.key==='Enter')this.blur()">` : ''}
+        <div class="timer-shared-note"><i class="fa-solid fa-trophy"></i><span>${record || 'Saved with the result, so every deck gets its own win rate under Game history → Decks.'}</span></div>
+    </section>`;
+}
+function _deckRecordText(key) {
+    const row = _historyStatsByDeck().find(r => r.key === key);
+    if (!row) return '';
+    return `Record so far: ${row.wins} win${row.wins===1?'':'s'} in ${row.games} game${row.games===1?'':'s'} (${Math.round(row.wins/row.games*100)}%).`;
+}
+function setPlayerDeck(pid, value) {
+    const p = gamePlayers.find(x => x.id === pid); if (!p) return;
+    if (!value) p.deck = null;
+    else if (value === 'other') p.deck = { id: null, name: (p.deck && !p.deck.id ? p.deck.name : '') || '', cmd: '' };
+    else if (value.startsWith('id:')) {
+        const deck = decks.find(d => String(d.id) === value.slice(3));
+        p.deck = deck ? { id: deck.id, name: deck.name || 'Unnamed deck', cmd: _deckCommanderName(deck) } : null;
+    }
+    renderCounters();
+    if (value === 'other') setTimeout(() => document.getElementById('player-deck-other')?.focus(), 30);
+}
+function setPlayerDeckName(pid, name) {
+    const p = gamePlayers.find(x => x.id === pid); if (!p) return;
+    const clean = String(name || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 60);
+    p.deck = { id: null, name: clean, cmd: '' };
+    renderCounters();
+}
+// Mens der skrives: gem navnet uden at gentegne skuffen (så fokus bevares).
+function _setPlayerDeckNameLive(pid, name) {
+    const p = gamePlayers.find(x => x.id === pid); if (!p) return;
+    p.deck = { id: null, name: String(name || '').replace(/[\u0000-\u001f<>]/g, '').slice(0, 60), cmd: '' };
+}
+function _renderDeckRecord(deck) {
+    const el = document.getElementById('deck-record'); if (!el) return;
+    const row = _historyStatsByDeck().find(r => r.key === 'id:' + deck.id);
+    if (!row) {
+        el.innerHTML = `<div class="deck-record-empty">No games recorded with this deck yet. On the Play tab, tap your player and choose this deck under <b>DECK</b> — the result is counted when you save the winner.</div>`;
+        return;
+    }
+    const rate = Math.round(row.wins/row.games*100);
+    const exp = Math.round(row.expected/row.games*100);
+    el.innerHTML = `<div class="deck-record-grid">
+            <div><strong>${row.games}</strong><span>Games</span></div>
+            <div><strong>${row.wins}</strong><span>Wins</span></div>
+            <div><strong>${rate}%</strong><span>Win rate</span></div>
+        </div>
+        <div class="deck-record-bar"><b style="width:${rate}%"></b><i style="left:${exp}%" title="Expected by chance"></i></div>
+        <div class="deck-record-note">${row.games < 3 ? 'A few more games and the number starts to mean something.' : `Expected by chance: ${exp}%. Last played ${_escapeHistory(_formatMatchDate(row.lastPlayed))}.`}
+        <button class="deck-record-link" onclick="openDeckHistory(decodeURIComponent('${_historyArg(row.key)}'))">See games</button></div>`;
+}
+function openDeckHistory(key) {
+    showDeckGames(key);
+    document.getElementById('match-history-modal').style.display = 'flex';
+}
 function renderGameHistory() {
     const summary = document.getElementById('history-summary');
     const current = document.getElementById('history-current');
@@ -13009,10 +13292,11 @@ function renderGameHistory() {
     const mode = document.getElementById('history-mode-switch');
     const tabs = document.getElementById('history-tabs');
     mode.innerHTML = `<button class="${_historyScope==='current'?'active':''}" onclick="setHistoryScope('current')">Current Game</button><button class="${_historyScope==='past'?'active':''}" onclick="setHistoryScope('past')">Past Games <span>${gameHistory.length}</span></button>`;
-    tabs.innerHTML = _historyScope === 'past' ? `<button class="${_historyTab==='games'?'active':''}" onclick="setHistoryTab('games')">Games</button><button class="${_historyTab==='players'?'active':''}" onclick="setHistoryTab('players')">Players</button><button class="${_historyTab==='insights'?'active':''}" onclick="setHistoryTab('insights')">Insights</button>` : '';
+    tabs.innerHTML = _historyScope === 'past' ? `<button class="${_historyTab==='games'?'active':''}" onclick="setHistoryTab('games')">Games</button><button class="${_historyTab==='players'?'active':''}" onclick="setHistoryTab('players')">Players</button><button class="${_historyTab==='decks'?'active':''}" onclick="setHistoryTab('decks')">Decks</button><button class="${_historyTab==='insights'?'active':''}" onclick="setHistoryTab('insights')">Insights</button>` : '';
     tabs.style.display = _historyScope === 'past' ? 'flex' : 'none';
     if (_historyScope === 'current') return _renderHistoryCurrent(summary,current,list);
     if (_historyTab === 'players') return _renderHistoryPlayers(summary,current,list);
+    if (_historyTab === 'decks') return _renderHistoryDecks(summary,current,list);
     if (_historyTab === 'insights') return _renderHistoryInsights(summary,current,list);
     _renderHistoryGames(summary,current,list);
 }
@@ -13060,13 +13344,14 @@ function saveVictoryResult() {
             poison:p.poison || 0,
             tax:p.tax || 0,
             dead:!!p.dead,
-            winner:p.id===winner.id
+            winner:p.id===winner.id,
+            deck:_playerDeckForHistory(p)
         })),
         events:(Array.isArray(_gameSession.events)?_gameSession.events:[]).map(event=>({...event})),
         durationSeconds: Math.max(1,Math.round((Date.now()-(_gameSession.startedAt || Date.now()))/1000)),
         playedAt: Date.now()
     };
-    gameHistory = [entry, ...gameHistory.filter(x => x.id !== entry.id)].slice(0,20);
+    gameHistory = _compactGameHistory([entry, ...gameHistory.filter(x => x.id !== entry.id)]);
     _saveGameHistory();
     _gameSession.recorded = true;
     closeVictoryModal();
@@ -13390,6 +13675,8 @@ function closeCounters() {
     _cntPid = null;
 }
 function renderCounters() {
+    // En multiplayer-opdatering kan gentegne skuffen midt i at man skriver et decknavn.
+    const typingDeck = document.activeElement && document.activeElement.id === 'player-deck-other';
     const p = gamePlayers.find(x => x.id === _cntPid);
     if (!p) return closeCounters();
     if (!p.cnt) p.cnt = { energy:0, exp:0, rad:0 };
@@ -13420,7 +13707,7 @@ function renderCounters() {
     const cRow = (icon, label, hint, key, color) =>
         row(icon, label, hint, p.cnt[key] || 0, `_cntC('${key}',-1)`, `_cntC('${key}',1)`, color);
 
-    let html = '';
+    let html = _deckPickerHtml(p);
     if (gameFormat === 'commander' && currentPC > 1) {
         html += `<div class="counter-command-note">
             <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
@@ -13501,6 +13788,10 @@ function renderCounters() {
     </section>`;
 
     document.getElementById('cnt-body').innerHTML = html;
+    if (typingDeck) {
+        const input = document.getElementById('player-deck-other');
+        if (input) { input.focus(); const n = input.value.length; try { input.setSelectionRange(n, n); } catch (e) {} }
+    }
 }
 function _cntPoison(d) { adjPoison(_cntPid, d); renderCounters(); }
 function _cntTax(d)    { adjTax(_cntPid, d * 2); renderCounters(); }
@@ -16259,7 +16550,7 @@ function restoreBackup(input) {
             }
             if (data.priceList) { priceList = data.priceList; saveList(); updateListView(); }
             if (hasDecks) { decks = data.decks; activeDeckId = null; saveDecks(); renderDeckList(); }
-            if (hasGames) { gameHistory = data.gameHistory.slice(0, 20); _saveGameHistory(); }
+            if (hasGames) { gameHistory = _compactGameHistory(data.gameHistory); _saveGameHistory(); }
             try {
                 if (Array.isArray(data.valueHistory)) localStorage.setItem('mtg_value_hist', JSON.stringify(data.valueHistory));
                 if (data.cardPriceHistory && typeof data.cardPriceHistory === 'object')
@@ -16729,6 +17020,7 @@ function renderDeckEditor() {
     document.getElementById('deck-stat-cmc').innerText = avgCmc;
     document.getElementById('deck-stat-value').innerText = fmt(totalVal);
     renderDeckBuiltRow(deck);
+    try { _renderDeckRecord(deck); } catch (e) { console.warn('deck record', e); }
 
     // Colors
     const COLOR_STYLES = {
@@ -20055,6 +20347,242 @@ function showAccum(id, amt, type) {
         return gcFetching;
     }
 
+    // ── Combos via Commander Spellbook ───────────────────────────────
+    // Commander Spellbook er den store fællesdatabase over combos. Deres API tager
+    // en deckliste og svarer med de combos decket allerede kan samle (included) og
+    // dem man mangler ét kort til (almostIncluded). /estimate-bracket fortæller
+    // desuden om hver combo tæller som en 2-kort-combo i Wizards' forstand - det
+    // var netop det vores eget bracket-estimat ikke kunne se.
+    // De beder om få kald ("a few HTTP calls per user interaction"), så vi spørger
+    // kun når brugeren trykker, og gemmer svaret til decket ændrer sig.
+    const CSB_API = 'https://backend.commanderspellbook.com';
+    const CSB_SITE = 'https://commanderspellbook.com';
+    const COMBO_CACHE_KEY = 'mh_combo_cache_v1';
+    const comboState = {};          // deckId -> { status: 'loading'|'error', error }
+    let comboCache = {};
+    try { comboCache = JSON.parse(localStorage.getItem(COMBO_CACHE_KEY) || '{}') || {}; } catch (e) { comboCache = {}; }
+    const saveComboCache = () => {
+        // Maks 30 decks, nyeste beholdes - svarene er små fordi vi kun gemmer det vi viser.
+        const entries = Object.entries(comboCache).sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, 30);
+        comboCache = Object.fromEntries(entries);
+        try { localStorage.setItem(COMBO_CACHE_KEY, JSON.stringify(comboCache)); } catch (e) { /* cache er en bonus */ }
+    };
+
+    function commanderOf(deck) {
+        const key = deck && deck.commanderKey;
+        return key ? (deck.cards || []).find(c => (c._deckKey || c.id) === key) : null;
+    }
+    // Deckets "fingeraftryk": ændrer det sig, er de gemte combos forældede.
+    function deckSignature(deck) {
+        const cmd = commanderOf(deck);
+        const parts = (deck.cards || []).filter(c => c && c.name)
+            .map(c => norm(c.name) + 'x' + (Number(c.qty) || 1)).sort();
+        return (cmd ? 'cmd:' + norm(cmd.name) + '|' : '') + parts.join('|');
+    }
+    function deckRequestBody(deck) {
+        const cmd = commanderOf(deck);
+        const counts = new Map();
+        (deck.cards || []).forEach(c => {
+            if (!c || !c.name || (cmd && c === cmd)) return;
+            counts.set(c.name, (counts.get(c.name) || 0) + Math.max(1, Number(c.qty) || 1));
+        });
+        return JSON.stringify({
+            main: [...counts].map(([card, quantity]) => ({ card, quantity })),
+            commanders: cmd ? [{ card: cmd.name, quantity: 1 }] : []
+        });
+    }
+
+    // Direkte først. Tillader serveren ikke kald fra en browser (CORS), prøves en
+    // proxy. Lykkes ingen af dem, tilbyder boksen at kopiere listen i stedet.
+    async function csbPost(url, body) {
+        const tries = [url, 'https://corsproxy.io/?url=' + encodeURIComponent(url)];
+        let last = null;
+        for (const u of tries) {
+            try {
+                const r = await fetch(u, { method: 'POST', body,
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } });
+                if (r.status === 429) { last = new Error('Commander Spellbook is busy — try again in a minute'); break; }
+                if (r.ok) return await r.json();
+                last = new Error('HTTP ' + r.status);
+            } catch (e) { last = e; }
+        }
+        throw last || new Error('unreachable');
+    }
+
+    // Vi gemmer kun det vi viser, ikke Spellbooks fulde objekter (de indeholder
+    // billedadresser for hvert kort og ville fylde lageret op).
+    const slimVariant = v => ({
+        id: String(v.id || ''),
+        cards: (v.uses || []).map(u => u && u.card && u.card.name).filter(Boolean),
+        produces: (v.produces || []).map(p => p && p.feature && p.feature.name).filter(Boolean).slice(0, 4),
+        popularity: Number(v.popularity) || 0
+    });
+
+    async function findCombos(deck) {
+        const body = deckRequestBody(deck);
+        // find-my-combos svarer i sider; vi følger "next" op til tre sider.
+        let url = CSB_API + '/find-my-combos', page = 0;
+        const included = [], almost = [];
+        while (url && page < 3) {
+            const res = await csbPost(url, body);
+            const r = res && res.results ? res.results : {};
+            (r.included || []).forEach(v => included.push(slimVariant(v)));
+            (r.almostIncluded || []).forEach(v => almost.push(slimVariant(v)));
+            url = res && res.next ? res.next : null;
+            page++;
+        }
+        // Bracket-klassificeringen er en bonus - fejler den, viser vi stadig combos.
+        let twoCard = [], arguable = [], cardFlags = null;
+        try {
+            const est = await csbPost(CSB_API + '/estimate-bracket', body);
+            (est.combos || []).forEach(c => {
+                const id = String(c.combo && c.combo.id || '');
+                if (!id || c.relevant === false) return;
+                if (c.definitelyTwoCard) twoCard.push(id);
+                else if (c.arguablyTwoCard) arguable.push(id);
+            });
+            cardFlags = { gameChangers: [], landDenial: [], extraTurns: [] };
+            (est.cards || []).forEach(c => {
+                const name = c && c.card && c.card.name; if (!name) return;
+                if (c.gameChanger) cardFlags.gameChangers.push(name);
+                if (c.massLandDenial) cardFlags.landDenial.push(name);
+                if (c.extraTurn) cardFlags.extraTurns.push(name);
+            });
+        } catch (e) {
+            // Uden klassificering: en combo på præcis to kort regnes som 2-kort-combo.
+            twoCard = included.filter(v => v.cards.length === 2).map(v => v.id);
+        }
+        return { included, almost, twoCard, arguable, cardFlags };
+    }
+
+    window.checkDeckCombos = async function checkDeckCombos() {
+        const allDecks = globalValue('decks');
+        const deck = Array.isArray(allDecks) ? allDecks.find(d => d && d.id === globalValue('activeDeckId')) : null;
+        if (!deck || !(deck.cards || []).length || comboState[deck.id]?.status === 'loading') return;
+        const sig = deckSignature(deck);
+        comboState[deck.id] = { status: 'loading' };
+        renderCombos();
+        try {
+            const result = await findCombos(deck);
+            comboCache[deck.id] = { sig, at: Date.now(), ...result };
+            saveComboCache();
+            delete comboState[deck.id];
+        } catch (e) {
+            comboState[deck.id] = { status: 'error', error: String(e && e.message || e) };
+        }
+        renderCombos();
+        try { renderBracket(); } catch (e) {}
+    };
+
+    // Reserve der altid virker: listen i det format Spellbooks egen side forstår.
+    window.copyDeckForSpellbook = async function copyDeckForSpellbook() {
+        const allDecks = globalValue('decks');
+        const deck = Array.isArray(allDecks) ? allDecks.find(d => d && d.id === globalValue('activeDeckId')) : null;
+        if (!deck) return;
+        const cmd = commanderOf(deck);
+        const lines = [];
+        if (cmd) lines.push('// Commander', '1 ' + cmd.name, '', '// Deck');
+        (deck.cards || []).forEach(c => { if (c && c.name && c !== cmd) lines.push((Number(c.qty) || 1) + ' ' + c.name); });
+        const text = lines.join('\n');
+        let copied = false;
+        try { await navigator.clipboard.writeText(text); copied = true; } catch (e) {}
+        const toast = globalValue('toast');
+        if (typeof toast === 'function') toast(copied ? 'Deck list copied — paste it on Commander Spellbook' : 'Could not copy — select the list on Commander Spellbook manually');
+        window.open(CSB_SITE + '/find-my-combos/', '_blank', 'noopener');
+    };
+
+    // Kort man mangler til en combo: hvilke af dem ejer man allerede?
+    function ownedFree(name) {
+        const avail = globalValue('collectionAvailability');
+        const key = norm(name);
+        try {
+            if (typeof avail === 'function') {
+                const e = avail().get(key);
+                if (e) return e.free > 0;
+            }
+        } catch (e) {}
+        return collectionCards().some(c => norm(c.name) === key);
+    }
+
+    function renderCombos() {
+        const box = document.getElementById('deck-combos');
+        if (!box) return;
+        const allDecks = globalValue('decks');
+        const deck = Array.isArray(allDecks) ? allDecks.find(d => d && d.id === globalValue('activeDeckId')) : null;
+        if (!deck) return;
+        if (!(deck.cards || []).length) { box.innerHTML = '<span style="color:var(--muted);">Add cards to look for combos.</span>'; return; }
+
+        const state = comboState[deck.id];
+        const cached = comboCache[deck.id];
+        const stale = cached && cached.sig !== deckSignature(deck);
+        const credit = `<div class="combo-credit">Combo data from <a href="${CSB_SITE}" target="_blank" rel="noopener">Commander Spellbook</a></div>`;
+        const checkBtn = label => `<button type="button" class="combo-btn" onclick="checkDeckCombos()"><i class="fa-solid fa-magnifying-glass"></i> ${label}</button>`;
+
+        if (state && state.status === 'loading') {
+            box.innerHTML = `<div class="combo-loading"><i class="fa-solid fa-spinner fa-spin"></i> Checking Commander Spellbook…</div>`;
+            return;
+        }
+        if (state && state.status === 'error') {
+            box.innerHTML = `
+                <div class="combo-error">Could not reach Commander Spellbook${state.error && /busy/.test(state.error) ? ' — it is busy right now' : ''}.</div>
+                <div class="combo-actions">
+                    ${checkBtn('Try again')}
+                    <button type="button" class="combo-btn combo-btn-ghost" onclick="copyDeckForSpellbook()"><i class="fa-solid fa-copy"></i> Copy list &amp; open Commander Spellbook</button>
+                </div>${credit}`;
+            return;
+        }
+        if (!cached) {
+            box.innerHTML = `
+                <div class="combo-intro">See which combos this deck can assemble, and which are one card away.</div>
+                <div class="combo-actions">${checkBtn('Find combos in this deck')}</div>${credit}`;
+            return;
+        }
+
+        const two = new Set(cached.twoCard || []), arguable = new Set(cached.arguable || []);
+        const inDeck = new Set((deck.cards || []).map(c => norm(c.name)));
+        const included = [...cached.included].sort((a, b) =>
+            (two.has(b.id) - two.has(a.id)) || (b.popularity - a.popularity));
+        const almost = [...cached.almost].sort((a, b) => b.popularity - a.popularity).slice(0, 8);
+        const peek = n => `<button type="button" class="combo-card" data-card="${escapeHTML(n)}">${escapeHTML(n)}</button>`;
+
+        const comboRow = v => `
+            <div class="combo-row">
+                <div class="combo-cards">${v.cards.map(peek).join('<span class="combo-plus">+</span>')}</div>
+                <div class="combo-meta">
+                    ${two.has(v.id) ? '<span class="combo-tag combo-tag-two">2-card combo</span>'
+                      : arguable.has(v.id) ? '<span class="combo-tag">arguably 2-card</span>' : ''}
+                    ${v.produces.length ? `<span class="combo-produces">${v.produces.map(escapeHTML).join(' · ')}</span>` : ''}
+                    <a class="combo-link" href="${CSB_SITE}/combo/${encodeURIComponent(v.id)}/" target="_blank" rel="noopener">Details</a>
+                </div>
+            </div>`;
+        const almostRow = v => {
+            const missing = v.cards.filter(n => !inDeck.has(norm(n)));
+            const have = v.cards.filter(n => inDeck.has(norm(n)));
+            return `
+            <div class="combo-row combo-row-almost">
+                <div class="combo-missing">Add ${missing.map(n => `${peek(n)}${ownedFree(n) ? '<span class="combo-owned">you own it</span>' : ''}`).join(' ')}</div>
+                <div class="combo-meta">
+                    <span class="combo-with">with ${have.map(escapeHTML).join(' + ')}</span>
+                    ${v.produces.length ? `<span class="combo-produces">${v.produces.map(escapeHTML).join(' · ')}</span>` : ''}
+                    <a class="combo-link" href="${CSB_SITE}/combo/${encodeURIComponent(v.id)}/" target="_blank" rel="noopener">Details</a>
+                </div>
+            </div>`;
+        };
+        const when = new Date(cached.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+        box.innerHTML = `
+            ${stale ? `<div class="combo-stale">The deck has changed since this check. ${checkBtn('Check again')}</div>` : ''}
+            <div class="combo-head"><strong>${included.length ? `${included.length} combo${included.length === 1 ? '' : 's'} in this deck` : 'No combos found in this deck'}</strong>
+                ${two.size ? `<small>${two.size} of them ${two.size === 1 ? 'is a' : 'are'} two-card combo${two.size === 1 ? '' : 's'} — relevant for the bracket</small>` : ''}</div>
+            ${included.map(comboRow).join('')}
+            ${almost.length ? `<div class="combo-sub">One card away (${cached.almost.length})</div>${almost.map(almostRow).join('')}` : ''}
+            <div class="combo-foot">Checked ${escapeHTML(when)} ${!stale ? `· <button type="button" class="combo-linkbtn" onclick="checkDeckCombos()">check again</button>` : ''}</div>
+            ${credit}`;
+        box.querySelectorAll('.combo-card').forEach(b => {
+            b.onclick = () => { const f = window.buildPeek; if (typeof f === 'function') f(b.dataset.card); };
+        });
+    }
+
     // ── Bracket-vurdering ────────────────────────────────────────────
     // Følger Wizards' officielle bracket-definitioner. Vurderingen er et
     // estimat: den kan ikke se 2-kort-kombinationer, og den kender kun de
@@ -20081,6 +20609,18 @@ function showAccum(id, amt, type) {
             if (SETS.fastMana.has(key))     hits.fastMana.push(card.name);
         }
 
+        // Spellbooks data - kun når det gemte svar passer til decket som det er nu.
+        const cached = comboCache[deck.id];
+        const combos = cached && cached.sig === deckSignature(deck) ? cached : null;
+        if (combos && combos.cardFlags) {
+            const add = (list, names) => names.forEach(n => { if (!list.some(x => norm(x) === norm(n))) list.push(n); });
+            add(hits.gameChangers, combos.cardFlags.gameChangers || []);
+            add(hits.landDenial, combos.cardFlags.landDenial || []);
+            add(hits.extraTurns, combos.cardFlags.extraTurns || []);
+        }
+        const twoCardIds = new Set(combos ? combos.twoCard || [] : []);
+        hits.twoCardCombos = combos ? combos.included.filter(v => twoCardIds.has(v.id)).map(v => v.cards.join(' + ')) : [];
+
         const gc = hits.gameChangers.length;
         let bracket, label, why;
 
@@ -20100,7 +20640,14 @@ function showAccum(id, amt, type) {
             why = 'no Game Changers, tutors, extra turns or fast mana';
         }
 
-        return { bracket, label, why, hits, cardCount: cards.length };
+        // Wizards: brackets 1-2 tillader ingen 2-kort-combos. Bracket 3 tillader dem
+        // kun hvis de ikke kan samles tidligt i spillet - det afgør vi ikke automatisk.
+        if (hits.twoCardCombos.length && bracket < 3) {
+            bracket = 3; label = 'Upgraded';
+            why = `two-card combo (${hits.twoCardCombos[0]}) — brackets 1–2 allow none`;
+        }
+        return { bracket, label, why, hits, cardCount: cards.length, combosChecked: !!combos,
+                 combosStale: !!(cached && !combos) };
     }
 
     const escapeHTML = value => String(value)
@@ -20125,6 +20672,7 @@ function showAccum(id, amt, type) {
 
         const result = assessDeck(deck);
         const groups = [
+            ['Two-card combos', result.hits.twoCardCombos || [], '#ff8888'],
             ['Game Changers', result.hits.gameChangers, 'var(--gold-lt)'],
             ['Mass land denial', result.hits.landDenial, '#ff8888'],
             ['Extra turns', result.hits.extraTurns, '#ff8888'],
@@ -20147,8 +20695,12 @@ function showAccum(id, amt, type) {
                     <span class="bracket-row-cards">${list.map(n => escapeHTML(n)).join(', ')}</span>
                 </div>`).join('')}
             <div class="bracket-note">
-                Estimate. It cannot detect two-card combos, and only knows the cards in its
-                own lists — check the cards above before trusting the number.
+                ${result.combosChecked
+                    ? `Estimate, including combos from Commander Spellbook.${(result.hits.twoCardCombos || []).length
+                        ? ' Bracket 3 only allows two-card combos that come online late in the game — if yours can win early, it is bracket 4.' : ''}`
+                    : result.combosStale
+                        ? 'Estimate. The deck has changed since combos were checked — check again below to include them.'
+                        : 'Estimate. Combos are not included yet — use “Find combos” below to check for two-card combos.'}
                 <br>${escapeHTML(source)}
             </div>`;
     }
@@ -20771,6 +21323,7 @@ function showAccum(id, amt, type) {
             const wrapped = function (...args) {
                 const result = original.apply(this, args);
                 try { renderBracket(); } catch (e) { /* må aldrig vælte deck-visningen */ }
+                try { renderCombos(); } catch (e) {}
                 refreshGameChangers().then(changed => { if (changed) { try { renderBracket(); } catch (e) {} } });
                 return result;
             };
@@ -20783,7 +21336,7 @@ function showAccum(id, amt, type) {
     else hook();
     setTimeout(hook, 1200); // hvis funktionen defineres efter os
 
-    window.magicHelperInsights = { assessDeck, commanderSuggestions, refreshGameChangers, renderBracket };
+    window.magicHelperInsights = { assessDeck, commanderSuggestions, refreshGameChangers, renderBracket, renderCombos, findCombos, deckSignature };
 })();
 
 </script>
