@@ -7313,6 +7313,7 @@ body.fs-mode #view-play {
     color: #e5d5ad; font-size: 11px; background: rgba(199,167,104,.08); cursor: pointer;
 }
 .player-deck-section { margin-bottom: 12px; }
+.combo-steps { margin-top: 8px; font-size: 12px; line-height: 1.45; color: var(--muted); }
 
 </style>
 </head>
@@ -7383,6 +7384,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.33</span> — Combos: Commander Spellbook does not let other apps look up combos directly, so the Combos box now copies your deck list and opens Commander Spellbook, ready to paste</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.32</span> — Combos: “Find combos in this deck” checks Commander Spellbook for the combos your deck can assemble and the ones that are one card away, and two-card combos now count in the bracket estimate. Win rate per deck: choose each player’s deck in the player overview, and Game history gets a Decks tab plus a Record box in the deck editor. History now keeps up to 250 games</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.31</span> — The suggestion list while you type now shows every match and scrolls, opens upwards when there is no room below, and ends with “Show all cards” to jump to the full search</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.30</span> — Name search shows every matching card: more load automatically as you scroll, and going back from a card returns you to the same place in the list</div>
@@ -12173,7 +12175,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.32 · Arcane';
+const APP_VERSION = '8.33 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
@@ -20484,11 +20486,14 @@ function showAccum(id, amt, type) {
         if (cmd) lines.push('// Commander', '1 ' + cmd.name, '', '// Deck');
         (deck.cards || []).forEach(c => { if (c && c.name && c !== cmd) lines.push((Number(c.qty) || 1) + ' ' + c.name); });
         const text = lines.join('\n');
-        let copied = false;
-        try { await navigator.clipboard.writeText(text); copied = true; } catch (e) {}
         const toast = globalValue('toast');
-        if (typeof toast === 'function') toast(copied ? 'Deck list copied — paste it on Commander Spellbook' : 'Could not copy — select the list on Commander Spellbook manually');
+        const say = msg => { if (typeof toast === 'function') toast(msg); };
+        // Kopiér og åbn i samme tryk: Safari blokerer vinduer der åbnes efter en await.
+        let copying;
+        try { copying = navigator.clipboard.writeText(text); } catch (e) { copying = Promise.reject(e); }
         window.open(CSB_SITE + '/find-my-combos/', '_blank', 'noopener');
+        try { await copying; say('Deck list copied — paste it on Commander Spellbook'); }
+        catch (e) { say('Could not copy the list automatically'); }
     };
 
     // Kort man mangler til en combo: hvilke af dem ejer man allerede?
@@ -20526,15 +20531,17 @@ function showAccum(id, amt, type) {
             box.innerHTML = `
                 <div class="combo-error">Could not reach Commander Spellbook${state.error && /busy/.test(state.error) ? ' — it is busy right now' : ''}.</div>
                 <div class="combo-actions">
-                    ${checkBtn('Try again')}
-                    <button type="button" class="combo-btn combo-btn-ghost" onclick="copyDeckForSpellbook()"><i class="fa-solid fa-copy"></i> Copy list &amp; open Commander Spellbook</button>
+                    <button type="button" class="combo-btn" onclick="copyDeckForSpellbook()"><i class="fa-solid fa-copy"></i> Copy list &amp; open Commander Spellbook</button>
                 </div>${credit}`;
             return;
         }
-        if (!cached) {
+        // Commander Spellbook tillader ikke opslag fra andre sider (CORS), så appen
+        // kan ikke hente combos selv. I stedet kopieres listen, og siden åbnes.
+        if (!cached || stale) {
             box.innerHTML = `
-                <div class="combo-intro">See which combos this deck can assemble, and which are one card away.</div>
-                <div class="combo-actions">${checkBtn('Find combos in this deck')}</div>${credit}`;
+                <div class="combo-intro">Commander Spellbook shows the combos this deck can assemble, and the ones that are one card away.</div>
+                <div class="combo-actions"><button type="button" class="combo-btn" onclick="copyDeckForSpellbook()"><i class="fa-solid fa-copy"></i> Copy list &amp; open Commander Spellbook</button></div>
+                <div class="combo-steps">The deck list is copied. On the page that opens, paste it into the box and press <b>Find My Combos</b>.</div>${credit}`;
             return;
         }
 
@@ -20699,8 +20706,8 @@ function showAccum(id, amt, type) {
                     ? `Estimate, including combos from Commander Spellbook.${(result.hits.twoCardCombos || []).length
                         ? ' Bracket 3 only allows two-card combos that come online late in the game — if yours can win early, it is bracket 4.' : ''}`
                     : result.combosStale
-                        ? 'Estimate. The deck has changed since combos were checked — check again below to include them.'
-                        : 'Estimate. Combos are not included yet — use “Find combos” below to check for two-card combos.'}
+                        ? 'Estimate. Two-card combos are not included — check them on Commander Spellbook from the Combos box below.'
+                        : 'Estimate. Two-card combos are not included — check them on Commander Spellbook from the Combos box below.'}
                 <br>${escapeHTML(source)}
             </div>`;
     }
