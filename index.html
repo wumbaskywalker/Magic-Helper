@@ -7430,6 +7430,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.36</span> — Fixed: changing a player’s name during a game no longer jumps back to “Player 2” while you type, when life totals change or another device sends an update</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.35</span> — A little secret has been hidden on the front page</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.34</span> — Combos: the deck is now sent straight to Commander Spellbook, so the combos show up without pasting anything, and the back arrow takes you from a combo back to the full list</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.33</span> — Combos: Commander Spellbook does not let other apps look up combos directly, so the Combos box now copies your deck list and opens Commander Spellbook, ready to paste</div>
@@ -12225,7 +12226,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.35 · Arcane';
+const APP_VERSION = '8.36 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
@@ -13527,7 +13528,20 @@ function adjCmd(tid,sid,amt){
     window.magicHelperImpact?.(tid,_cd<0,'commander');
     sndLifeImpact(-_cd,true);
 }
-function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.name=v;renderBoard();mpPushPlayer(id);}
+function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(!p)return;const clean=String(v||'').replace(/[\u0000-\u001f]/g,'').trim().slice(0,24);p.name=clean||p.name;renderBoard(true);mpPushPlayer(id);}
+// Mens man skriver et navn, må brættet ikke tegnes om: det ville fjerne feltet
+// midt i ordet og sætte det gamle navn ("Player 2") ind igen. Opdateringer fra
+// de andre spillere venter i stedet, til man er færdig med at skrive.
+let _boardRenderPending = false;
+function _editingPlayerName(board) {
+    const a = document.activeElement;
+    return !!(a && a.classList && a.classList.contains('player-name-input') && board.contains(a));
+}
+function _flushBoardRender() {
+    if (!_boardRenderPending) return;
+    _boardRenderPending = false;
+    setTimeout(() => { if (!_editingPlayerName(document.getElementById('game-board'))) renderBoard(true); }, 0);
+}
 function setColor(id,v){const p=gamePlayers.find(x=>x.id===id);if(p)p.color=v;renderBoard();mpPushPlayer(id);}
 // Værten broadcaster; klienter beder værten om at opdatere
 function mpPushPlayer(id){
@@ -13536,8 +13550,13 @@ function mpPushPlayer(id){
     else mpSendEvent({ type:'setPlayer', id, name:p.name, color:p.color });
 }
 
-function renderBoard(){
+function renderBoard(force){
     const board=document.getElementById('game-board');
+    if (force !== true && _editingPlayerName(board) && board.children.length === gamePlayers.length) {
+        _boardRenderPending = true;
+        return;
+    }
+    _boardRenderPending = false;
 
     const isMpPlaying = mpMode !== 'local' && mpMyPlayer >= 0 && mpMyPlayer < gamePlayers.length;
     board.className='play-area players-'+currentPC+(isMpPlaying?' mp-playing':'');
@@ -13656,7 +13675,7 @@ function renderBoard(){
         const _pres = _mpPlayerStatus(p);
         const presHTML = _pres ? `<span class="presence-dot ${_pres}" data-presence-pid="${p.id}" title="${_mpSeatLabel(p)}"></span>` : '';
         const headerHTML = `<div class="player-header">
-                ${presHTML}${meTag}<input class="player-name-input" value="${p.name}" ${isMyPlayer?'':'readonly style="pointer-events:none;opacity:.5;"'} onchange="setName(${p.id},this.value)">
+                ${presHTML}${meTag}<input class="player-name-input" value="${_escapeHistory(p.name)}" maxlength="24" enterkeyhint="done" ${isMyPlayer?'':'readonly tabindex="-1" style="pointer-events:none;opacity:.5;"'} onchange="setName(${p.id},this.value)" onkeydown="if(event.key==='Enter')this.blur()" onblur="_flushBoardRender()">
             </div>`;
 
         // Alt andet ligger i skuffen bag "⋯" — boardet viser kun liv + aktive tællere
