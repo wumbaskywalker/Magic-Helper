@@ -7361,6 +7361,120 @@ body.fs-mode #view-play {
     to { transform: scale(1.35); opacity: 0; }
 }
 
+/* ── Import af kortliste til samlingen ── */
+.col-text-import {
+    display: none;
+    position: fixed; inset: 0; z-index: 320;
+    align-items: flex-end; justify-content: center;
+    background: rgba(0,0,0,.75);
+}
+.col-text-import.open { display: flex; }
+.col-text-import-card {
+    width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+    padding: 22px 20px max(22px, env(safe-area-inset-bottom));
+    border-radius: var(--r-lg, 22px) var(--r-lg, 22px) 0 0;
+    background: var(--bg-panel);
+    box-sizing: border-box;
+}
+.col-text-import-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.col-text-import-kicker { color: var(--gold, #c7a768); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
+.col-text-import-head h2 { margin: 4px 0 3px; font-size: 18px; }
+.col-text-import-target { color: var(--muted); font-size: 12px; }
+.col-text-import-target strong { color: var(--text); }
+.col-text-import-close { width: 36px; height: 36px; flex: none; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); background: var(--bg-input); cursor: pointer; }
+#col-text-import-text {
+    width: 100%; height: 190px; box-sizing: border-box; margin: 0 0 10px;
+    padding: 12px; resize: vertical;
+    border: 1px solid var(--border); border-radius: var(--r-md, 14px);
+    color: #fff; background: var(--bg-input);
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.col-text-import-help { margin-bottom: 12px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.col-text-import-help code { color: var(--accent); }
+.col-text-import-file {
+    width: 100%; margin-top: 8px; padding: 11px;
+    border: 1px dashed var(--border-lit, rgba(255,255,255,.18)); border-radius: 12px;
+    color: var(--muted); background: transparent; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.col-text-import-done { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; padding: 14px; border-radius: 14px; background: rgba(46,204,113,.09); border: 1px solid rgba(46,204,113,.28); }
+.col-text-import-done i { font-size: 24px; color: #4cd08a; }
+.col-text-import-done.none { background: rgba(231,76,60,.08); border-color: rgba(231,76,60,.3); }
+.col-text-import-done.none i { color: #e8736a; }
+.col-text-import-done strong { display: block; font-size: 15px; }
+.col-text-import-done small { color: var(--muted); font-size: 12px; }
+.col-text-import-warn { margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; color: #f3b1a9; font-size: 12px; background: rgba(231,76,60,.1); }
+.col-text-import-sub { margin: 12px 0 5px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.col-text-import-sub.bad { color: #e8736a; }
+.col-text-import-list { max-height: 160px; overflow-y: auto; margin: 0 0 6px; padding: 8px 12px 8px 26px; border-radius: 12px; background: var(--bg-input); font-size: 13px; line-height: 1.6; }
+.col-text-import-list.bad { border: 1px solid rgba(231,76,60,.25); }
+#col-text-import-result .app-btn { margin-top: 14px; }
+.col-text-import { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.col-text-import-card { background: linear-gradient(180deg, #171d25, #10151b); border-top: 1px solid rgba(242,214,147,.14); }
+#col-text-import-text { background: #0b0f14; }
+.col-text-import-list { background: rgba(255,255,255,.04); }
+
+/* ── Skift udgave i samlingen ── */
+.ccd-printing-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.ccd-printing-num { color: var(--muted); font-weight: 700; }
+.ccd-printing-btn {
+    padding: 6px 11px; border: 1px solid rgba(242,214,147,.28); border-radius: 999px;
+    color: #e5d5ad; background: rgba(199,167,104,.09); font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.print-picker {
+    display: none; position: fixed; inset: 0; z-index: 1100;
+    align-items: flex-end; justify-content: center;
+    background: rgba(0,0,0,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.print-picker.open { display: flex; }
+.print-picker-card {
+    width: 100%; max-width: 640px; height: min(88vh, 900px); display: flex; flex-direction: column;
+    padding: 18px 16px 0; box-sizing: border-box;
+    border-radius: 22px 22px 0 0; border-top: 1px solid rgba(242,214,147,.14);
+    background: linear-gradient(180deg, #171d25, #10151b);
+}
+.print-picker-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.print-picker-kicker { color: var(--gold, #c7a768); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
+.print-picker-head h2 { margin: 3px 0 2px; font-size: 18px; }
+.print-picker-now { color: var(--muted); font-size: 12px; }
+.print-picker-close { width: 36px; height: 36px; flex: none; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); background: var(--bg-input); cursor: pointer; }
+.print-picker-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.print-picker-finish { display: inline-flex; padding: 3px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid var(--border); }
+.print-picker-finish button { padding: 7px 14px; border: 0; border-radius: 9px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 800; cursor: pointer; }
+.print-picker-finish button.on { color: #f1e6ca; background: rgba(199,167,104,.22); }
+.print-picker-move { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+.print-picker-move button { width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: var(--bg-input); font-size: 16px; cursor: pointer; }
+.print-picker-move strong { min-width: 16px; text-align: center; color: var(--text); font-size: 15px; }
+.print-picker-move .of { margin-left: -3px; }
+.print-picker-search { width: 100%; box-sizing: border-box; margin: 0 0 10px !important; }
+.print-picker-grid {
+    flex: 1; overflow-y: auto; display: grid; gap: 10px; align-content: start;
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+.print-opt {
+    display: flex; flex-direction: column; gap: 3px; padding: 6px; text-align: left;
+    border: 1px solid rgba(255,255,255,.07); border-radius: 12px; color: var(--text);
+    background: rgba(255,255,255,.03); cursor: pointer;
+}
+.print-opt:not(:disabled):active { transform: scale(.97); }
+.print-opt:disabled { cursor: default; }
+.print-opt:disabled:not(.current) { opacity: .42; }
+.print-opt.current { border-color: rgba(242,214,147,.6); box-shadow: 0 0 0 1px rgba(242,214,147,.35) inset; }
+.print-opt-img { position: relative; display: block; aspect-ratio: 488 / 680; border-radius: 7px; overflow: hidden; background: rgba(255,255,255,.04); }
+.print-opt-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.print-opt-img b { position: absolute; left: 6px; top: 6px; padding: 2px 7px; border-radius: 999px; color: #1b1406; background: #e5c982; font-size: 10px; }
+.print-opt-set { font-size: 11px; font-weight: 700; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.print-opt-meta { color: var(--muted); font-size: 10px; }
+.print-opt-price { color: var(--gold, #e5d5ad); font-size: 12px; font-weight: 800; }
+.print-picker-msg { grid-column: 1 / -1; padding: 30px 10px; text-align: center; color: var(--muted); font-size: 13px; }
+.print-picker-msg.bad { color: #e8736a; }
+.print-picker-search {
+    height: 40px; padding: 8px 12px !important;
+    border: 1px solid var(--border) !important; border-radius: 12px !important;
+    color: var(--text) !important; background: #0b0f14 !important; font-size: 13px !important;
+    -webkit-appearance: none; appearance: none;
+}
+
 </style>
 </head>
 <body>
@@ -7430,6 +7544,8 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.38</span> — Change printing: tap a card in the collection and choose “Change printing” to pick the exact edition you own — normal or foil, with price, and for all or just some of your copies</div>
+                <div><span style="color:var(--gold);font-weight:700;">v8.37</span> — Import a list of cards into a collection: paste lines like “4 Lightning Bolt” or “1 Sol Ring (C21) 263 *F*” (ManaBox, Moxfield, Archidekt, Arena and plain text), or pick a .txt file. Misspelled names are corrected, and anything not found is listed so you can fix it</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.36</span> — Fixed: changing a player’s name during a game no longer jumps back to “Player 2” while you type, when life totals change or another device sends an update</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.35</span> — A little secret has been hidden on the front page</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.34</span> — Combos: the deck is now sent straight to Commander Spellbook, so the combos show up without pasting anything, and the back arrow takes you from a combo back to the full list</div>
@@ -7916,13 +8032,13 @@ body.fs-mode #view-play {
             <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="openExportModal()">
                 <i class="fa-solid fa-file-export"></i> Export
             </button>
-            <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="document.getElementById('col-import-input').click()">
-                <i class="fa-solid fa-file-import"></i> Importer
+            <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="openCollectionImport()">
+                <i class="fa-solid fa-file-import"></i> Import
             </button>
             <button class="app-btn btn-dark" style="width:auto;padding:8px 14px;font-size:12px;margin:0;" onclick="openBuildSuggestions()">
                 <i class="fa-solid fa-hammer"></i> What can I build?
             </button>
-            <input type="file" id="col-import-input" accept=".csv" style="display:none" onchange="importCollectionCSV(this)">
+            <input type="file" id="col-import-input" accept=".csv,.txt,text/csv,text/plain" style="display:none" onchange="importCollectionCSV(this)">
         </div>
     </div>
 
@@ -8071,6 +8187,28 @@ body.fs-mode #view-play {
                 <div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:400;">Name, set, quantity and price<br>Open in Excel / Numbers</div>
             </button>
         </div>
+    </div>
+</div>
+
+<!-- Import af en kortliste (tekst) til samlingen -->
+<div id="col-text-import-modal" class="col-text-import" role="dialog" aria-modal="true" aria-labelledby="col-text-import-title" onclick="if(event.target===this)closeCollectionImport()">
+    <div class="col-text-import-card">
+        <div class="col-text-import-head">
+            <div>
+                <div class="col-text-import-kicker">IMPORT TO COLLECTION</div>
+                <h2 id="col-text-import-title">Paste a list of cards</h2>
+                <div class="col-text-import-target">Adds to <strong id="col-text-import-target">your collection</strong></div>
+            </div>
+            <button class="col-text-import-close" onclick="closeCollectionImport()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="col-text-import-form">
+            <textarea id="col-text-import-text" spellcheck="false" autocapitalize="off" autocomplete="off"
+                placeholder="4 Lightning Bolt&#10;1 Sol Ring (C21) 263&#10;1 Mana Crypt *F*&#10;Counterspell"></textarea>
+            <div class="col-text-import-help">One card per line. Lists from ManaBox, Moxfield, Archidekt, MTG Arena and plain text all work. A set code like <code>(C21)</code> picks that printing, and <code>*F*</code> marks a foil. No number means 1 copy.</div>
+            <button class="app-btn btn-green" id="col-text-import-btn" onclick="importCollectionText()"><i class="fa-solid fa-wand-magic-sparkles"></i> Import cards</button>
+            <button class="col-text-import-file" onclick="document.getElementById('col-import-input').click()"><i class="fa-solid fa-file-csv"></i> Import a CSV or text file instead</button>
+        </div>
+        <div id="col-text-import-result" style="display:none;"></div>
     </div>
 </div>
 
@@ -12226,7 +12364,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.36 · Arcane';
+const APP_VERSION = '8.38 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
@@ -15210,6 +15348,184 @@ function openDeckFromCollection(encodedId, event) {
     openDeckEditor(id);
 }
 
+// ── Skift udgave (printing) af et kort i samlingen ────────────────
+let _printPicker = null;   // { key, item, prints, foil, move, filter }
+function _printingPrice(c, foil) {
+    const p = c.prices || {};
+    if (foil) {
+        if (p.eur_foil) return +p.eur_foil;
+        if (p.usd_foil) return +p.usd_foil / rates.USD;
+        if (p.eur_etched) return +p.eur_etched;
+        if (p.usd_etched) return +p.usd_etched / rates.USD;
+    }
+    if (p.eur) return +p.eur;
+    if (p.usd) return +p.usd / rates.USD;
+    return -1;
+}
+function _printingHasFinish(c, foil) {
+    const f = c.finishes || (foil ? ['foil'] : ['nonfoil']);
+    return foil ? (f.includes('foil') || f.includes('etched')) : f.includes('nonfoil');
+}
+async function openPrintingPicker(key) {
+    const item = collection.find(x => (x._colKey || x.id) === key);
+    if (!item) return;
+    let sheet = document.getElementById('col-print-picker');
+    if (!sheet) {
+        sheet = document.createElement('div');
+        sheet.id = 'col-print-picker';
+        sheet.className = 'print-picker';
+        sheet.setAttribute('role', 'dialog');
+        sheet.setAttribute('aria-modal', 'true');
+        sheet.addEventListener('click', e => { if (e.target === sheet) closePrintingPicker(); });
+        document.body.appendChild(sheet);
+    }
+    _printPicker = { key, item, prints: null, foil: !!item.foil, move: item.qty, filter: '', error: '' };
+    sheet.classList.add('open');
+    _renderPrintingPicker();
+    try {
+        let oracleId = item.oracleId;
+        if (!oracleId) {
+            const url = /^[0-9a-f-]{36}$/i.test(item.id)
+                ? `https://api.scryfall.com/cards/${item.id}`
+                : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(String(item.name).split(' // ')[0])}`;
+            const r = await fetch(url);
+            if (!r.ok) throw new Error('lookup ' + r.status);
+            const c = await r.json();
+            oracleId = c.oracle_id || c.card_faces?.[0]?.oracle_id;
+            if (oracleId) { item.oracleId = oracleId; }
+        }
+        if (!oracleId) throw new Error('no oracle id');
+        const prints = [];
+        let next = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
+            q: `oracleid:${oracleId} game:paper`, unique: 'prints', order: 'released', dir: 'desc',
+            include_extras: 'true', include_variations: 'true'
+        }).toString();
+        for (let page = 0; next && page < 6; page++) {
+            const r = await fetch(next);
+            if (!r.ok) throw new Error('search ' + r.status);
+            const j = await r.json();
+            prints.push(...(j.data || []));
+            next = j.has_more ? j.next_page : null;
+            if (next) await new Promise(res => setTimeout(res, 110));
+        }
+        if (!_printPicker || _printPicker.item !== item) return;
+        _printPicker.prints = prints;
+    } catch (e) {
+        console.warn('printings', e);
+        if (_printPicker && _printPicker.item === item) _printPicker.error = 'Could not load the printings. Check the connection and try again.';
+    }
+    if (_printPicker && _printPicker.item === item) _renderPrintingPicker();
+}
+function closePrintingPicker() {
+    document.getElementById('col-print-picker')?.classList.remove('open');
+    _printPicker = null;
+}
+function _setPrintPickerFoil(on) { if (_printPicker) { _printPicker.foil = !!on; _renderPrintingPicker(); } }
+function _setPrintPickerMove(d) {
+    if (!_printPicker) return;
+    _printPicker.move = Math.max(1, Math.min(_printPicker.item.qty, _printPicker.move + d));
+    _renderPrintingPicker();
+}
+function _setPrintPickerFilter(v) {
+    if (!_printPicker) return;
+    _printPicker.filter = v;
+    _renderPrintingPicker(true);
+}
+function _renderPrintingPicker(gridOnly) {
+    const sheet = document.getElementById('col-print-picker');
+    const st = _printPicker;
+    if (!sheet || !st) return;
+    const item = st.item;
+    const esc = v => _safeHTML(String(v ?? ''));
+    const q = st.filter.trim().toLowerCase();
+    const list = (st.prints || []).filter(c => !q
+        || String(c.set_name).toLowerCase().includes(q) || String(c.set).toLowerCase() === q
+        || String(c.collector_number).toLowerCase() === q || String(c.released_at || '').startsWith(q));
+    const grid = st.error ? `<div class="print-picker-msg bad">${esc(st.error)}</div>`
+        : !st.prints ? `<div class="print-picker-msg"><i class="fa-solid fa-spinner fa-spin"></i> Loading all printings…</div>`
+        : !list.length ? `<div class="print-picker-msg">No printings match “${esc(st.filter)}”.</div>`
+        : list.map(c => {
+            const current = c.id === item.id && !!item.foil === st.foil;
+            const can = _printingHasFinish(c, st.foil);
+            const price = _printingPrice(c, st.foil);
+            const img = c.image_uris?.small || c.card_faces?.[0]?.image_uris?.small || '';
+            return `<button class="print-opt${current ? ' current' : ''}" ${can && !current ? '' : 'disabled'}
+                        onclick="applyPrintingChange('${esc(c.id)}')" title="${esc(c.set_name)} #${esc(c.collector_number)}">
+                <span class="print-opt-img">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : ''}${current ? '<b>Current</b>' : ''}</span>
+                <span class="print-opt-set">${esc(c.set_name)}</span>
+                <span class="print-opt-meta">${esc(String(c.set).toUpperCase())} #${esc(c.collector_number)} · ${esc(String(c.released_at || '').slice(0, 4))}</span>
+                <span class="print-opt-price">${!can ? (st.foil ? 'No foil' : 'Foil only') : price > 0 ? fmt(price) : '–'}</span>
+            </button>`;
+        }).join('');
+    if (gridOnly) {
+        const g = sheet.querySelector('.print-picker-grid');
+        if (g) { g.innerHTML = grid; return; }
+    }
+    const count = st.prints ? `${st.prints.length} printing${st.prints.length === 1 ? '' : 's'}` : '';
+    sheet.innerHTML = `<div class="print-picker-card">
+        <div class="print-picker-head">
+            <div><div class="print-picker-kicker">CHANGE PRINTING</div><h2>${esc(item.name)}</h2>
+                <div class="print-picker-now">Now: ${esc(item.setName || item.set)}${item.collectorNumber ? ' #' + esc(item.collectorNumber) : ''}${item.foil ? ' · Foil' : ''}${count ? ` · ${count}` : ''}</div></div>
+            <button class="print-picker-close" onclick="closePrintingPicker()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="print-picker-controls">
+            <div class="print-picker-finish" role="group" aria-label="Finish">
+                <button class="${st.foil ? '' : 'on'}" onclick="_setPrintPickerFoil(false)">Normal</button>
+                <button class="${st.foil ? 'on' : ''}" onclick="_setPrintPickerFoil(true)">✨ Foil</button>
+            </div>
+            ${item.qty > 1 ? `<div class="print-picker-move"><span>Copies to change</span>
+                <button onclick="_setPrintPickerMove(-1)" aria-label="Fewer">−</button><strong>${st.move}</strong><span class="of">of ${item.qty}</span>
+                <button onclick="_setPrintPickerMove(1)" aria-label="More">+</button></div>` : ''}
+        </div>
+        <input class="print-picker-search" type="search" placeholder="Filter by set, code or year" value="${esc(st.filter)}" oninput="_setPrintPickerFilter(this.value)">
+        <div class="print-picker-grid">${grid}</div>
+    </div>`;
+}
+function applyPrintingChange(printId) {
+    const st = _printPicker;
+    if (!st) return;
+    const c = (st.prints || []).find(x => x.id === printId);
+    const item = st.item;
+    if (!c || !collection.includes(item)) return closePrintingPicker();
+    const foil = st.foil;
+    const newKey = foil ? c.id + '_foil' : c.id;
+    const oldKey = item._colKey || item.id;
+    if (newKey === oldKey) return closePrintingPicker();
+    const move = Math.max(1, Math.min(item.qty, st.move));
+    const fields = {
+        id: c.id, name: c.name, oracleId: c.oracle_id || item.oracleId,
+        set: String(c.set).toUpperCase(), setName: c.set_name, collectorNumber: c.collector_number,
+        price: _printingPrice(c, foil), foil,
+        img:     c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || '',
+        thumb:   c.image_uris?.small  || c.card_faces?.[0]?.image_uris?.small  || '',
+        imgBack: c.card_faces?.[1]?.image_uris?.normal || '',
+        colorIdentity: c.color_identity || item.colorIdentity || [], colors: c.colors || c.card_faces?.[0]?.colors || item.colors || [],
+        typeLine: c.type_line || c.card_faces?.[0]?.type_line || item.typeLine || '',
+        manaCost: c.mana_cost || c.card_faces?.[0]?.mana_cost || item.manaCost || '',
+        cmc: c.cmc ?? item.cmc ?? 0, legalities: c.legalities || item.legalities || {},
+        lookupPending: false,
+    };
+    const target = collection.find(x => (x._colKey || x.id) === newKey);
+    if (target) {
+        // Man har allerede den udgave: læg kopierne sammen med den.
+        target.qty += move;
+        if (!target.oracleId && fields.oracleId) target.oracleId = fields.oracleId;
+        item.qty -= move;
+        if (item.qty <= 0) collection.splice(collection.indexOf(item), 1);
+    } else if (move >= item.qty) {
+        Object.assign(item, fields, { _colKey: newKey });
+    } else {
+        item.qty -= move;
+        const { _colKey, ...rest } = item;
+        collection.push({ ...rest, ...fields, _colKey: newKey, qty: move, addedAt: item.addedAt || Date.now() });
+    }
+    try { saveCollection(); } catch (e) { console.error(e); }
+    closePrintingPicker();
+    updateCollectionView(document.getElementById('col-search')?.value || '');
+    toast(`${move} × ${c.name} → ${c.set_name}${foil ? ' (Foil)' : ''}`);
+    openColCardDetail(newKey);
+}
+
 async function openColCardDetail(id) {
     // id may be a _colKey (for foil) or a plain scryfall id
     const item = collection.find(x => (x._colKey||x.id) === id) || collection.find(x => x.id === id);
@@ -15250,7 +15566,10 @@ async function openColCardDetail(id) {
     const deckUsage = _collectionDeckUsage(item);
     body.innerHTML = `
         <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${item.name}${item.foil?'<span class="foil-badge"> ✨ Foil</span>':''}</div>
-        <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;">${item.setName||item.set}</div>
+        <div class="ccd-printing-row">
+            <div style="font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.05em;text-transform:uppercase;">${_safeHTML(item.setName||item.set)}${item.collectorNumber ? ` <span class="ccd-printing-num">#${_safeHTML(item.collectorNumber)}</span>` : ''}</div>
+            <button class="ccd-printing-btn" onclick="openPrintingPicker('${colKey.replace(/'/g,"\\'")}')"><i class="fa-solid fa-shuffle"></i> Change printing</button>
+        </div>
         <div style="margin-bottom:14px;">
             <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px;">CONDITION</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -16034,6 +16353,14 @@ function importCollectionCSV(input) {
     reader.onload = e => {
         const text = String(e.target.result);
         input.value = '';
+        // En .txt-fil (eller en "CSV" uden komma-kolonner) er en kortliste.
+        const firstLine = text.split(/\r?\n/).find(l => l.trim()) || '';
+        if (/\.txt$/i.test(file.name) || !/[,;\t]/.test(firstLine)) {
+            openCollectionImport();
+            document.getElementById('col-text-import-text').value = text;
+            return;
+        }
+        closeCollectionImport();
         _prepareCollectionCSVImport(text, file.name);
     };
     reader.readAsText(file, 'UTF-8');
@@ -16301,6 +16628,205 @@ async function _runCsvImport(text, options = {}) {
         return;
     }
     toast(`✅ ${importResult}${deckResult}${pendingResult}`);
+}
+
+// ── Import af en kortliste (tekst) ─────────────────────────────
+// Forstår de gængse formater: "4 Lightning Bolt", "4x Lightning Bolt",
+// "1 Sol Ring (C21) 263", "1 Sol Ring [C21]", "1 Mana Crypt *F*", "Counterspell",
+// "Lightning Bolt x4", MTG Arena-sektioner (Deck/Sideboard) og Archidekt-kategorier.
+function openCollectionImport() {
+    const modal = document.getElementById('col-text-import-modal');
+    document.getElementById('col-text-import-target').textContent = collections[activeCollectionId]?.name || 'your collection';
+    document.getElementById('col-text-import-form').style.display = '';
+    document.getElementById('col-text-import-result').style.display = 'none';
+    document.getElementById('col-text-import-btn').disabled = false;
+    modal.classList.add('open');
+    setTimeout(() => document.getElementById('col-text-import-text')?.focus(), 60);
+}
+function closeCollectionImport() {
+    document.getElementById('col-text-import-modal')?.classList.remove('open');
+}
+function _parseCardListText(raw) {
+    const HEADER = /^(deck|main|mainboard|main deck|sideboard|side board|maybeboard|maybe board|commander|commanders|companion|about|tokens?|considering|lands?|creatures?|instants?|sorcer(y|ies)|artifacts?|enchantments?|planeswalkers?|battles?|other)\s*:?\s*(\(\d+\))?$/i;
+    const merged = new Map();
+    const skipped = [];
+    String(raw || '').split(/\r?\n/).slice(0, 5000).forEach(original => {
+        let line = original.replace(/\t+/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!line || /^(\/\/|#)/.test(line) || HEADER.test(line)) return;
+        if (/^name\s+/i.test(line) && !/^\d/.test(line)) return;               // "Name My Deck" (Arena)
+        line = line.replace(/^(SB|MB|CMDR?)\s*:\s*/i, '').replace(/^[-•*]\s+/, '');
+        let foil = false;
+        const foilRe = /\s*(\*(F|E|foil|etched)\*|\((foil|etched)\)|\[(foil|etched)\]|\bfoil\b)\s*$/i;
+        while (foilRe.test(line)) { foil = true; line = line.replace(foilRe, '').trim(); }
+        line = line.replace(/\s*\*[A-Z]{1,3}\*\s*$/i, '').trim();                // andre *X*-mærker
+        let qty = 1, m;
+        if ((m = line.match(/^(\d{1,4})\s*[x×]?\s+(.+)$/i))) { qty = +m[1]; line = m[2]; }
+        else if ((m = line.match(/^(.+?)\s+[x×]\s?(\d{1,4})$/i)) || (m = line.match(/^(.+?)\s+(\d{1,4})[x×]$/i))) { qty = +m[2]; line = m[1]; }
+        let set = '', num = '';
+        if ((m = line.match(/^(.+?)\s*[(\[]([A-Za-z0-9]{2,6})[)\]]\s*([A-Za-z0-9★\-]{1,8})?\s*$/))) {
+            line = m[1]; set = m[2].toUpperCase(); num = m[3] || '';
+        }
+        const name = line.replace(/\s*\/\/?\s*$/, '').trim();
+        if (!name || qty < 1 || /^\d+$/.test(name)) { skipped.push(original.trim()); return; }
+        const key = `${name.toLowerCase()}|${set}|${num}|${foil}`;
+        const ex = merged.get(key);
+        if (ex) ex.qty += qty; else merged.set(key, { name, set, num, foil, qty });
+    });
+    return { entries: [...merged.values()], skipped };
+}
+// Navnenøgle uden accenter og store/små bogstaver ("Lim-Dul" = "Lim-Dûl").
+function _importNameKey(name) {
+    return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+// Scryfall finder ikke "Fire // Ice" eller "Delver of Secrets // Insectile Aberration"
+// som helt navn - kun forsidens navn. Derfor slås kort op på forsiden.
+function _importFrontName(name) {
+    return String(name || '').split(/\s*\/\/?\s*/)[0].trim() || String(name || '').trim();
+}
+function _nameKeys(card) {
+    const full = _importNameKey(card.name);
+    const keys = [full, _importNameKey(_importFrontName(card.name))];
+    (card.card_faces || []).forEach(f => f?.name && keys.push(_importNameKey(f.name)));
+    return [...new Set(keys)];
+}
+async function importCollectionText() {
+    const raw = document.getElementById('col-text-import-text').value;
+    const { entries, skipped } = _parseCardListText(raw);
+    if (!entries.length) return toast('No cards found in the list', '#e74c3c');
+    const btn = document.getElementById('col-text-import-btn');
+    btn.disabled = true;
+
+    const byPrint = {}, byNameSet = {}, byName = {};
+    const remember = payload => (payload?.data || []).forEach(card => {
+        const set = String(card.set || '').toLowerCase();
+        if (set && card.collector_number) byPrint[`${set}/${String(card.collector_number).toLowerCase()}`] = card;
+        _nameKeys(card).forEach(k => {
+            if (set && !byNameSet[`${k}|${set}`]) byNameSet[`${k}|${set}`] = card;
+            if (!byName[k]) byName[k] = card;
+        });
+    });
+    const nameOf = e => _importNameKey(_importFrontName(e.name));
+    const find = e => {
+        const n = nameOf(e), set = e.set.toLowerCase();
+        if (set && e.num) return byPrint[`${set}/${e.num.toLowerCase()}`] || null;
+        if (set) return byNameSet[`${n}|${set}`] || null;
+        return byName[n] || byName[_importNameKey(e.name)] || null;
+    };
+    const identifier = (e, loose) => {
+        if (!loose && e.set && e.num) return { set: e.set.toLowerCase(), collector_number: e.num };
+        if (!loose && e.set) return { name: _importFrontName(e.name), set: e.set.toLowerCase() };
+        return { name: _importFrontName(e.name) };
+    };
+    const lookup = async (list, loose, label, from, to) => {
+        const seen = new Map();
+        list.forEach(e => { const id = identifier(e, loose); seen.set(JSON.stringify(id).toLowerCase(), id); });
+        const ids = [...seen.values()];
+        for (let i = 0; i < ids.length; i += _CSV_IMPORT_BATCH_SIZE) {
+            const batch = ids.slice(i, i + _CSV_IMPORT_BATCH_SIZE);
+            const text = `${label}<br><b>${Math.min(ids.length, i + batch.length)}</b> of ${ids.length}`;
+            _importProgress(text, from + (to - from) * (i / Math.max(1, ids.length)));
+            const result = await _csvImportFetchBatch(batch, label);
+            if (result.ok) remember(result.payload);
+            await _csvImportWait(_CSV_IMPORT_REQUEST_GAP);
+        }
+    };
+
+    try {
+        await lookup(entries, false, 'Looking up cards…', 0, .7);
+        // Ukendt udgave/nummer: prøv på navnet alene.
+        let missing = entries.filter(e => !find(e));
+        const loosened = new Set();
+        if (missing.some(e => e.set)) {
+            await lookup(missing.filter(e => e.set), true, 'Checking editions…', .7, .8);
+            missing.forEach(e => { if (e.set && byName[nameOf(e)]) loosened.add(e); });
+        }
+        // Stavefejl: Scryfalls "fuzzy"-opslag, et kort ad gangen (højst 40).
+        const corrected = new Map();
+        missing = entries.filter(e => !find(e) && !loosened.has(e));
+        for (let i = 0; i < Math.min(missing.length, 40); i++) {
+            const e = missing[i];
+            _importProgress(`Checking spelling…<br><b>${i + 1}</b> of ${Math.min(missing.length, 40)}`, .8 + .15 * (i / Math.min(missing.length, 40)));
+            try {
+                const r = await fetch('https://api.scryfall.com/cards/named?fuzzy=' + encodeURIComponent(_importFrontName(e.name)));
+                if (r.ok) corrected.set(e, await r.json());
+            } catch (err) {}
+            await _csvImportWait(110);
+        }
+
+        _importProgress('Saving to the collection…', .97);
+        let added = 0, unique = 0;
+        const toppedKeys = new Set(), newKeys = new Set();
+        const notFound = [], fixes = [];
+        entries.forEach(e => {
+            const c = find(e) || (loosened.has(e) ? byName[nameOf(e)] : null) || corrected.get(e);
+            if (!c) { notFound.push(e); return; }
+            if (corrected.has(e) && !find(e)) fixes.push([e.name, c.name]);
+            const pr = c.prices || {};
+            let price = -1;
+            if (e.foil) { if (pr.eur_foil) price = +pr.eur_foil; else if (pr.usd_foil) price = +pr.usd_foil / rates.USD; }
+            if (price < 0) { if (pr.eur) price = +pr.eur; else if (pr.usd) price = +pr.usd / rates.USD; }
+            const key = e.foil ? c.id + '_foil' : c.id;
+            const ex = collection.find(x => (x._colKey || x.id) === key);
+            if (ex) { ex.qty += e.qty; if (!newKeys.has(key)) toppedKeys.add(key); }
+            else {
+                unique++; newKeys.add(key);
+                collection.push({
+                    id: c.id, _colKey: key, name: c.name,
+                    set: String(c.set || '').toUpperCase(), setName: c.set_name || String(c.set || '').toUpperCase(),
+                    price, foil: e.foil, qty: e.qty, condition: 'NM', addedAt: Date.now(),
+                    img:     c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || '',
+                    thumb:   c.image_uris?.small  || c.card_faces?.[0]?.image_uris?.small  || '',
+                    imgBack: c.card_faces?.[1]?.image_uris?.normal || '',
+                    colorIdentity: c.color_identity || [], colors: c.colors || [],
+                    typeLine: c.type_line || c.card_faces?.[0]?.type_line || '', manaCost: c.mana_cost || c.card_faces?.[0]?.mana_cost || '',
+                    cmc: c.cmc || 0, legalities: c.legalities || {},
+                });
+            }
+            added += e.qty;
+        });
+        let saveError = null;
+        if (added) {
+            try { saveCollection(); } catch (err) { saveError = err; }
+            _colPageSize = 120;
+            try { updateCollectionView(); } catch (err) { console.error(err); }
+        }
+        _importProgress(null);
+        _showCollectionImportResult({ added, unique, topped: toppedKeys.size, notFound, fixes, loosened: [...loosened], skipped, saveError });
+    } catch (err) {
+        console.error('Text import failed', err);
+        _importProgress(null);
+        toast('The import stopped — check the connection and try again', '#e74c3c');
+    } finally {
+        btn.disabled = false;
+    }
+}
+function _showCollectionImportResult(r) {
+    const esc = v => _escapeHistory(v);
+    const box = document.getElementById('col-text-import-result');
+    const line = e => `${e.qty} ${esc(e.name)}${e.set ? ` (${esc(e.set)}${e.num ? ' ' + esc(e.num) : ''})` : ''}${e.foil ? ' *F*' : ''}`;
+    box.innerHTML = `
+        <div class="col-text-import-done ${r.added ? '' : 'none'}">
+            <i class="fa-solid ${r.added ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
+            <div><strong>${r.added ? `${r.added} card${r.added === 1 ? '' : 's'} added` : 'No cards were added'}</strong>
+            <small>${r.added ? `In ${esc(collections[activeCollectionId]?.name || 'the collection')}: ${r.unique} new card${r.unique === 1 ? '' : 's'}${r.topped ? `, ${r.topped} you already had got more copies` : ''}` : 'None of the lines matched a card.'}</small></div>
+        </div>
+        ${r.saveError ? `<div class="col-text-import-warn">The cards are shown, but could not be saved — the browser storage may be full. Export a backup before reloading.</div>` : ''}
+        ${r.fixes.length ? `<div class="col-text-import-sub">Spelling corrected (${r.fixes.length})</div><ul class="col-text-import-list">${r.fixes.map(([a,b]) => `<li>${esc(a)} → <b>${esc(b)}</b></li>`).join('')}</ul>` : ''}
+        ${r.loosened.length ? `<div class="col-text-import-sub">Edition not found — added as another printing (${r.loosened.length})</div><ul class="col-text-import-list">${r.loosened.map(e => `<li>${line(e)}</li>`).join('')}</ul>` : ''}
+        ${r.notFound.length ? `<div class="col-text-import-sub bad">Not found (${r.notFound.length})</div><ul class="col-text-import-list bad">${r.notFound.map(e => `<li>${line(e)}</li>`).join('')}</ul>
+            <button class="col-text-import-file" onclick="_retryMissingImport()"><i class="fa-solid fa-pen"></i> Edit the missing lines and try again</button>` : ''}
+        ${r.skipped.length ? `<div class="col-text-import-sub">Lines skipped (${r.skipped.length})</div><ul class="col-text-import-list">${r.skipped.slice(0, 20).map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+        <button class="app-btn btn-green" onclick="closeCollectionImport()">Done</button>`;
+    box._missing = r.notFound.map(e => line(e).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'")).join('\n');
+    document.getElementById('col-text-import-form').style.display = 'none';
+    box.style.display = '';
+    if (r.added) toast(`✅ ${r.added} card${r.added === 1 ? '' : 's'} imported`);
+}
+function _retryMissingImport() {
+    const box = document.getElementById('col-text-import-result');
+    const text = box._missing || '';
+    openCollectionImport();
+    document.getElementById('col-text-import-text').value = text;
 }
 
 function openExportModal() {
