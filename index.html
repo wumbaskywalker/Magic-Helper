@@ -7475,6 +7475,31 @@ body.fs-mode #view-play {
     -webkit-appearance: none; appearance: none;
 }
 
+/* ── Ejerskab i deck-editoren ── */
+.own-badge {
+    display: inline-flex; align-items: center; gap: 3px; margin: 0 6px 0 0; padding: 1px 7px;
+    border: 1px solid transparent; border-radius: 999px;
+    font-size: 10px; font-weight: 800; line-height: 1.5; vertical-align: 1px; cursor: pointer;
+    max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.own-badge.static { cursor: default; margin-top: 4px; }
+.own-badge.owned   { color: #8fe0ad; background: rgba(46,204,113,.12); border-color: rgba(46,204,113,.3); }
+.own-badge.partial { color: #f2d28b; background: rgba(242,190,80,.12); border-color: rgba(242,190,80,.32); }
+.own-badge.taken   { color: #9cc7ff; background: rgba(90,150,255,.12); border-color: rgba(90,150,255,.32); }
+.own-badge.missing { color: #9aa2aa; background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1); }
+.own-badge-more { font-style: normal; opacity: .75; }
+.deck-own-summary { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.025); }
+.deck-own-bar { display: flex; height: 6px; overflow: hidden; border-radius: 4px; background: rgba(255,255,255,.07); }
+.deck-own-bar b { display: block; height: 100%; }
+.deck-own-bar b.ok { background: #4cd08a; }
+.deck-own-bar b.tied { background: #6fa8ff; }
+.deck-own-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 7px; font-size: 12px; font-weight: 700; }
+.deck-own-legend .ok { color: #8fe0ad; }
+.deck-own-legend .tied { color: #9cc7ff; }
+.deck-own-legend .miss { padding: 0; border: 0; background: none; color: var(--gold-lt, #e5d5ad); font: inherit; cursor: pointer; }
+.deck-search-own { margin: 0 0 10px; padding: 9px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; color: #8fe0ad; background: rgba(46,204,113,.09); border: 1px solid rgba(46,204,113,.25); }
+.deck-search-own.none { color: var(--muted); background: rgba(255,255,255,.03); border-color: var(--border); font-weight: 600; }
+
 </style>
 </head>
 <body>
@@ -7544,6 +7569,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.39</span> — Decks show what you own: every card gets a small badge (✓ owned, part of it, ⛓ set aside in another built deck, or not owned), there is a summary at the top of the list, and when adding a card the printings you own are marked and shown first</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.38</span> — Change printing: tap a card in the collection and choose “Change printing” to pick the exact edition you own — normal or foil, with price, and for all or just some of your copies</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.37</span> — Import a list of cards into a collection: paste lines like “4 Lightning Bolt” or “1 Sol Ring (C21) 263 *F*” (ManaBox, Moxfield, Archidekt, Arena and plain text), or pick a .txt file. Misspelled names are corrected, and anything not found is listed so you can fix it</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.36</span> — Fixed: changing a player’s name during a game no longer jumps back to “Player 2” while you type, when life totals change or another device sends an update</div>
@@ -12364,7 +12390,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.38 · Arcane';
+const APP_VERSION = '8.39 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
@@ -15309,6 +15335,72 @@ function collectionAvailability() {
     return out;
 }
 
+// ── Hvad ejer man til det deck man bygger? ─────────────────────
+// Pr. kortnavn: hvor mange man ejer i alle samlinger, hvor mange der er bundet i
+// ANDRE byggede decks, og dermed hvor mange der er frie til dette deck.
+function deckOwnership(deck) {
+    const owned = new Map(), byPrint = new Map();
+    Object.values(collections || {}).forEach(col => (col?.cards || []).forEach(card => {
+        const key = _deckMatchKey(card.name); if (!key) return;
+        const q = Math.max(0, Number(card.qty) || 0);
+        owned.set(key, (owned.get(key) || 0) + q);
+        const pk = card.id + (card.foil ? '_foil' : '');
+        byPrint.set(pk, (byPrint.get(pk) || 0) + q);
+    }));
+    const need = new Map();
+    (deck?.cards || []).forEach(card => {
+        const key = _deckMatchKey(card.name); if (!key) return;
+        need.set(key, (need.get(key) || 0) + Math.max(1, Number(card.qty) || 1));
+    });
+    const others = new Map();   // key -> [{id,name,qty,built}]
+    const tiedElsewhere = new Map();
+    decks.forEach(d => {
+        if (!d || d.id === deck?.id) return;
+        const per = new Map();
+        (d.cards || []).forEach(card => {
+            const key = _deckMatchKey(card.name);
+            if (!key || !need.has(key)) return;
+            per.set(key, (per.get(key) || 0) + Math.max(1, Number(card.qty) || 1));
+        });
+        per.forEach((qty, key) => {
+            if (!others.has(key)) others.set(key, []);
+            others.get(key).push({ id: d.id, name: d.name || 'Unnamed deck', qty, built: !!d.built });
+            if (d.built) tiedElsewhere.set(key, (tiedElsewhere.get(key) || 0) + qty);
+        });
+    });
+    const result = new Map();
+    need.forEach((n, key) => {
+        const own = owned.get(key) || 0;
+        const tied = Math.min(own, tiedElsewhere.get(key) || 0);
+        const free = Math.max(0, own - tied);
+        const status = own === 0 ? 'missing' : free >= n ? 'owned' : free > 0 ? 'partial' : 'taken';
+        result.set(key, { key, need: n, owned: own, tied, free, status, decks: (others.get(key) || []).sort((a, b) => b.built - a.built || a.name.localeCompare(b.name)) });
+    });
+    result.byPrint = byPrint;
+    return result;
+}
+function _ownBadgeHtml(entry) {
+    if (!entry) return '';
+    const built = entry.decks.filter(d => d.built);
+    const label = entry.status === 'owned' ? '✓ Owned'
+        : entry.status === 'partial' ? `✓ ${entry.free}/${entry.need}`
+        : entry.status === 'taken' ? `⛓ ${built.length === 1 ? 'In ' + built[0].name : 'In other decks'}`
+        : 'Not owned';
+    const extra = entry.status !== 'missing' && entry.decks.length && entry.status !== 'taken' ? '<i class="own-badge-more" aria-hidden="true">+</i>' : '';
+    return `<button type="button" class="own-badge ${entry.status}" onclick="event.stopPropagation();explainDeckOwnership(decodeURIComponent('${encodeURIComponent(entry.key).replace(/'/g, '%27')}'))">${_safeHTML(label)}${extra}</button>`;
+}
+function explainDeckOwnership(key) {
+    const deck = getActiveDeck(); if (!deck) return;
+    const e = deckOwnership(deck).get(key); if (!e) return;
+    const parts = [];
+    if (!e.owned) parts.push('Not in your collection');
+    else parts.push(`You own ${e.owned}` + (e.tied ? ` — ${e.tied} set aside in built decks, ${e.free} free` : ''));
+    if (e.status === 'partial') parts.push(`this deck needs ${e.need}`);
+    const list = e.decks.map(d => `${d.name}${d.qty > 1 ? ' ×' + d.qty : ''}${d.built ? ' (built)' : ''}`);
+    if (list.length) parts.push('Also in: ' + list.join(', '));
+    toast(parts.join(' · '));
+}
+
 function collectionAvailabilityFor(item, index = collectionAvailability()) {
     return index.get(_deckMatchKey(item?.name)) || null;
 }
@@ -17695,8 +17787,10 @@ function renderDeckEditor() {
     const cmdKey = deck.commanderKey || null;
     const isCommander = deck.format === 'commander';
 
+    const ownership = deckOwnership(deck);
     function deckCardHtml(c) {
         const ck = c._deckKey||c.id;
+        const own = ownership.get(_deckMatchKey(c.name));
         const isCmd = cmdKey === ck;
         const border = isCmd ? 'border:2px solid #f4b942;background:rgba(244,185,66,.08);' : '';
         return `<div class="deck-card-item" style="${border}">
@@ -17705,7 +17799,7 @@ function renderDeckEditor() {
             <div class="deck-card-info" style="cursor:pointer;" onclick="openDeckCardPreview('${ck}')">
                 <div class="deck-card-name">${isCmd ? '⭐ ' : ''}${c.name}</div>
                 ${c.manaCost ? `<div style="line-height:1.4;margin:1px 0;">${formatManaCost(c.manaCost)}</div>` : ''}
-                <div class="deck-card-sub">${c.setName||c.set} · ${fmt(c.price)}</div>
+                <div class="deck-card-sub">${_ownBadgeHtml(own)}${c.setName||c.set} · ${fmt(c.price)}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
                 <button style="width:24px;height:24px;border-radius:50%;background:var(--bg-panel);border:1px solid var(--border-lit);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
@@ -17721,6 +17815,23 @@ function renderDeckEditor() {
 
     // Commander card shown first if set, otherwise show reminder
     let listHtml = '';
+    if (cards.length) {
+        let have = 0, tiedN = 0, miss = 0;
+        ownership.forEach(e => {
+            const fromFree = Math.min(e.free, e.need);
+            const fromTied = Math.min(e.need - fromFree, e.tied);
+            have += fromFree; tiedN += fromTied; miss += e.need - fromFree - fromTied;
+        });
+        const total = have + tiedN + miss || 1;
+        listHtml += `<div class="deck-own-summary">
+            <div class="deck-own-bar"><b class="ok" style="width:${have/total*100}%"></b><b class="tied" style="width:${tiedN/total*100}%"></b></div>
+            <div class="deck-own-legend">
+                <span class="ok">✓ ${have} in collection</span>
+                ${tiedN ? `<span class="tied">⛓ ${tiedN} in other built decks</span>` : ''}
+                ${miss ? `<button class="miss" onclick="openMissingModal()">${miss} not owned ›</button>` : '<span class="ok">Nothing missing</span>'}
+            </div>
+        </div>`;
+    }
     const cmdCard = cmdKey ? cards.find(c=>(c._deckKey||c.id)===cmdKey) : null;
     if (isCommander && cards.length) {
         if (cmdCard) {
@@ -17950,18 +18061,27 @@ async function openDeckSearch(query) {
                 legalities:c.legalities||{}
             };
         });
-        content.innerHTML = deckSearchVariants.flatMap((c,i)=>{
+        const ownIdx = deckOwnership({ id: activeDeckId, cards: [{ name: base.name, qty: 1 }] });
+        const ownEntry = ownIdx.get(_deckMatchKey(base.name));
+        // Udgaver man ejer vises først (sorteringen er stabil, så resten bevarer rækkefølgen).
+        const ownedQty = v => (ownIdx.byPrint.get(v.id) || 0) + (ownIdx.byPrint.get(v.id + '_foil') || 0);
+        deckSearchVariants.sort((a, b) => ownedQty(b) - ownedQty(a));
+        const ownedChip = (id, foil) => { const q = ownIdx.byPrint.get(id + (foil ? '_foil' : '')) || 0; return q ? `<span class="own-badge owned static">✓ You own ${q}</span>` : ''; };
+        const ownBanner = ownEntry && ownEntry.owned
+            ? `<div class="deck-search-own">✓ You own ${ownEntry.owned} ${_safeHTML(base.name)}${ownEntry.tied ? ` · ${ownEntry.tied} set aside in built decks` : ''}. Printings you have are marked.</div>`
+            : `<div class="deck-search-own none">Not in your collection yet.</div>`;
+        content.innerHTML = ownBanner + deckSearchVariants.flatMap((c,i)=>{
             const rows = [];
             if(c.price>=0) rows.push(`
                 <div class="trade-variant-item" onclick="addCardToDeck(${i},false)">
                     <img src="${c.thumb}" style="height:58px;width:42px;object-fit:cover;border-radius:4px;margin-right:10px;" loading="lazy">
-                    <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${c.name}</div><div style="font-size:11px;font-weight:800;color:var(--accent);">${c.setName}</div></div>
+                    <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${c.name}</div><div style="font-size:11px;font-weight:800;color:var(--accent);">${c.setName}</div>${ownedChip(c.id,false)}</div>
                     <div class="price-text">${fmt(c.price)}</div>
                 </div>`);
             if(c.priceFoil>=0) rows.push(`
                 <div class="trade-variant-item" onclick="addCardToDeck(${i},true)" style="background:linear-gradient(135deg,rgba(180,130,255,.08),rgba(100,180,255,.05));border-left:2px solid #b47fff;">
                     <img src="${c.thumb}" style="height:58px;width:42px;object-fit:cover;border-radius:4px;margin-right:10px;" loading="lazy">
-                    <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${c.name} <span style="font-size:11px;background:linear-gradient(135deg,#b47fff,#7ec8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">✨ Foil</span></div><div style="font-size:11px;font-weight:800;color:var(--accent);">${c.setName}</div></div>
+                    <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${c.name} <span style="font-size:11px;background:linear-gradient(135deg,#b47fff,#7ec8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">✨ Foil</span></div><div style="font-size:11px;font-weight:800;color:var(--accent);">${c.setName}</div>${ownedChip(c.id,true)}</div>
                     <div class="price-text">${fmt(c.priceFoil)}</div>
                 </div>`);
             return rows;
