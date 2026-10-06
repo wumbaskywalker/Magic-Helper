@@ -7500,6 +7500,13 @@ body.fs-mode #view-play {
 .deck-search-own { margin: 0 0 10px; padding: 9px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; color: #8fe0ad; background: rgba(46,204,113,.09); border: 1px solid rgba(46,204,113,.25); }
 .deck-search-own.none { color: var(--muted); background: rgba(255,255,255,.03); border-color: var(--border); font-weight: 600; }
 
+/* ── Online-spil: frigiv plads / pladshint ── */
+.mp-release-btn {
+    margin-left: 6px; padding: 3px 8px; border: 1px solid rgba(224,163,58,.35); border-radius: 999px;
+    color: #e0a33a; background: rgba(224,163,58,.08); font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap;
+}
+.mp-slot-hint { margin-top: 8px; padding: 8px 10px; border-radius: 10px; font-size: 12px; line-height: 1.45; color: #e8d3a0; background: rgba(224,163,58,.08); border: 1px solid rgba(224,163,58,.25); }
+
 </style>
 </head>
 <body>
@@ -7569,6 +7576,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.40</span> — Online games: a player who joins after the game has started now goes straight in, a lost “I’m ready” is sent again automatically, and someone who left can take their seat back from a new phone (the host can also tap “Free seat”). Changing the number of players no longer resets everyone’s ready status</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.39</span> — Decks show what you own: every card gets a small badge (✓ owned, part of it, ⛓ set aside in another built deck, or not owned), there is a summary at the top of the list, and when adding a card the printings you own are marked and shown first</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.38</span> — Change printing: tap a card in the collection and choose “Change printing” to pick the exact edition you own — normal or foil, with price, and for all or just some of your copies</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.37</span> — Import a list of cards into a collection: paste lines like “4 Lightning Bolt” or “1 Sol Ring (C21) 263 *F*” (ManaBox, Moxfield, Archidekt, Arena and plain text), or pick a .txt file. Misspelled names are corrected, and anything not found is listed so you can fix it</div>
@@ -12390,7 +12398,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.39 · Arcane';
+const APP_VERSION = '8.40 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
@@ -13692,7 +13700,7 @@ function adjCmd(tid,sid,amt){
     window.magicHelperImpact?.(tid,_cd<0,'commander');
     sndLifeImpact(-_cd,true);
 }
-function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(!p)return;const clean=String(v||'').replace(/[\u0000-\u001f]/g,'').trim().slice(0,24);p.name=clean||p.name;renderBoard(true);mpPushPlayer(id);}
+function setName(id,v){const p=gamePlayers.find(x=>x.id===id);if(!p)return;const clean=String(v||'').replace(/[\u0000-\u001f]/g,'').trim().slice(0,24);p.name=clean||p.name;if(typeof _mpMine!=='undefined'&&_mpMine&&gamePlayers[mpMyPlayer]===p)_mpMine.name=p.name;renderBoard(true);mpPushPlayer(id);}
 // Mens man skriver et navn, må brættet ikke tegnes om: det ville fjerne feltet
 // midt i ordet og sætte det gamle navn ("Player 2") ind igen. Opdateringer fra
 // de andre spillere venter i stedet, til man er færdig med at skrive.
@@ -19011,11 +19019,14 @@ function mpHostSetPlayers(n) {
     // Bevar navn og farve fra spiller 1
     const name  = gamePlayers[0]?.name  || (document.getElementById('mp-host-name')?.value  || 'Player 1');
     const color = gamePlayers[0]?.color || '#dc3545';
+    const wasReady = new Map(gamePlayers.map(p => [p.id, !!p.ready]));
     initGame(n); // bevarer det valgte startliv
+    gamePlayers.forEach(p => { if (p.claimedBy && wasReady.get(p.id)) p.ready = true; });
     if (gamePlayers[0]) { gamePlayers[0].name = name; gamePlayers[0].color = color; gamePlayers[0].claimedBy = _mpClientId; }
-    renderBoard(); mpBroadcast();
     _mpStarted = false;
-    gamePlayers.forEach(p => { p.ready = false; });
+    // Kun værten skal melde klar igen - de andre har allerede valgt navn og farve.
+    if (gamePlayers[0]) gamePlayers[0].ready = false;
+    renderBoard(); mpBroadcast();
     const rb = document.getElementById('mp-host-ready-btn');
     if (rb) { rb.innerHTML = '✓ I’m ready'; rb.disabled = false; rb.classList.add('btn-green'); rb.classList.remove('btn-dark'); }
     mpUpdateReadyList();
@@ -19264,7 +19275,8 @@ function mpDisconnect() {
     } else if (mpMode === 'client') {
         mpSendEvent({ type:'release' });
     }
-    _lastSeqSeen = -1;
+    _lastSeqSeen = -1; _mpHostRunSeen = ''; _mpHostStarted = false; _mpSetupInitedFor = ''; _mpInGameShown = false;
+    _mpStopClaim();
     clearInterval(_mpHbIv); clearInterval(_mpSweepIv); _mpHbIv = _mpSweepIv = null;
     clearTimeout(_mpWaitTimer); _lastHostState = 0;
     if (_mpClient) { try { _mpClient.end(true); } catch(e){} _mpClient = null; }
@@ -19366,6 +19378,20 @@ function mpSendEvent(event) {
 
 // ── Broadcast & modtag ────────────────────────
 let _stateSeq = 0, _lastSeqSeen = -1, _lastHostState = 0, _hostGoneWarned = false;
+const _mpHostRun = Math.random().toString(36).slice(2, 10);   // ny for hver gang siden er åbnet
+let _mpHostRunSeen = '';
+let _mpHostStarted = false;      // klient: værten siger spillet er i gang
+let _mpPendingClaim = null;      // klient: plads-anmodning der venter på værtens bekræftelse
+let _mpClaimIv = null;
+let _mpSetupInitedFor = '';      // klient: opsætningen er tegnet for denne kode
+let _mpMine = null;              // klient: mit navn/farve/baggrund, så pladsen kan genskabes
+// Mens man vælger plads: opdatér pladserne løbende, så en forladt plads bliver
+// ledig efter 25 sek. uden at man skal vente på værtens næste besked.
+setInterval(() => {
+    if (mpMode !== 'client' || mpMyPlayer !== -1 || _mpPendingClaim) return;
+    const panel = document.getElementById('mp-panel-client-setup');
+    if (panel && panel.style.display === 'block' && gamePlayers.length) mpPopulateClientSetup(gamePlayers.length);
+}, 2000);
 
 // Kun værten må sende hele spiltilstanden. Klienter sender kun hændelser.
 // Det forhindrer at en der genforbinder overskriver alles liv.
@@ -19385,6 +19411,13 @@ function mpBroadcast() {
         seq: ++_stateSeq,
         _sender: _mpClientId
     };
+    // Klienterne skal kunne se om spillet er i gang (så en sen spiller kommer ind),
+    // hvilken værts-session tallene hører til (seq starter forfra hvis værten
+    // genstarter), og hvor længe hver plads har været væk (en ny enhed kender
+    // ellers ikke de andres "sidst set").
+    data.gameConfig.started = !!_mpStarted;
+    data.gameConfig.hostRun = _mpHostRun;
+    data.players.forEach((p, i) => { if (p.claimedBy && i > 0) p.idleMs = Math.max(0, Math.round(_mpSeatIdle(gamePlayers[i]) || 0)); else delete p.idleMs; });
     try { _mpClient.publish('mtghelper/' + _mpCode + '/state', JSON.stringify(data), { qos: 0 }); } catch(e) {}
 }
 
@@ -19423,6 +19456,15 @@ setInterval(() => {
 const MP_RESERVE_MS = 5 * 60 * 1000;   // plads gemmes så længe
 const MP_OFFLINE_MS = 25 * 1000;       // regnes som væk efter dette
 
+// Hvor længe har en plads været væk? Klienten bruger værtens tal (værten har set
+// alle enheder hele tiden); en ny enhed ville ellers tro at alle var til stede.
+function _mpSeatAway(p) {
+    if (!p?.claimedBy) return 0;
+    if (p.claimedBy === _mpClientId) return 0;
+    if (mpMode === 'client' && typeof p.idleMs === 'number')
+        return p.idleMs + Math.max(0, Date.now() - (_lastHostState || Date.now()));
+    return _mpSeatIdle(p) || 0;
+}
 // Hvor længe siden så vi enheden bag denne plads?
 function _mpSeatIdle(p) {
     if (!p?.claimedBy) return null;
@@ -19460,8 +19502,8 @@ function mpPopulateClientSetup(playerCount) {
         const isHostSlot = i === 0;
         const pl = gamePlayers[i];
         const mineSeat = pl?.claimedBy === _mpClientId;
-        const idle = _mpSeatIdle(pl);
-        const reserved = !!pl?.claimedBy && !mineSeat && idle != null && idle >= MP_OFFLINE_MS;  // væk, men gemt
+        const idle = _mpSeatAway(pl);
+        const reserved = !!pl?.claimedBy && !mineSeat && idle >= MP_OFFLINE_MS;  // væk, men gemt
         const active   = !!pl?.claimedBy && !mineSeat && !reserved;                              // nogen spiller her nu
         const taken = isHostSlot || active;
         const btn = document.createElement('button');
@@ -19475,8 +19517,9 @@ function mpPopulateClientSetup(playerCount) {
         btn.innerHTML = `Player ${i+1}<br><span style="font-size:9px;opacity:.75;font-weight:600;">${sub}</span>`;
         btn.onclick = () => {
             if (taken) { toast('That seat is taken', '#e74c3c'); return; }
-            if (reserved && !confirm(`This seat is held for ${pl.name}, who is currently away.\n\nDo you want to take it anyway?`)) return;
+            if (reserved && !confirm(`${pl.name} is away from this seat.\n\nTake it over? Do this if you are ${pl.name} on a new device, or ${pl.name} has left the game.`)) return;
             mpSetupPickSlot(i);
+            if (reserved) { const n = document.getElementById('mp-setup-name'); if (n && !n.value.trim()) n.value = pl.name || ''; }
         };
         slotsEl.appendChild(btn);
     }
@@ -19492,15 +19535,38 @@ function mpPopulateClientSetup(playerCount) {
         colorsEl.appendChild(btn);
     });
 
-    // Auto-tildel første LEDIGE plads (host = plads 0)
-    let defaultSlot = -1;
-    // 1) Er en plads allerede min (efter genforbindelse)? 2) ellers første helt frie
-    for (let i = 0; i < playerCount; i++) if (gamePlayers[i]?.claimedBy === _mpClientId) { defaultSlot = i; break; }
-    if (defaultSlot === -1)
-        for (let i = 1; i < playerCount; i++) if (!gamePlayers[i]?.claimedBy) { defaultSlot = i; break; }
-    if (defaultSlot === -1) defaultSlot = Math.min(1, playerCount - 1);
+    // Vælg plads: behold brugerens valg ved opdatering; ellers min egen, første frie,
+    // eller - hvis alt er optaget - den plads der har været væk længst.
+    const selectable = i => i > 0 && i < playerCount && (!gamePlayers[i]?.claimedBy || gamePlayers[i].claimedBy === _mpClientId || _mpSeatAway(gamePlayers[i]) >= MP_OFFLINE_MS);
+    const firstTime = _mpSetupInitedFor !== _mpCode;
+    let defaultSlot = !firstTime && selectable(_mpPickedSlot) ? _mpPickedSlot : -1;
+    if (defaultSlot === -1) for (let i = 1; i < playerCount; i++) if (gamePlayers[i]?.claimedBy === _mpClientId) { defaultSlot = i; break; }
+    if (defaultSlot === -1) for (let i = 1; i < playerCount; i++) if (!gamePlayers[i]?.claimedBy) { defaultSlot = i; break; }
+    let awaySlot = -1, awayMost = -1;
+    for (let i = 1; i < playerCount; i++) {
+        const pl = gamePlayers[i]; if (!pl?.claimedBy || pl.claimedBy === _mpClientId) continue;
+        const idle = _mpSeatAway(pl);
+        if (idle >= MP_OFFLINE_MS && idle > awayMost) { awayMost = idle; awaySlot = i; }
+    }
+    const hint = document.getElementById('mp-setup-slot-hint');
+    if (defaultSlot === -1 && awaySlot > 0) {
+        defaultSlot = awaySlot;
+        const n = document.getElementById('mp-setup-name');
+        if (n && !n.value.trim()) n.value = gamePlayers[awaySlot].name || '';
+    }
+    const chosen = gamePlayers[defaultSlot];
+    if (hint) {
+        if (chosen && chosen.claimedBy && chosen.claimedBy !== _mpClientId) {
+            hint.style.display = 'block';
+            hint.innerHTML = `<b>${_safeHTML(chosen.name)}</b> is away from this seat — tap “I’m ready” to take it over (for example if it is you on a new phone).`;
+        } else if (defaultSlot === -1) {
+            hint.style.display = 'block';
+            hint.innerHTML = 'All seats are in use right now. If someone left, their seat opens up here after about 25 seconds — or ask the host to tap “Free seat”.';
+        } else hint.style.display = 'none';
+    }
     mpSetupPickSlot(defaultSlot);
-    mpSetupPickColor(_mpSetupColors[defaultSlot] || _mpSetupColors[0]);
+    if (firstTime) mpSetupPickColor(_mpSetupColors[Math.max(0, defaultSlot)] || _mpSetupColors[0]);
+    _mpSetupInitedFor = _mpCode;
 
     // Vis setup-panel i modalen
     mpShowClientSetup();
@@ -19558,8 +19624,9 @@ function mpSetupPickColor(hex) {
 function mpConfirmSetup() {
     const nameInput = document.getElementById('mp-setup-name');
     const name = nameInput?.value.trim() || `Player ${_mpPickedSlot + 1}`;
+    if (_mpPickedSlot < 1) { toast('Choose a free seat first', '#e74c3c'); return; }
     const target = gamePlayers[_mpPickedSlot];
-    if (target && target.claimedBy && target.claimedBy !== _mpClientId) {
+    if (target && target.claimedBy && target.claimedBy !== _mpClientId && _mpSeatAway(target) < MP_OFFLINE_MS) {
         toast('That seat was just taken — choose another', '#e74c3c');
         mpPopulateClientSetup(gamePlayers.length);
         return;
@@ -19572,14 +19639,91 @@ function mpConfirmSetup() {
         gamePlayers[mpMyPlayer].bg    = _mpPickedBg || '';
         gamePlayers[mpMyPlayer].ready = true;
     }
-    mpSendEvent({ type:'claim', slot:_mpPickedSlot, name, color:_mpPickedColor, bg:_mpPickedBg||'', ready:true });
-    // Opdater "forbundet" panel til fremtidig modal-åbning
+    _mpInGameShown = false;
+    _mpPendingClaim = { slot:_mpPickedSlot, name, color:_mpPickedColor, bg:_mpPickedBg||'', tries:0 };
+    _mpMine = { name, color:_mpPickedColor, bg:_mpPickedBg||'' };
+    _mpSendClaim();
+    clearInterval(_mpClaimIv); _mpClaimIv = setInterval(_mpSendClaim, 2000);
     document.getElementById('mp-client-status').innerHTML =
-        `Du spiller som <b>${name}</b> (Player ${mpMyPlayer + 1})<br>
-         <span style="font-size:12px;">⏳ Waiting for everyone to be ready…</span>`;
+        `Joining as <b>${_safeHTML(name)}</b> (Player ${mpMyPlayer + 1})…<br>
+         <span style="font-size:12px;">⏳ Waiting for the host to confirm</span>`;
     _mpShowPanel('client');
     renderBoard();
-    toast(`${name} is ready ✓`);
+}
+
+// ── Klient: er min plads bekræftet af værten? ──────────────────
+// Beskeder på den offentlige broker kan gå tabt, så en plads-anmodning sendes
+// igen indtil værtens tilstand viser at pladsen er min.
+function _mpSendClaim() {
+    const c = _mpPendingClaim;
+    if (!c) return;
+    c.tries++;
+    mpSendEvent({ type:'claim', slot:c.slot, name:c.name, color:c.color, bg:c.bg, ready:true });
+    if (c.tries >= 15) {
+        _mpStopClaim();
+        const el = document.getElementById('mp-client-status');
+        if (el) el.innerHTML = `The host did not answer.<br><span style="font-size:12px;">Check that the host still has the game open, then tap “Leave session” and join again.</span>`;
+    }
+}
+function _mpStopClaim() {
+    clearInterval(_mpClaimIv); _mpClaimIv = null; _mpPendingClaim = null;
+}
+function _mpEnterGame(message) {
+    const modal = document.getElementById('mp-modal');
+    if (modal) modal.style.display = 'none';
+    document.getElementById('mp-player-picker')?.remove();
+    document.getElementById('view-play')?.classList.remove('setup-mode');
+    if (!document.getElementById('view-play')?.classList.contains('active')) switchView('play', document.querySelector(`nav [onclick*="switchView('play'"]`) || document.querySelector('nav div:nth-child(7)'));
+    renderBoard();
+    if (message) toast(message);
+}
+let _mpInGameShown = false;
+function _mpSeatConfirmed(name, returning) {
+    _mpStopClaim();
+    const el = document.getElementById('mp-client-status');
+    if (el) el.innerHTML = `You are playing as <b>${_safeHTML(name || 'Player')}</b> (Player ${mpMyPlayer + 1})` +
+        (_mpHostStarted ? '' : `<br><span style="font-size:12px;">⏳ Waiting for everyone to be ready…</span>`);
+    _mpShowPanel('client');
+    if (_mpHostStarted) {
+        _mpInGameShown = true;
+        _mpEnterGame(returning ? `Welcome back — you are ${name}` : 'You joined the game ⚔️');
+    } else if (returning) {
+        openMpModal();
+        toast(`Welcome back — you are ${name}`);
+    }
+}
+function _mpCheckMySeat(players) {
+    if (mpMyPlayer < 0 || !Array.isArray(players)) return;
+    const seat = players[mpMyPlayer];
+    if (seat && seat.claimedBy === _mpClientId) {
+        if (_mpPendingClaim) _mpSeatConfirmed(seat.name, false);
+        else if (_mpHostStarted && !_mpInGameShown) { _mpInGameShown = true; _mpEnterGame('The game is on ⚔️'); }
+        return;
+    }
+    if (_mpPendingClaim) return;                    // svaret er på vej
+    if (seat && !seat.claimedBy) {
+        // Værten har mistet min plads (fx genstartet) - bed om den igen.
+        const me = _mpMine || {};
+        _mpPendingClaim = { slot: mpMyPlayer, name: me.name || seat.name, color: me.color || seat.color, bg: me.bg || seat.bg || '', tries: 0 };
+        _mpSendClaim();
+        clearInterval(_mpClaimIv); _mpClaimIv = setInterval(_mpSendClaim, 2000);
+        return;
+    }
+    // En anden har pladsen nu.
+    mpMyPlayer = -1; _mpInGameShown = false;
+    toast('Your seat was given to someone else — choose a seat', '#e67e22');
+    mpPopulateClientSetup(players.length);
+    openMpModal();
+}
+
+// Vært: frigiv en plads, så en spiller kan komme ind igen fra en ny enhed
+function mpHostReleaseSeat(i) {
+    if (mpMode !== 'host' || i <= 0 || !gamePlayers[i]) return;
+    const p = gamePlayers[i];
+    if (!confirm(`Free ${p.name}’s seat?\\n\\nUse this if ${p.name} has left or is joining again from another device.`)) return;
+    p.claimedBy = null; p.ready = false;
+    renderBoard(); mpBroadcast(); mpUpdateReadyList();
+    toast(`${p.name}’s seat is free`);
 }
 
 // Hvem mangler at melde klar?
@@ -19590,14 +19734,17 @@ function mpUpdateReadyList() {
         const isHost = i === 0;
         const ready = !!p.ready;
         const here = !!p.claimedBy;
-        const state = ready ? '✓ Ready' : here ? '⏳ Choosing…' : '— None yet';
-        const col = ready ? 'var(--green)' : here ? 'var(--gold-lt)' : 'var(--muted)';
+        const idle = here && !isHost ? (_mpSeatIdle(p) || 0) : 0;
+        const away = here && !isHost && idle >= MP_OFFLINE_MS;
+        const state = away ? '⏸ Away' : ready ? '✓ Ready' : here ? '⏳ Choosing…' : '— None yet';
+        const col = away ? '#e0a33a' : ready ? 'var(--green)' : here ? 'var(--gold-lt)' : 'var(--muted)';
         return `<div style="display:flex;align-items:center;gap:9px;background:var(--bg-input);
                     border:1px solid var(--border);border-radius:9px;padding:7px 10px;">
             <span style="width:11px;height:11px;border-radius:50%;background:${p.color};flex-shrink:0;
                   box-shadow:0 0 8px ${p.color}88;"></span>
             <span style="flex:1;font-size:13px;font-weight:700;">${p.name}${isHost?' <span style="font-size:10px;color:var(--muted);">(dig)</span>':''}</span>
             <span style="font-size:12px;font-weight:800;color:${col};">${state}</span>
+            ${here && !isHost ? `<button class="mp-release-btn" onclick="mpHostReleaseSeat(${i})" title="Free this seat">Free seat</button>` : ''}
         </div>`;
     }).join('');
 }
@@ -19627,6 +19774,7 @@ function mpForceStart() {
 
 // Fælles: luk modalen og vis boardet med afsløring
 function _mpStartGameLocal(startNewSession=true) {
+    _mpInGameShown = true;
     if (startNewSession) {
         _beginGameSession();
         _resetTimersForNewGame();
@@ -19637,7 +19785,7 @@ function _mpStartGameLocal(startNewSession=true) {
     if (picker) picker.remove();
     const vp = document.getElementById('view-play');
     if (vp) vp.classList.remove('setup-mode');
-    if (currentView !== 'play') switchView('play', document.querySelector('nav div:nth-child(7)'));
+    if (!document.getElementById('view-play')?.classList.contains('active')) switchView('play', document.querySelector('nav div:nth-child(7)'));
     renderBoard();
     revealBoard();
     toast('Everyone is ready — the game is on! ⚔️');
@@ -19737,6 +19885,7 @@ function mpApplyState(data) {
             // Nogen spiller aktivt på pladsen → find en anden
             const free = gamePlayers.findIndex((x, idx) => idx > 0 && (!x.claimedBy || (_mpSeatIdle(x) ?? 0) >= MP_RESERVE_MS));
             if (free < 0) { mpSendEvent({ type:'claimDenied', to:data._sender }); return; }
+            gamePlayers.forEach((x, idx) => { if (idx !== free && idx > 0 && x.claimedBy === data._sender) { x.claimedBy = null; x.ready = false; } });
             gamePlayers[free].claimedBy = data._sender;
             if (data.name)  gamePlayers[free].name  = data.name;
             if (data.color) gamePlayers[free].color = data.color;
@@ -19744,6 +19893,8 @@ function mpApplyState(data) {
             if (data.ready) gamePlayers[free].ready = true;
             mpSendEvent({ type:'claimMoved', to:data._sender, slot:free });
         } else {
+            // Skifter en enhed plads, frigives den gamle.
+            gamePlayers.forEach((x, idx) => { if (idx !== i && idx > 0 && x.claimedBy === data._sender) { x.claimedBy = null; x.ready = false; } });
             p.claimedBy = data._sender;
             if (data.name)  p.name  = data.name;
             if (data.color) p.color = data.color;
@@ -19770,12 +19921,14 @@ function mpApplyState(data) {
         return;
     }
     if (data.type === 'claimMoved' && data.to === _mpClientId) {
+        if (_mpPendingClaim) _mpPendingClaim.slot = data.slot;
         mpMyPlayer = data.slot;
         toast(`That seat was taken — you are now Player ${data.slot + 1}`, '#e67e22');
         _mpShowPanel('client'); closeMpModal(); renderBoard();
         return;
     }
     if (data.type === 'claimDenied' && data.to === _mpClientId) {
+        _mpStopClaim();
         mpMyPlayer = -1;
         toast('All seats are taken', '#e74c3c');
         mpPopulateClientSetup(gamePlayers.length); openMpModal();
@@ -19831,6 +19984,8 @@ function mpApplyState(data) {
         return;
     }
     if (!data.players) return;
+    const hostRun = data.gameConfig && data.gameConfig.hostRun;
+    if (hostRun && hostRun !== _mpHostRunSeen) { _mpHostRunSeen = hostRun; _lastSeqSeen = -1; }
     // Ignorér gamle/forsinkede tilstande
     if (typeof data.seq === 'number') {
         if (data.seq <= _lastSeqSeen) return;
@@ -19847,6 +20002,7 @@ function mpApplyState(data) {
         if (Number(gameStartedAt) > 0) _gameSession.startedAt = Number(gameStartedAt);
         _gameSession.startingPlayerId = Number(startingPlayerId) || null;
         if (Array.isArray(gameLog)) _gameSession.events = gameLog.map(event=>({...event}));
+        _mpHostStarted = !!data.gameConfig.started;
         // Byg spillerlisten fra værtens data — uden at nulstille noget
         if (gamePlayers.length !== data.players.length) {
             gamePlayers = data.players.map(p => ({
@@ -19855,22 +20011,19 @@ function mpApplyState(data) {
                 cmdDmg: p.cmdDmg || {}, claimedBy: p.claimedBy || null,
                 cnt: p.cnt || { energy:0, exp:0, rad:0 }, flags: p.flags || {}, bg: p.bg || '',
                 timer: p.timer || { duration:0, remaining:0, running:false, endsAt:0, alerted:false },
-                ready: !!p.ready
+                ready: !!p.ready, idleMs: Number(p.idleMs) || 0
             }));
             playerDisplayOrder = [];
         }
         document.getElementById('view-play')?.classList.remove('setup-mode');
 
         // Genoptag automatisk min gamle plads (samme enhed = samme gemte id)
-        if (mpMyPlayer === -1) {
-            const mine = gamePlayers.findIndex(pl => pl.claimedBy === _mpClientId);
+        if (mpMyPlayer === -1 && !_mpPendingClaim) {
+            const mine = data.players.findIndex(pl => pl.claimedBy === _mpClientId);
             if (mine >= 0) {
                 mpMyPlayer = mine;
-                const el = document.getElementById('mp-client-status');
-                if (el) el.textContent = `You are playing as ${gamePlayers[mine].name} (Player ${mine + 1})`;
-                _mpShowPanel('client');
-                closeMpModal();
-                toast(`Welcome back — you are ${gamePlayers[mine].name}`);
+                _mpMine = { name: data.players[mine].name, color: data.players[mine].color, bg: data.players[mine].bg || '' };
+                _mpSeatConfirmed(data.players[mine].name, true);
             } else if (mpMode === 'client') {
                 mpPopulateClientSetup(playerCount);
             }
@@ -19906,6 +20059,7 @@ function mpApplyState(data) {
         gamePlayers[i].bg    = p.bg || '';
         gamePlayers[i].timer = p.timer || gamePlayers[i].timer || { duration:0, remaining:0, running:false, endsAt:0, alerted:false };
         gamePlayers[i].ready = !!p.ready;
+        gamePlayers[i].idleMs = Number(p.idleMs) || 0;
 
         // Samle akkumulatorer — vises EFTER renderBoard så DOM eksisterer
         if (poisonDiff !== 0) pendingAccums.push([pid, poisonDiff, 'poison']);
@@ -19916,6 +20070,7 @@ function mpApplyState(data) {
     renderBoard();
     pendingAccums.forEach(([pid, amt, type]) => showAccum(pid, amt, type));
     _mpReceiving = false;
+    if (mpMode === 'client') _mpCheckMySeat(data.players);
 
 }
 
@@ -20228,6 +20383,7 @@ function showAccum(id, amt, type) {
             <div style="margin-bottom:14px;">
                 <label style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:block;margin-bottom:8px;">YOUR SEAT</label>
                 <div id="mp-setup-slots" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+                <div id="mp-setup-slot-hint" class="mp-slot-hint" style="display:none;"></div>
             </div>
 
             <div style="margin-bottom:14px;">
