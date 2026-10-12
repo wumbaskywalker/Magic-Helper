@@ -7507,6 +7507,14 @@ body.fs-mode #view-play {
 }
 .mp-slot-hint { margin-top: 8px; padding: 8px 10px; border-radius: 10px; font-size: 12px; line-height: 1.45; color: #e8d3a0; background: rgba(224,163,58,.08); border: 1px solid rgba(224,163,58,.25); }
 
+/* ── Billigste udgave på ønskelisten ── */
+.wish-cheap-chip { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; user-select: none; }
+.wish-cheap-chip input { width: 16px; height: 16px; margin: 0; accent-color: #c9a84c; }
+.wish-cheap-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: -4px 0 12px; }
+.wish-cheap-bar .wish-cheap-chip { margin-top: 0; }
+.wish-cheap-all { padding: 7px 12px; border: 1px solid rgba(242,214,147,.28); border-radius: 999px; color: #e5d5ad; background: rgba(199,167,104,.09); font-size: 12px; font-weight: 800; cursor: pointer; }
+.wish-cheap-tag { margin-left: 6px; padding: 0 6px; border-radius: 999px; color: #8fe0ad; background: rgba(46,204,113,.12); font-size: 9px; letter-spacing: 0; text-transform: none; }
+
 </style>
 </head>
 <body>
@@ -7576,6 +7584,7 @@ body.fs-mode #view-play {
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.41</span> — The wishlist picks the cheapest printing: cards you add (from search, decks, the scanner or an imported list) go on as the cheapest paper printing, normal or foil. “Make all cheapest” updates the whole list, and it can be switched off</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.40</span> — Online games: a player who joins after the game has started now goes straight in, a lost “I’m ready” is sent again automatically, and someone who left can take their seat back from a new phone (the host can also tap “Free seat”). Changing the number of players no longer resets everyone’s ready status</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.39</span> — Decks show what you own: every card gets a small badge (✓ owned, part of it, ⛓ set aside in another built deck, or not owned), there is a summary at the top of the list, and when adding a card the printings you own are marked and shown first</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.38</span> — Change printing: tap a card in the collection and choose “Change printing” to pick the exact edition you own — normal or foil, with price, and for all or just some of your copies</div>
@@ -7730,6 +7739,9 @@ body.fs-mode #view-play {
                 <i class="fa-solid fa-plus"></i> Add to Wishlist
             </button>
         </div>
+        <label class="wish-cheap-chip" title="Put the cheapest printing of the card on the wishlist instead of the one shown">
+            <input type="checkbox" class="wish-cheap-toggle" onchange="setWishCheapest(this.checked)"> 💰 Wishlist gets the cheapest printing
+        </label>
         <div style="margin-top:8px;">
             <select id="add-to-col-select" style="display:none;width:100%;margin:0 0 6px;font-size:13px;padding:8px 10px;background:var(--bg-panel);border:1px solid var(--border-lit);border-radius:var(--r-sm);color:var(--text);"></select>
             <button class="app-btn" style="background:#1a2a1a;border:1px solid #2e5c2e;color:#5dcc7a;" onclick="addToCollection()">
@@ -7974,6 +7986,12 @@ body.fs-mode #view-play {
 <!-- ══ LIST ══ -->
 <main id="view-list" class="view-section">
     <h2 class="section-title">Your Wishlist</h2>
+    <div class="wish-cheap-bar">
+        <label class="wish-cheap-chip">
+            <input type="checkbox" class="wish-cheap-toggle" onchange="setWishCheapest(this.checked)"> 💰 Add the cheapest printing
+        </label>
+        <button class="wish-cheap-all" id="wish-cheap-all" onclick="wishSwitchAllToCheapest()"><i class="fa-solid fa-coins"></i> Make all cheapest</button>
+    </div>
     <div id="list-container"></div>
     <div class="list-total-row">
         <span>Total:</span>
@@ -10133,18 +10151,12 @@ async function previewEdhrecCard(name) {
 
         // Kabel knapper
         document.getElementById('hand-zoom-deck-btn').onclick = () => addEdhrecCardToDeck(c.name);
-        document.getElementById('hand-zoom-wish-btn').onclick = () => {
-            const listKey = c.id;
-            const ex = priceList.find(x => (x._listKey||x.id) === listKey);
-            if (ex) { ex.amount++; }
-            else {
-                priceList.push({ id: c.id, _listKey: listKey, name: c.name,
-                    set: c.set.toUpperCase(), setName: c.set_name || c.set.toUpperCase(),
-                    price, foil: false, amount: 1, img, thumb: c.image_uris?.small ?? img,
-                    imgBack });
-            }
-            saveList(); updateListView();
-            toast(`${c.name} added to the wishlist!`);
+        document.getElementById('hand-zoom-wish-btn').onclick = async () => {
+            const fallback = { id: c.id, _listKey: c.id, name: c.name,
+                set: c.set.toUpperCase(), setName: c.set_name || c.set.toUpperCase(),
+                price, foil: false, amount: 1, img, thumb: c.image_uris?.small ?? img, imgBack };
+            const res = await wishAddByName(c.name, false, 1, fallback);
+            toast(res.cheapest ? `${c.name} added — cheapest: ${res.card.set_name} (${fmt(res.price)})` : `${c.name} added to the wishlist!`);
         };
     } catch(e) { /* beholder bare billedet */ }
 }
@@ -10157,14 +10169,11 @@ async function addEdhrecCardToWishlist(name) {
         const price = c.prices?.eur ? +c.prices.eur : (c.prices?.usd ? +c.prices.usd / (rates?.USD||1) : -1);
         const img   = c.image_uris?.normal ?? c.card_faces?.[0]?.image_uris?.normal ?? '';
         const imgBack = c.card_faces?.[1]?.image_uris?.normal ?? '';
-        const listKey = c.id;
-        const ex = priceList.find(x => (x._listKey||x.id) === listKey);
-        if (ex) { ex.amount++; }
-        else { priceList.push({ id:c.id, _listKey:listKey, name:c.name, set:c.set.toUpperCase(),
+        const fallback = { id:c.id, _listKey:c.id, name:c.name, set:c.set.toUpperCase(),
             setName:c.set_name||c.set.toUpperCase(), price, foil:false, amount:1,
-            img, thumb:c.image_uris?.small??img, imgBack }); }
-        saveList(); updateListView();
-        toast(`${c.name} added to the wishlist!`);
+            img, thumb:c.image_uris?.small??img, imgBack };
+        const res = await wishAddByName(c.name, false, 1, fallback);
+        toast(res.cheapest ? `${c.name} added — cheapest: ${res.card.set_name} (${fmt(res.price)})` : `${c.name} added to the wishlist!`);
     } catch(e) { toast(`Could not find ${name}`, '#e74c3c'); }
 }
 
@@ -10528,16 +10537,13 @@ function finishBatch() {
     if (qty) toast(`✓ ${qty} cards (${fmt(val)}) added to ${where}`);
 }
 
-function quickAddToWishlist(card) {
-    const key = card.id;
-    const ex = priceList.find(x => (x._listKey||x.id) === key);
-    if (ex) ex.amount += 1;
-    else priceList.push({ id: card.id, _listKey: key, name: card.name,
+async function quickAddToWishlist(card) {
+    const fallback = { id: card.id, _listKey: card.id, name: card.name,
         set: (card.set||'').toUpperCase(), setName: card.setName || card.set,
         price: card.price, foil: false, amount: 1,
-        img: card.img, thumb: card.thumb || card.img, imgBack: card.imgBack || '' });
-    saveList(); updateListView();
-    toast(`✓ ${card.name} on the wishlist`);
+        img: card.img, thumb: card.thumb || card.img, imgBack: card.imgBack || '' };
+    const res = await wishAddByName(card.name, false, 1, fallback);
+    toast(res.cheapest ? `✓ ${card.name} on the wishlist — cheapest: ${res.card.set_name}` : `✓ ${card.name} on the wishlist`);
 }
 
 // ── Hurtig-gem direkte i samlingen (batch-scanning) ──
@@ -12246,17 +12252,159 @@ function _persist(key, value, area) {
 
 const saveList=()=>_persist('mtg_list',JSON.stringify(priceList),'wishlist');
 
-function addToList() {
+// ── Billigste udgave til ønskelisten ──────────────────────────────
+// Slår alle papirudgaver af kortet op og vælger den billigste i den valgte
+// finish (normal/foil). EUR-priser foretrækkes; kun hvis ingen udgave har en
+// EUR-pris, bruges USD (omregnet), så to markeder ikke blandes sammen.
+// Guldkantede / ikke-turneringslovlige samlerudgaver (CE/IE, World Championship)
+// og oversized kort springes over - de er ikke "rigtige" kort til et deck.
+function wishCheapestOn() {
+    try { return localStorage.getItem('mh_wish_cheapest') !== '0'; } catch (e) { return true; }
+}
+function setWishCheapest(on) {
+    try { localStorage.setItem('mh_wish_cheapest', on ? '1' : '0'); } catch (e) {}
+    _syncWishCheapToggles();
+    toast(on ? '💰 The wishlist now gets the cheapest printing' : 'The wishlist now gets the printing you pick');
+}
+function _syncWishCheapToggles() {
+    const on = wishCheapestOn();
+    document.querySelectorAll('.wish-cheap-toggle').forEach(t => { t.checked = on; });
+}
+const _wishCheapCache = new Map();   // "navn|foil" -> { card, price, at }
+function _printPrice(c, foil) {
+    const p = c.prices || {};
+    const fin = c.finishes || [];
+    if (foil) {
+        if (fin.length && !fin.includes('foil')) return null;
+        if (p.eur_foil) return { eur: +p.eur_foil };
+        if (p.usd_foil) return { usd: +p.usd_foil };
+        return null;
+    }
+    if (fin.length && !fin.includes('nonfoil')) return null;
+    if (p.eur) return { eur: +p.eur };
+    if (p.usd) return { usd: +p.usd };
+    return null;
+}
+async function findCheapestPrinting(name, foil) {
+    const front = String(name || '').trim();
+    if (!front) return null;
+    const key = front.toLowerCase() + '|' + (foil ? 'f' : 'n');
+    const hit = _wishCheapCache.get(key);
+    if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit;
+    const prints = [];
+    let next = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
+        q: `!"${front.replace(/"/g, '')}" game:paper`, unique: 'prints', order: 'eur', dir: 'asc'
+    }).toString();
+    for (let page = 0; next && page < 4; page++) {
+        const r = await fetch(next);
+        if (!r.ok) break;
+        const j = await r.json();
+        prints.push(...(j.data || []));
+        next = j.has_more ? j.next_page : null;
+        if (next) await new Promise(res => setTimeout(res, 100));
+    }
+    // Scryfalls navnesøgning rammer også kort hvor navnet kun er BAGSIDEN
+    // (fx "Emeritus of Conflict // Lightning Bolt") - de skal ikke med.
+    const want = _importNameKey(front.split(' // ')[0]);
+    const ok = prints.filter(c => _importNameKey(String(c.name).split(' // ')[0]) === want
+        && !c.oversized && c.border_color !== 'gold' && c.set_type !== 'memorabilia' && !c.digital);
+    const priced = ok.map(c => ({ c, pr: _printPrice(c, foil) })).filter(x => x.pr);
+    const inEur = priced.filter(x => x.pr.eur != null && x.pr.eur > 0);
+    const pool = inEur.length ? inEur.map(x => ({ c: x.c, price: x.pr.eur }))
+        : priced.filter(x => x.pr.usd > 0).map(x => ({ c: x.c, price: x.pr.usd / (rates?.USD || 1) }));
+    if (!pool.length) return null;
+    pool.sort((a, b) => a.price - b.price);
+    const best = { card: pool[0].c, price: pool[0].price, options: pool.length, at: Date.now() };
+    _wishCheapCache.set(key, best);
+    return best;
+}
+function _wishEntryFrom(c, foil, amount, price) {
+    return {
+        id: c.id, _listKey: foil ? c.id + '_foil' : c.id, name: c.name,
+        set: String(c.set || '').toUpperCase(), setName: c.set_name || String(c.set || '').toUpperCase(),
+        price, foil: !!foil, amount,
+        img: c.image_uris?.normal ?? c.card_faces?.[0]?.image_uris?.normal ?? '',
+        thumb: c.image_uris?.small ?? c.card_faces?.[0]?.image_uris?.small ?? '',
+        imgBack: c.card_faces?.[1]?.image_uris?.normal ?? '',
+        cmc: c.cmc || 0, colors: c.colors || c.card_faces?.[0]?.colors || [], colorIdentity: c.color_identity || [],
+        typeLine: c.type_line || c.card_faces?.[0]?.type_line || '', manaCost: c.mana_cost || c.card_faces?.[0]?.mana_cost || '',
+        cheapest: true, cheapestAt: Date.now()
+    };
+}
+function _wishPut(entry) {
+    const ex = priceList.find(x => (x._listKey || x.id) === entry._listKey);
+    if (ex) { ex.amount += entry.amount; if (entry.cheapest) { ex.cheapest = true; ex.price = entry.price; ex.cheapestAt = entry.cheapestAt; } }
+    else priceList.push(entry);
+}
+// Læg et kort på ønskelisten efter navn - den billigste udgave hvis det er slået til,
+// ellers den udgave der blev givet (fallback).
+async function wishAddByName(name, foil, amount, fallbackEntry) {
+    if (wishCheapestOn()) {
+        try {
+            const best = await findCheapestPrinting(String(name).split(' // ')[0], foil);
+            if (best) {
+                _wishPut(_wishEntryFrom(best.card, foil, amount, best.price));
+                saveList(); updateListView();
+                return { cheapest: true, card: best.card, price: best.price };
+            }
+        } catch (e) { console.warn('cheapest lookup', e); }
+    }
+    if (fallbackEntry) { _wishPut(fallbackEntry); saveList(); updateListView(); }
+    return { cheapest: false };
+}
+let _wishSwitching = false;
+async function wishSwitchAllToCheapest() {
+    if (_wishSwitching || !priceList.length) return;
+    _wishSwitching = true;
+    const btn = document.getElementById('wish-cheap-all');
+    const before = priceList.reduce((s, x) => s + (x.price > 0 ? x.price * x.amount : 0), 0);
+    let changed = 0, checked = 0;
+    const items = priceList.slice();
+    try {
+        for (const item of items) {
+            checked++;
+            if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${checked} / ${items.length}`;
+            let best = null;
+            try { best = await findCheapestPrinting(String(item.name).split(' // ')[0], !!item.foil); } catch (e) {}
+            if (best && best.card.id !== item.id && (!(item.price > 0) || best.price < item.price - 0.004)) {
+                const idx = priceList.indexOf(item);
+                if (idx < 0) continue;
+                priceList.splice(idx, 1);
+                _wishPut(_wishEntryFrom(best.card, !!item.foil, item.amount, best.price));
+                changed++;
+            } else if (best && best.card.id === item.id) {
+                item.cheapest = true; item.price = best.price; item.cheapestAt = Date.now();
+            }
+            await new Promise(r => setTimeout(r, 80));
+        }
+    } finally {
+        _wishSwitching = false;
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-coins"></i> Make all cheapest';
+    }
+    saveList(); updateListView();
+    const after = priceList.reduce((s, x) => s + (x.price > 0 ? x.price * x.amount : 0), 0);
+    toast(changed ? `💰 ${changed} card${changed === 1 ? '' : 's'} switched — the list now costs ${fmt(after)} (saved ${fmt(Math.max(0, before - after))})`
+                  : '💰 Everything is already the cheapest printing');
+}
+
+async function addToList() {
     if (!currentCard) return;
+    const card = currentCard, foil = !!currentFoil;
     const amt=parseInt(document.getElementById('add-amount').value)||1;
-    const activePrice = currentFoil && currentCard.priceFoil >= 0 ? currentCard.priceFoil : currentCard.price;
+    const activePrice = foil && card.priceFoil >= 0 ? card.priceFoil : card.price;
     // Foil and non-foil are separate entries (different id suffix)
-    const listKey = currentFoil ? currentCard.id + '_foil' : currentCard.id;
-    const ex=priceList.find(x=>(x._listKey||x.id)===listKey);
-    if (ex) { ex.amount+=amt; }
-    else { priceList.push({...currentCard, _listKey:listKey, price:activePrice, foil:currentFoil, amount:amt}); }
-    saveList(); updateListView(); vib(40);
-    toast(`${amt}× ${currentCard.name}${currentFoil?' (Foil)':''} added!`);
+    const listKey = foil ? card.id + '_foil' : card.id;
+    const fallback = {...card, _listKey:listKey, price:activePrice, foil, amount:amt};
+    vib(40);
+    if (!wishCheapestOn()) {
+        _wishPut(fallback); saveList(); updateListView();
+        return toast(`${amt}× ${card.name}${foil?' (Foil)':''} added!`);
+    }
+    toast(`Finding the cheapest ${card.name}${foil?' (Foil)':''}…`);
+    const res = await wishAddByName(card.name, foil, amt, fallback);
+    toast(res.cheapest
+        ? `${amt}× ${card.name}${foil?' (Foil)':''} added — cheapest: ${res.card.set_name} (${fmt(res.price)})`
+        : `${amt}× ${card.name}${foil?' (Foil)':''} added!`);
 }
 
 function updateListView() {
@@ -12274,7 +12422,7 @@ function updateListView() {
             <div style="font-weight:700;margin-right:8px;min-width:26px;">${item.amount}×</div>
             <div style="flex:1;overflow:hidden;padding-right:8px;min-width:0;">
                 <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name.split('//')[0].trim()}${item.foil?'<span class="foil-badge">✨</span>':''}</div>
-                <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;margin-top:1px;">${item.setName||item.set}</div>
+                <div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em;margin-top:1px;">${item.setName||item.set}${item.cheapest?'<span class="wish-cheap-tag">💰 cheapest</span>':''}</div>
             </div>
             <div class="price-text" style="margin-right:10px;white-space:nowrap;">${fmt(lt)}</div>
             <div style="color:var(--red);font-weight:700;cursor:pointer;font-size:20px;padding:0 4px;" onclick="event.stopPropagation();removeItem(${i})">×</div>`;
@@ -12284,6 +12432,7 @@ function updateListView() {
     document.getElementById('list-total').innerText=fmt(total);
 }
 updateListView();
+_syncWishCheapToggles();
 
 function removeItem(i){priceList.splice(i,1);saveList();updateListView();}
 
@@ -12365,7 +12514,19 @@ async function importWishList() {
     }
 
     let addedQty = 0;
+    // Billigste udgave: slå hvert fundne kort op (ét ad gangen, Scryfall vil have pauser)
+    const cheapMap = {};
+    if (wishCheapestOn()) {
+        const found = [...new Set(entries.map(e => e.name.toLowerCase()).filter(n => cardMap[n]))];
+        for (let i = 0; i < found.length; i++) {
+            statusEl.innerText = `Finding the cheapest printings… ${i + 1} / ${found.length}`;
+            try { const best = await findCheapestPrinting(cardMap[found[i]].name.split(' // ')[0], false); if (best) cheapMap[found[i]] = best; } catch (e) {}
+            await new Promise(r => setTimeout(r, 90));
+        }
+    }
     entries.forEach(entry => {
+        const best = cheapMap[entry.name.toLowerCase()];
+        if (best) { _wishPut(_wishEntryFrom(best.card, false, entry.qty, best.price)); addedQty += entry.qty; return; }
         const c = cardMap[entry.name.toLowerCase()];
         if (!c) return;
         const p = c.prices;
@@ -12398,7 +12559,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.40 · Arcane';
+const APP_VERSION = '8.41 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
