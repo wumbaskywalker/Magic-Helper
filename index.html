@@ -7576,6 +7576,41 @@ body.fx-board-off .life-ambience { display: none; }
 .sb-popup-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .sb-popup-actions .app-btn { margin: 0; }
 
+/* ── Deck-kategorier (v8.43) ── */
+.deck-cat-btn {
+    display: inline-flex; align-items: center; gap: 8px; margin: 2px 0 12px; padding: 7px 12px;
+    border: 1px dashed rgba(242,214,147,.3); border-radius: 999px; color: var(--muted);
+    background: transparent; font-size: 12px; font-weight: 800; cursor: pointer;
+}
+.deck-cat-btn.has-cat { border-style: solid; color: #f1e6ca; background: rgba(199,167,104,.14); }
+.deck-cat-caret { font-size: 9px; opacity: .7; }
+.deck-cat-filters { display: flex; gap: 6px; overflow-x: auto; margin: 0 -2px 12px; padding: 0 2px 4px; scrollbar-width: none; }
+.deck-cat-filters::-webkit-scrollbar { display: none; }
+.deck-cat-filter { flex: none; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); background: rgba(255,255,255,.03); font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.deck-cat-filter span { margin-left: 3px; opacity: .65; }
+.deck-cat-filter.on { color: #f1e6ca; border-color: rgba(242,214,147,.45); background: rgba(199,167,104,.18); }
+.deck-cat-group { display: flex; align-items: center; gap: 7px; margin: 14px 2px 7px; color: #e5d5ad; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.deck-cat-group:first-of-type { margin-top: 2px; }
+.deck-cat-group i { font-size: 10px; opacity: .8; }
+.deck-cat-group span { margin-left: auto; color: var(--muted); font-weight: 700; }
+.deck-cat-group.none { color: var(--muted); }
+.deck-cat-sheet { display: none; position: fixed; inset: 0; z-index: 1200; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.72); }
+.deck-cat-sheet.open { display: flex; }
+.deck-cat-card { width: 100%; max-width: 520px; max-height: 85vh; overflow-y: auto; box-sizing: border-box; padding: 18px 18px max(20px, env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; border-top: 1px solid rgba(242,214,147,.14); background: linear-gradient(180deg, #171d25, #10151b); }
+.deck-cat-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.deck-cat-head small { display: block; color: var(--gold, #c7a768); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
+.deck-cat-head strong { display: block; margin-top: 3px; font-size: 17px; }
+.deck-cat-close { width: 36px; height: 36px; flex: none; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); background: var(--bg-input); cursor: pointer; }
+.deck-cat-sub { margin: 14px 0 7px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.deck-cat-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.deck-cat-chip { padding: 8px 13px; border: 1px solid var(--border); border-radius: 999px; color: var(--text); background: rgba(255,255,255,.04); font-size: 13px; font-weight: 700; cursor: pointer; }
+.deck-cat-chip.suggest { border-style: dashed; color: var(--muted); }
+.deck-cat-chip.on { color: #1b1406; border-color: #e5c982; background: #e5c982; }
+.deck-cat-new { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+.deck-cat-new input { margin: 0 !important; height: 42px; box-sizing: border-box; }
+.deck-cat-new button { padding: 0 16px; border: 1px solid rgba(242,214,147,.3); border-radius: 12px; color: #e5d5ad; background: rgba(199,167,104,.12); font-weight: 800; cursor: pointer; }
+.deck-cat-remove { width: 100%; margin-top: 16px; padding: 11px; border: 1px solid rgba(231,76,60,.3); border-radius: 12px; color: #e8736a; background: rgba(231,76,60,.06); font-weight: 800; cursor: pointer; }
+
 </style>
 </head>
 <body>
@@ -7662,6 +7697,7 @@ body.fx-board-off .life-ambience { display: none; }
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.43</span> — Deck categories: give each deck a category such as Old School, Premodern or Casual (or make your own). The deck list is grouped by category with quick filters. New formats with legality check: Premodern, Old School 93/94, Vintage, Pauper Commander, Oathbreaker and PreDH</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.42</span> — Lighter on the battery: the game board’s fireflies only move for a few seconds after you tap (choose Off / When you tap / Always under Info), the front-page video plays twice and then rests, and the screen no longer stays awake on the front page. New “Sets” tab under Search: find any set and browse every card in collector-number order, with prices and ✓ for cards you own. You can now rename a player in the player overview (the … button)</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.41</span> — The wishlist picks the cheapest printing: cards you add (from search, decks, the scanner or an imported list) go on as the cheapest paper printing, normal or foil. “Make all cheapest” updates the whole list, and it can be switched off</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.40</span> — Online games: a player who joins after the game has started now goes straight in, a lost “I’m ready” is sent again automatically, and someone who left can take their seat back from a new phone (the host can also tap “Free seat”). Changing the number of players no longer resets everyone’s ready status</div>
@@ -8672,9 +8708,18 @@ body.fx-board-off .life-ambience { display: none; }
                 <option value="modern">Modern</option>
                 <option value="pioneer">Pioneer</option>
                 <option value="legacy">Legacy</option>
+                <option value="vintage">Vintage</option>
                 <option value="pauper">Pauper</option>
+                <option value="premodern">Premodern</option>
+                <option value="oldschool">Old School 93/94</option>
+                <option value="paupercommander">Pauper Commander</option>
+                <option value="oathbreaker">Oathbreaker</option>
+                <option value="predh">PreDH</option>
             </select>
         </div>
+        <button id="deck-category-btn" class="deck-cat-btn" type="button" onclick="openDeckCategoryPicker()">
+            <i class="fa-solid fa-tag"></i><span id="deck-category-label">Add a category</span><i class="fa-solid fa-chevron-down deck-cat-caret"></i>
+        </button>
 
         <!-- Bygget eller bare en idé -->
         <button id="deck-built-row" class="deck-built-row" onclick="toggleDeckBuilt()" type="button" aria-pressed="false">
@@ -12706,7 +12751,7 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.42 · Arcane';
+const APP_VERSION = '8.43 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
@@ -13800,10 +13845,13 @@ function _deckPickerHtml(p) {
             <span class="player-deck-icon"><i class="fa-solid fa-layer-group"></i></span>
             <select id="player-deck-select" aria-label="Deck played by ${_escapeHistory(p.name)}" onchange="setPlayerDeck(${p.id}, this.value)">
                 ${opt('', 'No deck chosen', !d)}
-                ${own.length ? `<optgroup label="Your decks">${own.map(x => {
-                    const cmd = _deckCommanderName(x);
-                    return opt('id:' + x.id, (x.name || 'Unnamed deck') + (cmd && cmd !== x.name ? ' — ' + cmd : ''), d && String(d.id) === String(x.id));
-                }).join('')}</optgroup>` : ''}
+                ${(() => {
+                    if (!own.length) return '';
+                    const one = x => { const cmd = _deckCommanderName(x); return opt('id:' + x.id, (x.name || 'Unnamed deck') + (cmd && cmd !== x.name ? ' — ' + cmd : ''), d && String(d.id) === String(x.id)); };
+                    const groups = [...new Set(own.map(x => x.category || ''))].sort((a, b) => !a ? 1 : !b ? -1 : a.localeCompare(b));
+                    if (groups.length === 1 && !groups[0]) return `<optgroup label="Your decks">${own.map(one).join('')}</optgroup>`;
+                    return groups.map(g => `<optgroup label="${_escapeHistory(g || 'Your other decks')}">${own.filter(x => (x.category || '') === g).map(one).join('')}</optgroup>`).join('');
+                })()}
                 ${opt('other', 'Someone else’s deck…', isOther)}
             </select>
         </div>
@@ -17928,6 +17976,7 @@ function openDeckEditor(id) {
     document.getElementById('deck-editor-view').style.display = '';
     document.getElementById('deck-name-input').value = deck.name;
     document.getElementById('deck-format-select').value = deck.format || 'commander';
+    _renderDeckCategoryBtn(deck);
     renderDeckEditor();
 }
 
@@ -17945,7 +17994,88 @@ function renameDeck(name) {
 
 function setDeckFormat(fmt) {
     const deck = getActiveDeck(); if (!deck) return;
-    deck.format = fmt; saveDecks(); renderDeckEditor();
+    deck.format = fmt;
+    // Vælger man Premodern / Old School og decket ikke har en kategori, får det den.
+    const auto = { premodern: 'Premodern', oldschool: 'Old School' }[fmt];
+    if (auto && !deck.category) { deck.category = auto; _rememberDeckCategory(auto); _renderDeckCategoryBtn(deck); }
+    saveDecks(); renderDeckEditor();
+}
+
+// ── Kategorier til decks (Old School, Premodern, Casual …) ────────
+// Et deck har én kategori (deck.category) - uafhængig af formatet, som styrer
+// lovlighedstjekket. Brugte kategorier huskes, så de kan vælges igen.
+const DECK_CATEGORY_SUGGESTIONS = ['Commander', 'Casual', 'Old School', 'Premodern', 'Modern', 'Pauper', 'cEDH', 'Proxy / test'];
+function _savedDeckCategories() {
+    try { const v = JSON.parse(localStorage.getItem('mh_deck_categories') || '[]'); return Array.isArray(v) ? v.filter(x => typeof x === 'string') : []; } catch (e) { return []; }
+}
+function _rememberDeckCategory(name) {
+    const list = _savedDeckCategories();
+    if (!list.some(x => x.toLowerCase() === name.toLowerCase())) {
+        list.push(name);
+        try { localStorage.setItem('mh_deck_categories', JSON.stringify(list.slice(-60))); } catch (e) {}
+    }
+}
+function deckCategories() {
+    const seen = new Map();
+    [...decks.map(d => d.category).filter(Boolean), ..._savedDeckCategories()].forEach(n => {
+        const k = String(n).trim().toLowerCase(); if (k && !seen.has(k)) seen.set(k, String(n).trim());
+    });
+    return [...seen.values()].sort((a, b) => a.localeCompare(b, 'en'));
+}
+function _renderDeckCategoryBtn(deck) {
+    const label = document.getElementById('deck-category-label');
+    const btn = document.getElementById('deck-category-btn');
+    if (!label || !btn) return;
+    label.textContent = deck?.category ? deck.category : 'Add a category';
+    btn.classList.toggle('has-cat', !!deck?.category);
+}
+function openDeckCategoryPicker() {
+    const deck = getActiveDeck(); if (!deck) return;
+    let sheet = document.getElementById('deck-cat-sheet');
+    if (!sheet) {
+        sheet = document.createElement('div');
+        sheet.id = 'deck-cat-sheet';
+        sheet.className = 'deck-cat-sheet';
+        sheet.addEventListener('click', e => { if (e.target === sheet) closeDeckCategoryPicker(); });
+        document.body.appendChild(sheet);
+    }
+    const mine = deckCategories();
+    const suggestions = DECK_CATEGORY_SUGGESTIONS.filter(x => !mine.some(m => m.toLowerCase() === x.toLowerCase()));
+    const chip = (n, extra = '') => `<button class="deck-cat-chip${deck.category === n ? ' on' : ''}${extra}" onclick="setDeckCategory(decodeURIComponent('${encodeURIComponent(n).replace(/'/g, '%27')}'))">${_safeHTML(n)}</button>`;
+    sheet.innerHTML = `<div class="deck-cat-card">
+        <div class="deck-cat-head"><div><small>CATEGORY</small><strong>${_safeHTML(deck.name || 'Deck')}</strong></div>
+            <button class="deck-cat-close" onclick="closeDeckCategoryPicker()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
+        ${mine.length ? `<div class="deck-cat-sub">Your categories</div><div class="deck-cat-chips">${mine.map(n => chip(n)).join('')}</div>` : ''}
+        ${suggestions.length ? `<div class="deck-cat-sub">Suggestions</div><div class="deck-cat-chips">${suggestions.map(n => chip(n, ' suggest')).join('')}</div>` : ''}
+        <div class="deck-cat-sub">New category</div>
+        <div class="deck-cat-new">
+            <input id="deck-cat-input" maxlength="30" placeholder="e.g. Kitchen table" autocomplete="off"
+                onkeydown="if(event.key==='Enter'){setDeckCategory(this.value)}">
+            <button onclick="setDeckCategory(document.getElementById('deck-cat-input').value)">Add</button>
+        </div>
+        ${deck.category ? `<button class="deck-cat-remove" onclick="setDeckCategory('')"><i class="fa-solid fa-xmark"></i> Remove category</button>` : ''}
+    </div>`;
+    sheet.classList.add('open');
+}
+function closeDeckCategoryPicker() { document.getElementById('deck-cat-sheet')?.classList.remove('open'); }
+function setDeckCategory(name) {
+    const deck = getActiveDeck(); if (!deck) return;
+    const clean = String(name || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 30);
+    // Samme navn med andre store/små bogstaver = samme kategori
+    const existing = deckCategories().find(x => x.toLowerCase() === clean.toLowerCase());
+    deck.category = clean ? (existing || clean) : '';
+    if (deck.category) _rememberDeckCategory(deck.category); else delete deck.category;
+    saveDecks();
+    _renderDeckCategoryBtn(deck);
+    closeDeckCategoryPicker();
+    toast(deck.category ? `🏷 ${deck.name} → ${deck.category}` : 'Category removed');
+}
+function _sameCat(d, n) { return String(d.category || '').toLowerCase() === String(n || '').toLowerCase(); }
+let _deckCatFilter = (() => { try { return localStorage.getItem('mh_deck_cat_filter') || 'all'; } catch (e) { return 'all'; } })();
+function setDeckCatFilter(v) {
+    _deckCatFilter = v;
+    try { localStorage.setItem('mh_deck_cat_filter', v); } catch (e) {}
+    renderDeckList();
 }
 
 async function setDeckCommander(deckKey) {
@@ -18064,7 +18194,14 @@ function renderDeckList() {
         return;
     }
     const COLOR_ICONS = {W:'⚪',U:'🔵',B:'⚫',R:'🔴',G:'🟢'};
-    c.innerHTML = decks.map(d => {
+    const FORMAT_NAMES = { oldschool:'Old School', paupercommander:'Pauper Commander', predh:'PreDH' };
+    const cats = deckCategories().filter(n => decks.some(d => (d.category || '').toLowerCase() === n.toLowerCase()));
+    const uncategorized = decks.filter(d => !d.category).length;
+    if (_deckCatFilter !== 'all' && _deckCatFilter !== '__none' && !cats.some(n => n.toLowerCase() === String(_deckCatFilter).toLowerCase())) _deckCatFilter = 'all';
+    if (_deckCatFilter === '__none' && !uncategorized) _deckCatFilter = 'all';
+    const filterBtn = (v, label, n) => `<button class="deck-cat-filter${_deckCatFilter === v ? ' on' : ''}" onclick="setDeckCatFilter(decodeURIComponent('${encodeURIComponent(v).replace(/'/g, '%27')}'))">${_safeHTML(label)} <span>${n}</span></button>`;
+    const filters = cats.length ? `<div class="deck-cat-filters">${filterBtn('all', 'All', decks.length)}${cats.map(n => filterBtn(n, n, decks.filter(d => _sameCat(d, n)).length)).join('')}${uncategorized ? filterBtn('__none', 'No category', uncategorized) : ''}</div>` : '';
+    const itemHtml = d => {
         const total = d.cards.reduce((s,c)=>s+c.qty,0);
         const val   = d.cards.reduce((s,c)=>s+(c.price>0?c.price*c.qty:0),0);
         const ci    = [...new Set(d.cards.flatMap(c=>c.colorIdentity||[]))];
@@ -18072,11 +18209,23 @@ function renderDeckList() {
             <div style="font-size:24px;">🃏</div>
             <div class="deck-meta">
                 <div class="deck-name-label">${_safeHTML(d.name)}${d.built ? '<span class="deck-built-badge">BUILT</span>' : ''}${d.importSource === 'manabox' ? '<span class="deck-import-source-badge">MANABOX</span>' : ''}</div>
-                <div class="deck-info-label">${total} cards · ${fmt(val)} · ${(d.format||'commander').charAt(0).toUpperCase()+(d.format||'commander').slice(1)} ${ci.map(c=>COLOR_ICONS[c]||c).join('')}</div>
+                <div class="deck-info-label">${total} cards · ${fmt(val)} · ${FORMAT_NAMES[d.format] || (d.format||'commander').charAt(0).toUpperCase()+(d.format||'commander').slice(1)} ${ci.map(c=>COLOR_ICONS[c]||c).join('')}</div>
             </div>
             <i class="fa-solid fa-chevron-right" style="color:var(--muted);font-size:14px;"></i>
         </div>`;
-    }).join('');
+    };
+    let body = '';
+    if (!cats.length) body = decks.map(itemHtml).join('');
+    else if (_deckCatFilter === 'all') {
+        cats.forEach(n => {
+            const list = decks.filter(d => _sameCat(d, n));
+            body += `<div class="deck-cat-group"><i class="fa-solid fa-tag"></i>${_safeHTML(n)}<span>${list.length}</span></div>` + list.map(itemHtml).join('');
+        });
+        const rest = decks.filter(d => !d.category);
+        if (rest.length) body += `<div class="deck-cat-group none">No category<span>${rest.length}</span></div>` + rest.map(itemHtml).join('');
+    } else if (_deckCatFilter === '__none') body = decks.filter(d => !d.category).map(itemHtml).join('');
+    else body = decks.filter(d => _sameCat(d, _deckCatFilter)).map(itemHtml).join('');
+    c.innerHTML = filters + body;
 }
 renderDeckList();
 
