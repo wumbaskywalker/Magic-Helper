@@ -7697,6 +7697,7 @@ body.fx-board-off .life-ambience { display: none; }
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:10px;">LATEST CHANGES</div>
             <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);line-height:1.5;">
+                <div><span style="color:var(--gold);font-weight:700;">v8.44</span> — Fixed: the Cardmarket button on a card no longer ends on Cardmarket’s “Sorry, you have been blocked” page. Cards without a Cardmarket link now open a Cardmarket search instead</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.43</span> — Deck categories: give each deck a category such as Old School, Premodern or Casual (or make your own). The deck list is grouped by category with quick filters. New formats with legality check: Premodern, Old School 93/94, Vintage, Pauper Commander, Oathbreaker and PreDH</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.42</span> — Lighter on the battery: the game board’s fireflies only move for a few seconds after you tap (choose Off / When you tap / Always under Info), the front-page video plays twice and then rests, and the screen no longer stays awake on the front page. New “Sets” tab under Search: find any set and browse every card in collector-number order, with prices and ✓ for cards you own. You can now rename a player in the player overview (the … button)</div>
                 <div><span style="color:var(--gold);font-weight:700;">v8.41</span> — The wishlist picks the cheapest printing: cards you add (from search, decks, the scanner or an imported list) go on as the cheapest paper printing, normal or foil. “Make all cheapest” updates the whole list, and it can be switched off</div>
@@ -9985,7 +9986,7 @@ async function searchCard(query) {
                      artCrop: c.image_uris?.art_crop ?? c.card_faces?.[0]?.image_uris?.art_crop ?? '',
                      cmc: c.cmc||0, colors: c.colors||[], colorIdentity: c.color_identity||[],
                      typeLine: c.type_line||'', manaCost: c.mana_cost||'',
-                     cmLink: c.purchase_uris?.cardmarket||'#',
+                     cmLink: _cleanCardmarketUrl(c.purchase_uris?.cardmarket, c.name),
                      gathererLink: c.related_uris?.gatherer||'',
                      edhrecLink:   c.related_uris?.edhrec||'',
                      legalities:   c.legalities||{},
@@ -10076,7 +10077,7 @@ function selectVariant(i) {
         foilBtn.style.display = currentCard.priceFoil >= 0 ? 'flex' : 'none';
         foilBtn.classList.remove('foil-active');
     }
-    document.getElementById('link-cm').href        = currentCard.cmLink;
+    document.getElementById('link-cm').href        = _cleanCardmarketUrl(currentCard.cmLink, currentCard.name);
     document.getElementById('link-kelz').href      = 'https://kelz0r.dk/magic/advanced_search_result.php?keywords=' + encodeURIComponent(currentCard.name);
     document.getElementById('link-gatherer').href  = currentCard.gathererLink || `https://gatherer.wizards.com/Pages/Card/Details.aspx?name=${encodeURIComponent(currentCard.name)}`;
     const edh = document.getElementById('link-edhrec');
@@ -12751,7 +12752,21 @@ async function importWishList() {
     toast(`${addedQty} cards added to the wishlist!`);
 }
 
-const APP_VERSION = '8.43 · Arcane';
+// Cardmarket blokerer (Cloudflare: "Sorry, you have been blocked") links med
+// Scryfalls sporings-parametre utm_campaign/utm_medium/utm_source. Samme link
+// uden dem åbner normalt. Derfor fjernes al sporing; idProduct beholdes.
+function _cleanCardmarketUrl(url, name) {
+    try {
+        if (!url || url === '#') throw 0;
+        const u = new URL(url);
+        if (!/(^|\.)cardmarket\.com$/i.test(u.hostname)) return url;
+        [...u.searchParams.keys()].forEach(k => { if (/^utm_/i.test(k) || k === 'referrer') u.searchParams.delete(k); });
+        return u.toString();
+    } catch (e) {
+        return name ? 'https://www.cardmarket.com/en/Magic/Products/Search?searchString=' + encodeURIComponent(String(name).split(' // ')[0]) : '#';
+    }
+}
+const APP_VERSION = '8.44 · Arcane';
 // Reuse the embedded Cardmarket artwork from Search so the single-file build
 // keeps one canonical logo instead of duplicating a large image.
 function syncCardmarketBrand(){
