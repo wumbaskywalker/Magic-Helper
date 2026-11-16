@@ -3,9 +3,11 @@
 // kortbilleder gemmes efterhånden som de ses. Live data (priser, søgning)
 // hentes altid fra nettet og fejler pænt når forbindelsen mangler.
 
-const VERSION   = 'v3';
-const SHELL     = `mh-shell-${VERSION}`;   // selve appen
-const VENDOR    = `mh-vendor-${VERSION}`;  // font-awesome, tesseract, mqtt m.fl.
+// SHELL hævet til v4 sammen med rettelsen i handleShell(): den gamle cache kan
+// indeholde installationsguiden gemt som selve appen, og skal derfor kasseres.
+// VENDOR bliver på v3, så OCR-biblioteker m.m. ikke skal hentes forfra.
+const SHELL     = 'mh-shell-v4';           // selve appen
+const VENDOR    = 'mh-vendor-v3';          // font-awesome, tesseract, mqtt m.fl.
 const IMAGES    = 'mh-images';             // kortbilleder og sæt-ikoner
 const IMAGE_CAP = 400;                     // maks antal gemte billeder
 const NET_TIMEOUT = 2500;                  // ms vi venter på nettet før cachen bruges
@@ -88,12 +90,21 @@ async function trimImages() {
 // lukke service workeren ned før den nye version er gemt.
 async function handleShell(request, event) {
     const cache = await caches.open(SHELL);
-    const cached = await cache.match(request, { ignoreSearch: true })
-                || await cache.match('./index.html');
+    // Er det selve appen ('/' eller index.html), eller en anden side (install.html)?
+    // Før blev ALT gemt under './' og './index.html' — åbnede man installations-
+    // guiden, lå den bagefter i cachen som appen, og appen startede som guiden
+    // næste gang nettet var væk eller langsomt.
+    const path = new URL(request.url).pathname;
+    const isApp = path.endsWith('/') || path.endsWith('/index.html');
+    const pageKey = new URL(request.url).origin + path;      // uden ?query og #hash
+    const exact = await cache.match(request, { ignoreSearch: true });
+    const cached = exact || await cache.match('./index.html');
 
     // Den gemte Response sendes videre til browseren, og dens body kan kun læses
     // én gang. Klon den med det samme, så baggrundssammenligningen har sin egen.
-    const previousBody = cached ? cached.clone().text() : Promise.resolve(null);
+    // Kun et præcist træf sammenlignes — ellers ville index.html brugt som
+    // nødløsning for en anden side udløse en falsk "ny version".
+    const previousBody = exact ? exact.clone().text() : Promise.resolve(null);
 
     const network = (async () => {
         // NB: fetch(request, init) laver internt et nyt Request-objekt, og det er
@@ -106,9 +117,13 @@ async function handleShell(request, event) {
             statusText: response.statusText,
             headers: response.headers
         };
-        // gem under begge nøgler, så både './' og './index.html' er opdaterede
-        await cache.put('./', new Response(fresh, init));
-        await cache.put('./index.html', new Response(fresh, init));
+        if (isApp) {
+            // gem under begge nøgler, så både './' og './index.html' er opdaterede
+            await cache.put('./', new Response(fresh, init));
+            await cache.put('./index.html', new Response(fresh, init));
+        } else {
+            await cache.put(pageKey, new Response(fresh, init));
+        }
         return { fresh, init };
     })();
 
